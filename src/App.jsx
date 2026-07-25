@@ -8,6 +8,7 @@ import {
   CaretDown,
   CaretLeft,
   CaretRight,
+  CaretUp,
   CheckCircle,
   CloudCheck,
   CircleHalfTilt,
@@ -404,6 +405,8 @@ function Filmstrip({
 }) {
   const scrollRef = useRef(null);
   const [scrollState, setScrollState] = useState({ previous: false, next: false });
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const activePlay = library.find((play) => play.id === activeId);
 
   const measure = () => {
     const element = scrollRef.current;
@@ -430,7 +433,17 @@ function Filmstrip({
   const nudge = (direction) => scrollRef.current?.scrollBy({ left: direction * 240, behavior: "smooth" });
 
   return (
-    <section className="filmstrip" aria-label={`${family} playbook plays`}>
+    <section className={`filmstrip ${mobileOpen ? "mobile-open" : ""}`} aria-label={`${family} playbook plays`}>
+      <button
+        type="button"
+        className="mobile-browser-toggle"
+        aria-expanded={mobileOpen}
+        onClick={() => setMobileOpen((value) => !value)}
+      >
+        <span><small>Browse</small><strong>{activePlay?.name ?? "No matching play"}</strong></span>
+        <span className="mobile-browser-count">{library.length}/{fullCount}</span>
+        {mobileOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
+      </button>
       <div className="play-browser-controls">
         <label>
           <MagnifyingGlass size={16} />
@@ -449,7 +462,7 @@ function Filmstrip({
             key={play.id}
             data-play-id={play.id}
             className={`film-card ${play.id === activeId ? "active" : ""}`}
-            onClick={() => onChange(play.id)}
+            onClick={() => { setMobileOpen(false); onChange(play.id); }}
             aria-label={`Open ${play.name}`}
             aria-current={play.id === activeId ? "true" : undefined}
           >
@@ -534,35 +547,52 @@ function ToolRail({
   );
 }
 
-function LayerBar({ layers, onChange }) {
+function LayerBar({ layers, onChange, onView, view }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const update = (name, patch) => onChange((current) => ({
     ...current,
     [name]: { ...current[name], ...patch },
   }));
   return (
-    <div className="layer-bar" aria-label="Canvas layers">
-      {["offense", "defense"].map((name) => {
-        const layer = layers[name];
-        return (
-          <div className={`layer-item ${layer.visible ? "visible" : "hidden"} ${layer.dimmed ? "dimmed" : ""}`} key={name}>
-            <strong>{titleCase(name)}</strong>
-            <button type="button" aria-label={`${layer.visible ? "Hide" : "Show"} ${name}`} aria-pressed={layer.visible} onClick={() => update(name, { visible: !layer.visible })}>
-              {layer.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
-            </button>
-            <button type="button" aria-label={`${layer.dimmed ? "Restore" : "Dim"} ${name}`} aria-pressed={layer.dimmed} onClick={() => update(name, { dimmed: !layer.dimmed, visible: true })}>
-              <CircleHalfTilt size={17} />
-            </button>
-            <button type="button" aria-label={`${layer.locked ? "Unlock" : "Lock"} ${name}`} aria-pressed={layer.locked} onClick={() => update(name, { locked: !layer.locked })}>
-              {layer.locked ? <LockSimple size={17} /> : <LockSimpleOpen size={17} />}
-            </button>
-          </div>
-        );
-      })}
-      <div className={`layer-item assignments ${layers.assignments.visible ? "visible" : "hidden"}`}>
-        <strong>Assignments</strong>
-        <button type="button" aria-label={`${layers.assignments.visible ? "Hide" : "Show"} assignments`} aria-pressed={layers.assignments.visible} onClick={() => update("assignments", { visible: !layers.assignments.visible })}>
-          {layers.assignments.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
-        </button>
+    <div className={`layer-bar ${mobileOpen ? "mobile-open" : ""}`} aria-label="Canvas layers">
+      <button type="button" className="mobile-layer-toggle" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>
+        <Stack size={18} />
+        <strong>Layers</strong>
+        <span className="layer-visibility-summary" aria-hidden="true">
+          <i className={layers.offense.visible ? "on" : ""}>O</i>
+          <i className={layers.defense.visible ? "on" : ""}>D</i>
+          <i className={layers.assignments.visible ? "on" : ""}>A</i>
+        </span>
+        {mobileOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
+      </button>
+      <div className="layer-items">
+        <div className="mobile-field-view">
+          <span>Field view</span>
+          <SegmentedControl value={view} onChange={(nextView) => { onView(nextView); setMobileOpen(false); }} />
+        </div>
+        {["offense", "defense"].map((name) => {
+          const layer = layers[name];
+          return (
+            <div className={`layer-item ${layer.visible ? "visible" : "hidden"} ${layer.dimmed ? "dimmed" : ""}`} key={name}>
+              <strong>{titleCase(name)}</strong>
+              <button type="button" aria-label={`${layer.visible ? "Hide" : "Show"} ${name}`} aria-pressed={layer.visible} onClick={() => update(name, { visible: !layer.visible })}>
+                {layer.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
+              </button>
+              <button type="button" aria-label={`${layer.dimmed ? "Restore" : "Dim"} ${name}`} aria-pressed={layer.dimmed} onClick={() => update(name, { dimmed: !layer.dimmed, visible: true })}>
+                <CircleHalfTilt size={17} />
+              </button>
+              <button type="button" aria-label={`${layer.locked ? "Unlock" : "Lock"} ${name}`} aria-pressed={layer.locked} onClick={() => update(name, { locked: !layer.locked })}>
+                {layer.locked ? <LockSimple size={17} /> : <LockSimpleOpen size={17} />}
+              </button>
+            </div>
+          );
+        })}
+        <div className={`layer-item assignments ${layers.assignments.visible ? "visible" : "hidden"}`}>
+          <strong>Assignments</strong>
+          <button type="button" aria-label={`${layers.assignments.visible ? "Hide" : "Show"} assignments`} aria-pressed={layers.assignments.visible} onClick={() => update("assignments", { visible: !layers.assignments.visible })}>
+            {layers.assignments.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -743,9 +773,32 @@ function Inspector({
   route,
   unit,
 }) {
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   if (!playerLabel) return null;
+  const timingSummary = route
+    ? `${route.delay > 0 ? "+" : ""}${(route.delay ?? 0).toFixed(2)}s · ${(route.pace ?? 1).toFixed(2)}×`
+    : "No assignment";
+  const detailLabel = route?.type === "Route"
+    ? "Route definition"
+    : route?.type === "Block"
+      ? "Block details"
+      : route?.type === "Motion"
+        ? "Motion details"
+        : unit === "defense" && route
+          ? `${route.type} details`
+          : "Assignment details";
   return (
-    <aside className="inspector" aria-label="Selected player inspector">
+    <aside className={`inspector ${mobileExpanded ? "mobile-expanded" : "mobile-peek"}`} aria-label="Selected player inspector">
+      <button
+        type="button"
+        className="mobile-sheet-handle"
+        aria-label={mobileExpanded ? "Collapse player inspector" : "Expand player inspector"}
+        aria-expanded={mobileExpanded}
+        onClick={() => setMobileExpanded((value) => !value)}
+      >
+        <span aria-hidden="true" />
+        {mobileExpanded ? <CaretDown size={17} /> : <CaretUp size={17} />}
+      </button>
       <div className="inspector-head"><div><small>{titleCase(unit)}</small><h2>{route ? route.type : "Player"}</h2></div><button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button></div>
       <div className="selected-assignment">
         <span className={`assignment-badge ${unit}`}>{playerLabel}</span>
@@ -758,28 +811,43 @@ function Inspector({
         onSelect={onSelectStage}
         unit={unit}
       />
-      {route?.inheritedFrom ? (
-        <div className={`concept-source ${route.templateOverride ? "override" : ""}`}>
-          <GitMerge size={16} />
-          <span>{route.templateOverride ? "Play-level override" : `Inherited from ${route.inheritedFrom.conceptName}`}</span>
+      <div className="inspector-body">
+        {route?.inheritedFrom ? (
+          <div className={`concept-source ${route.templateOverride ? "override" : ""}`}>
+            <GitMerge size={16} />
+            <span>{route.templateOverride ? "Play-level override" : `Inherited from ${route.inheritedFrom.conceptName}`}</span>
+          </div>
+        ) : null}
+        <PositionLabelControl label={playerLabel} onSave={onRenamePlayer} />
+        <div className="control-group">
+          <span>Assignment</span>
+          <AssignmentTypePicker unit={unit} value={route?.type ?? ""} onChange={onSetAssignmentType} />
         </div>
-      ) : null}
-      <PositionLabelControl label={playerLabel} onSave={onRenamePlayer} />
-      <div className="control-group">
-        <span>Assignment</span>
-        <AssignmentTypePicker unit={unit} value={route?.type ?? ""} onChange={onSetAssignmentType} />
+        {locked ? <div className="locked-layer-note"><LockSimple size={17} />Unlock the {unit} layer to edit assignments.</div> : null}
+        {route ? (
+          <details className="inspector-section">
+            <summary><span>Timing</span><small>{timingSummary}</small><CaretRight size={16} /></summary>
+            <TimingControls assignment={route} onChange={onTiming} />
+          </details>
+        ) : null}
+        {route ? (
+          <details className="inspector-section" open>
+            <summary><span>{detailLabel}</span><small>{route.preset ?? route.type}</small><CaretRight size={16} /></summary>
+            {route.type === "Route" ? <RouteDefinitionEditor route={route} onChange={onDefinition} onRegenerate={onRegenerate} /> : null}
+            {route.type === "Block" ? <BlockEditor definition={route.definition} onChange={onAssignmentDefinition} /> : null}
+            {route.type === "Motion" ? <MotionEditor definition={route.definition} onChange={onAssignmentDefinition} /> : null}
+            {unit === "defense" ? <DefensiveEditor assignment={route} offensePlayers={offensePlayers} onChange={onAssignmentDefinition} /> : null}
+          </details>
+        ) : null}
+        <details className="inspector-section inspector-actions">
+          <summary><span>Player actions</span><small>Copy, mirror, or remove</small><CaretRight size={16} /></summary>
+          {route ? <AssignmentTransfer targets={copyTargets} onCopy={onCopyAssignment} onMirror={onMirrorAssignment} /> : null}
+          {route ? <button className="inspector-secondary danger-text" onClick={onDeleteAssignment}><Trash size={17} />Delete assignment</button> : (
+            <p className="inspector-hint">Choose an assignment type above. The path appears immediately and can be drawn or refined with its handles.</p>
+          )}
+          <button className="advanced-toggle remove-player" onClick={onRemovePlayer}><Trash size={18} />Remove {unit === "defense" ? "defender" : "player"}</button>
+        </details>
       </div>
-      {locked ? <div className="locked-layer-note"><LockSimple size={17} />Unlock the {unit} layer to edit assignments.</div> : null}
-      {route ? <TimingControls assignment={route} onChange={onTiming} /> : null}
-      {route?.type === "Route" ? <RouteDefinitionEditor route={route} onChange={onDefinition} onRegenerate={onRegenerate} /> : null}
-      {route?.type === "Block" ? <BlockEditor definition={route.definition} onChange={onAssignmentDefinition} /> : null}
-      {route?.type === "Motion" ? <MotionEditor definition={route.definition} onChange={onAssignmentDefinition} /> : null}
-      {route && unit === "defense" ? <DefensiveEditor assignment={route} offensePlayers={offensePlayers} onChange={onAssignmentDefinition} /> : null}
-      {route ? <AssignmentTransfer targets={copyTargets} onCopy={onCopyAssignment} onMirror={onMirrorAssignment} /> : null}
-      {route ? <button className="inspector-secondary danger-text" onClick={onDeleteAssignment}><Trash size={17} />Delete assignment</button> : (
-        <p className="inspector-hint">Choose an assignment type above. The path appears immediately and can be drawn or refined with its handles.</p>
-      )}
-      <button className="advanced-toggle remove-player" onClick={onRemovePlayer}><Trash size={18} />Remove {unit === "defense" ? "defender" : "player"}</button>
     </aside>
   );
 }
@@ -2111,7 +2179,7 @@ export function App() {
           />
         ) : null}
         <div className="canvas-workspace">
-          {!present ? <LayerBar layers={layers} onChange={setLayers} /> : null}
+          {!present ? <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} /> : null}
           <PlayCanvas
             ref={svgRef}
             activeTool={activeTool}
