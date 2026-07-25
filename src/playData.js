@@ -609,6 +609,7 @@ export function normalizePlay(playData) {
     folder: playData.folder ?? (playData.sourcePage ? "Source Plays" : "Offense"),
     protection: playData.protection ?? "",
     blockingScheme: playData.blockingScheme ?? "",
+    conceptTemplateId: playData.conceptTemplateId ?? null,
     players: clonePlaybook(playData.players ?? basePlayers),
     defenders: clonePlaybook(playData.defenders ?? baseDefenders),
     routes: (playData.routes ?? []).map((routeData) => {
@@ -627,6 +628,7 @@ export function normalizePlay(playData) {
           pace: Number.isFinite(routeData.pace) ? routeData.pace : 1,
           delay: Number.isFinite(routeData.delay) ? routeData.delay : routeData.type === "Motion" ? -1.5 : 0,
           phase: assignmentPhases.includes(routeData.phase) ? routeData.phase : routeData.type === "Motion" ? "pre" : "post",
+          templateOverride: routeData.templateOverride === true,
         };
       }
       const coachEdited = routeData.evidence?.coachEdited === true;
@@ -644,6 +646,7 @@ export function normalizePlay(playData) {
         pace: Number.isFinite(routeData.pace) ? routeData.pace : 1,
         delay: Number.isFinite(routeData.delay) ? routeData.delay : 0,
         phase: "post",
+        templateOverride: routeData.templateOverride === true,
         points,
         definition,
         geometryMode: coachEdited ? routeData.geometryMode ?? "structured" : sourceEvidence ? "detected" : routeData.geometryMode ?? (routeData.definition ? "structured" : "detected"),
@@ -663,6 +666,7 @@ export function normalizePlay(playData) {
 export function createSeedPlaybooks(personalPlays = plays) {
   const books = clonePlaybook(seedPlaybooks);
   books.forEach((book) => {
+    book.concepts = clonePlaybook(book.concepts ?? []);
     book.plays = book.plays.map(normalizePlay);
   });
   books[0].plays = personalPlays.map(normalizePlay);
@@ -683,6 +687,7 @@ export function createPlayFromFormation({
     folder: "Offense",
     protection: "",
     blockingScheme: "",
+    conceptTemplateId: null,
     variantOf: null,
     players: clonePlaybook(formation.players),
     defenders: clonePlaybook(baseDefenders),
@@ -716,6 +721,80 @@ export function applyFormationToPlay(playData, formation) {
     players: nextPlayers,
     routes: nextAssignments,
   };
+}
+
+function assignmentSlotKey(assignment) {
+  return `${assignment.unit ?? "offense"}:${assignment.player}:${assignment.phase ?? (assignment.type === "Motion" ? "pre" : "post")}`;
+}
+
+function playerLocation(playData, unit, playerId) {
+  if (unit === "defense") {
+    const defender = (playData.defenders ?? []).find((item) => item.id === playerId);
+    return defender ? [defender.x, defender.y] : null;
+  }
+  const player = (playData.players ?? []).find(([label]) => label === playerId);
+  return player ? [player[1], player[2]] : null;
+}
+
+export function createConceptTemplate(playData, {
+  id,
+  name,
+}) {
+  return {
+    id,
+    name,
+    sourceFormation: playData.formation,
+    sourcePersonnel: playData.personnel,
+    players: clonePlaybook(playData.players ?? basePlayers),
+    defenders: clonePlaybook(playData.defenders ?? baseDefenders),
+    assignments: (playData.routes ?? []).map((assignment) => {
+      const copy = clonePlaybook(assignment);
+      delete copy.inheritedFrom;
+      delete copy.templateOverride;
+      return copy;
+    }),
+  };
+}
+
+export function applyConceptTemplateToPlay(playData, concept) {
+  const sourcePlay = {
+    players: concept.players ?? basePlayers,
+    defenders: concept.defenders ?? baseDefenders,
+  };
+  const incoming = (concept.assignments ?? []).flatMap((assignment) => {
+    const unit = assignment.unit ?? "offense";
+    const sourceStart = playerLocation(sourcePlay, unit, assignment.player);
+    const targetStart = playerLocation(playData, unit, assignment.player);
+    if (!sourceStart || !targetStart) return [];
+    const dx = targetStart[0] - sourceStart[0];
+    const dy = targetStart[1] - sourceStart[1];
+    return [{
+      ...clonePlaybook(assignment),
+      id: `${playData.id}-${concept.id}-${assignment.player.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${assignment.phase ?? "post"}`,
+      points: assignment.points.map(([x, y]) => [clamp(x + dx, 2, 98), clamp(y + dy, 4, 96)]),
+      inheritedFrom: {
+        conceptId: concept.id,
+        conceptName: concept.name,
+        assignmentId: assignment.id,
+      },
+      templateOverride: false,
+    }];
+  });
+
+  const incomingKeys = new Set(incoming.map(assignmentSlotKey));
+  const retained = (playData.routes ?? []).filter((assignment) => {
+    if (!incomingKeys.has(assignmentSlotKey(assignment))) return true;
+    return assignment.templateOverride === true;
+  });
+  const overriddenKeys = new Set(retained.filter((assignment) => assignment.templateOverride === true).map(assignmentSlotKey));
+  const inherited = incoming.filter((assignment) => !overriddenKeys.has(assignmentSlotKey(assignment)));
+
+  return normalizePlay({
+    ...playData,
+    family: concept.name,
+    conceptTemplateId: concept.id,
+    routes: [...retained, ...inherited],
+  });
 }
 
 export function clonePlaybook(value = plays) {

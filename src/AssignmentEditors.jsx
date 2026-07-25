@@ -33,6 +33,37 @@ export function AssignmentTypePicker({ unit, value, onChange }) {
   );
 }
 
+export function AssignmentStagePicker({
+  activeId,
+  assignments,
+  onAdd,
+  onSelect,
+  unit,
+}) {
+  const stages = unit === "defense"
+    ? [["post", "At snap"]]
+    : [["pre", "Pre-snap"], ["post", "At snap"]];
+  return (
+    <div className="assignment-stage-picker" role="group" aria-label="Assignment stages">
+      {stages.map(([phase, label]) => {
+        const assignment = assignments.find((item) => (item.phase ?? (item.type === "Motion" ? "pre" : "post")) === phase);
+        return (
+          <button
+            key={phase}
+            type="button"
+            className={assignment?.id === activeId ? "active" : ""}
+            aria-pressed={assignment?.id === activeId}
+            onClick={() => assignment ? onSelect(assignment.id) : onAdd(phase)}
+          >
+            <span>{label}</span>
+            <strong>{assignment?.type ?? <><Plus size={14} />Add</>}</strong>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function TimingControls({ assignment, onChange }) {
   const minimumDelay = assignment.type === "Motion" ? -2 : 0;
   const delay = Number.isFinite(assignment.delay) ? assignment.delay : assignment.type === "Motion" ? -1.5 : 0;

@@ -1,0 +1,22 @@
+{
+  "name": "Football OS",
+  "short_name": "Football OS",
+  "description": "A coach-first football play designer and offline playbook.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#061316",
+  "theme_color": "#061316",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "/icons/football-os-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/football-os-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

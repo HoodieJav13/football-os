@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  applyConceptTemplateToPlay,
   applyFormationToPlay,
   assignmentDefinitionToPoints,
   assignmentStartSeconds,
   basePlayers,
   baseDefenders,
   clonePlaybook,
+  createConceptTemplate,
   createPlayFromFormation,
   createSeedPlaybooks,
   defaultFormations,
@@ -253,4 +255,78 @@ test("animation timing honors pre-snap and post-snap delays", () => {
   assert.equal(assignmentStartSeconds(motion), 0.5);
   assert.equal(assignmentStartSeconds(route), 2.5);
   assert.ok(playDuration([motion, route]) > 2.5);
+});
+
+test("a player can own separate pre-snap and post-snap assignments", () => {
+  const normalized = normalizePlay({
+    ...plays[0],
+    routes: [
+      {
+        id: "h-motion",
+        player: "H",
+        type: "Motion",
+        points: [[50, 89], [25, 89]],
+        phase: "pre",
+      },
+      {
+        id: "h-route",
+        player: "H",
+        type: "Route",
+        points: [[50, 89], [50, 50]],
+        phase: "post",
+      },
+    ],
+  });
+
+  const hAssignments = normalized.routes.filter((assignment) => assignment.player === "H");
+  assert.equal(hAssignments.length, 2);
+  assert.deepEqual(hAssignments.map((assignment) => assignment.phase), ["pre", "post"]);
+  assert.ok(assignmentStartSeconds(hAssignments[0]) < assignmentStartSeconds(hAssignments[1]));
+});
+
+test("concept templates translate assignments to matching positions", () => {
+  const source = normalizePlay(plays[0]);
+  const template = createConceptTemplate(source, { id: "mesh-template", name: "Mesh" });
+  const target = createPlayFromFormation({
+    formation: defaultFormations[1],
+    id: "mesh-doubles",
+    name: "Mesh Doubles",
+  });
+  const applied = applyConceptTemplateToPlay(target, template);
+  const sourceX = source.players.find(([label]) => label === "X");
+  const targetX = target.players.find(([label]) => label === "X");
+  const sourceXAssignment = source.routes.find((assignment) => assignment.player === "X");
+  const targetXAssignment = applied.routes.find((assignment) => assignment.player === "X");
+
+  assert.equal(applied.conceptTemplateId, template.id);
+  assert.equal(applied.family, "Mesh");
+  assert.deepEqual(targetXAssignment.points[0], [targetX[1], targetX[2]]);
+  assert.equal(
+    Math.round(targetXAssignment.points.at(-1)[0] - targetXAssignment.points[0][0]),
+    Math.round(sourceXAssignment.points.at(-1)[0] - sourceX[1]),
+  );
+  assert.equal(targetXAssignment.inheritedFrom.conceptId, template.id);
+});
+
+test("reapplying a concept preserves explicit play-level overrides", () => {
+  const template = createConceptTemplate(normalizePlay(plays[0]), { id: "mesh-template", name: "Mesh" });
+  const target = createPlayFromFormation({
+    formation: defaultFormations[0],
+    id: "mesh-override",
+    name: "Mesh Override",
+  });
+  const firstPass = applyConceptTemplateToPlay(target, template);
+  const overridden = {
+    ...firstPass,
+    routes: firstPass.routes.map((assignment) => (
+      assignment.player === "X" && assignment.phase === "post"
+        ? { ...assignment, points: [[14, 73], [40, 40]], templateOverride: true }
+        : assignment
+    )),
+  };
+  const reapplied = applyConceptTemplateToPlay(overridden, template);
+  const xAssignment = reapplied.routes.find((assignment) => assignment.player === "X" && assignment.phase === "post");
+
+  assert.deepEqual(xAssignment.points, [[14, 73], [40, 40]]);
+  assert.equal(xAssignment.templateOverride, true);
 });
