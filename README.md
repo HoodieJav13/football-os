@@ -17,6 +17,30 @@ Football OS is an iPad-first football play designer and coach-facing playbook wo
 
 All playbook data is stored locally in the browser in this release. Download a Football OS backup regularly if the browser profile or device may be cleared.
 
+## Field model
+
+Every coordinate is stored in yards: `x` is yards right of the field's centre
+line and `y` is yards downfield of the line of scrimmage, so a route's stem depth
+and its `y` coordinate are the same number. The canvas draws both axes on one
+scale, in a fixed window anchored on the line of scrimmage, so every play in a
+playbook renders at the same scale and is directly comparable.
+
+## Keyboard
+
+| Key | Action |
+| --- | --- |
+| `1`–`5` | Select the Select, Route, Block, Motion or Defense tool |
+| `Ctrl`/`Cmd` + `Z` | Undo |
+| `Ctrl`/`Cmd` + `Shift` + `Z` | Redo |
+| Arrow keys | Nudge the selected player by 0.25 yd (hold `Shift` for 1 yd) |
+| `Delete` | Remove the selected assignment |
+| `Space` | Run, pause or resume the animation |
+| `[` / `]` | Previous or next play in the current filter |
+| `Escape` | Drop the drawing tool, leave presentation, then clear the selection |
+
+Dialogs close on `Escape` or a click outside, and keep keyboard focus inside
+while they are open.
+
 ## Run locally
 
 ```bash
