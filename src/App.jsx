@@ -2025,7 +2025,7 @@ export function App() {
   const pointerPoint = (event) => {
     const box = svgRef.current?.parentElement?.getBoundingClientRect();
     if (!box) return [0, 0];
-    const projection = fieldProjection({ width: box.width, height: box.height, view });
+    const projection = fieldProjection({ width: box.width, height: box.height, view, play });
     return clampPoint(pointerToField(event, box, projection));
   };
 

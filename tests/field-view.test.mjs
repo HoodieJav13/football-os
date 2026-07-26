@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FIELD, FIELD_WINDOW } from "../src/playData.js";
+import { createSeedPlaybooks, FIELD, FIELD_WINDOW } from "../src/playData.js";
 import {
   fieldProjection,
+  playBounds,
   pointerToField,
   polylinePoints,
   visibleYardLines,
@@ -130,4 +131,65 @@ test("polyline points are emitted in projected order", () => {
   const projection = fieldProjection({ ...IPAD, view: "end" });
   const attribute = polylinePoints([[0, 0], [0, 10]], projection);
   assert.equal(attribute, "0,0 0,-10");
+});
+
+/* ---------------- phone framing ---------------- */
+
+const PHONE_CANVAS = { width: 390, height: 556 };
+
+test("a narrow canvas frames the play; a wide one keeps the fixed window", () => {
+  const play = createSeedPlaybooks()[0].plays[0];
+  const phone = fieldProjection({ ...PHONE_CANVAS, play });
+  const tablet = fieldProjection({ width: 822, height: 516, play });
+
+  // Fitting raises the scale on a phone...
+  assert.ok(phone.pxPerYard > fieldProjection(PHONE_CANVAS).pxPerYard);
+  // ...but only until the play's own width binds, which on a portrait phone it
+  // always does. The loose axis then still extends past the fixed window, so the
+  // gain is bounded by canvas width / play width and nothing else.
+  const bounds = playBounds(play);
+  const neededWidth = (bounds.maxX - bounds.minX) + 8;
+  assert.ok(Math.abs(phone.pxPerYard - PHONE_CANVAS.width / neededWidth) < 0.01);
+
+  // A tablet is wide enough to keep the fixed, fully comparable window.
+  assert.equal(tablet.depthRange[1] - tablet.depthRange[0], FIELD_WINDOW.depthYards);
+});
+
+test("a fitted window still contains the whole play and the line of scrimmage", () => {
+  for (const book of createSeedPlaybooks()) {
+    for (const play of book.plays) {
+      const projection = fieldProjection({ ...PHONE_CANVAS, play });
+      const [near, far] = projection.depthRange;
+      const [left, right] = projection.lateralRange;
+      assert.ok(near <= 0 && far >= 0, `${play.id}: the LOS must stay in frame`);
+      for (const item of play.assignments) {
+        for (const [x, y] of item.points) {
+          assert.ok(x >= left && x <= right, `${play.id}/${item.id}: x ${x} outside ${left}..${right}`);
+          assert.ok(y >= near && y <= far, `${play.id}/${item.id}: y ${y} outside ${near}..${far}`);
+        }
+      }
+    }
+  }
+});
+
+test("fitting never distorts: one scale still governs both axes", () => {
+  const play = createSeedPlaybooks()[0].plays[0];
+  const projection = fieldProjection({ ...PHONE_CANVAS, play });
+  const origin = projection.project([0, 0]);
+  const across = projection.project([10, 0]);
+  const upfield = projection.project([0, 10]);
+  assert.ok(Math.abs(Math.hypot(across[0] - origin[0], across[1] - origin[1])
+    - Math.hypot(upfield[0] - origin[0], upfield[1] - origin[1])) < 1e-9);
+});
+
+test("pointer input stays accurate under a fitted window", () => {
+  const play = createSeedPlaybooks()[0].plays[0];
+  const projection = fieldProjection({ ...PHONE_CANVAS, play });
+  const box = { left: 0, top: 0, width: PHONE_CANVAS.width, height: PHONE_CANVAS.height };
+  const target = [-11, 12];
+  const [sx, sy] = projection.project(target);
+  const clientX = ((sx - projection.bounds.minX) / (projection.bounds.maxX - projection.bounds.minX)) * box.width;
+  const clientY = ((sy - projection.bounds.minY) / (projection.bounds.maxY - projection.bounds.minY)) * box.height;
+  const back = pointerToField({ clientX, clientY }, box, projection);
+  assert.ok(Math.hypot(back[0] - target[0], back[1] - target[1]) < 1e-9);
 });

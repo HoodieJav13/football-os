@@ -170,7 +170,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
    * identical one from the same stage box when handling pointer input. Nothing
    * needs to be shared through a ref.
    */
-  const projection = fieldProjection({ width: size.width, height: size.height, view });
+  const projection = fieldProjection({ width: size.width, height: size.height, view, play });
 
   const showMotion = playback !== "idle";
   const assignments = play.assignments;
