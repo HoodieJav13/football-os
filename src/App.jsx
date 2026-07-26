@@ -371,10 +371,10 @@ function Header({
         </span>
         <SegmentedControl value={view} onChange={onView} />
         <button className="header-button" onClick={onPresent}><Presentation size={20} weight="duotone" />{present ? "Edit" : "Present"}</button>
+        {/* No caret: this toggles playback and opens no menu. */}
         <button className={`run-button ${running ? "is-running" : ""}`} onClick={onRun}>
           {running ? <Pause size={21} weight="fill" /> : <Play size={21} weight="fill" />}
           {runLabel}
-          <CaretDown size={16} />
         </button>
       </div>
     </header>

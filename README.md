@@ -29,6 +29,8 @@ playbook renders at the same scale and is directly comparable.
 
 | Key | Action |
 | --- | --- |
+| `Tab` | Step through the controls, then every player on the field |
+| `Enter` / `Space` | Select the focused player and open its inspector |
 | `1`–`5` | Select the Select, Route, Block, Motion or Defense tool |
 | `Ctrl`/`Cmd` + `Z` | Undo |
 | `Ctrl`/`Cmd` + `Shift` + `Z` | Redo |

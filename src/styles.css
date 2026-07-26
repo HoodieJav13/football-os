@@ -486,7 +486,7 @@ button:active { scale: 0.96; }
 .field-grid line.sideline { stroke: oklch(0.9 0.012 180 / 0.5); stroke-width: 2; }
 /* The line of scrimmage is the origin of the whole coordinate system; show it. */
 .field-grid line.line-of-scrimmage { stroke: oklch(0.9 0.012 180 / 0.62); stroke-width: 2; stroke-dasharray: 10 6; }
-.field-grid text { fill: oklch(0.86 0.015 180 / 0.34); font-family: "Manrope Variable", sans-serif; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+.field-grid text { fill: oklch(0.88 0.015 180 / 0.46); font-family: "Manrope Variable", sans-serif; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
 /*
  * Assignment encoding.
  *
@@ -521,6 +521,22 @@ button:active { scale: 0.96; }
 }
 .route-handle { fill: var(--accent); stroke: var(--bg); stroke-width: 4; cursor: grab; pointer-events: all; vector-effect: non-scaling-stroke; }
 .route-handle:active { cursor: grabbing; }
+
+/*
+ * Player tokens are focusable buttons, so keyboard focus needs to read clearly
+ * against the field. `outline` does not follow an SVG circle, so the ring is
+ * drawn as a non-scaling stroke instead.
+ */
+.player:focus,
+.defender:focus { outline: none; }
+.player:focus-visible circle:nth-child(2),
+.defender:focus-visible circle:nth-child(2) {
+  stroke: var(--accent);
+  stroke-width: 5;
+  paint-order: stroke;
+}
+.player:focus-visible,
+.defender:focus-visible { filter: drop-shadow(0 0 4px oklch(0.81 0.155 76 / 0.7)); }
 /*
  * Tokens are drawn at true field positions, where interior-line splits are
  * narrow. An invisible 44px hit circle keeps every player individually tappable

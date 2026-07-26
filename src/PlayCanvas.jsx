@@ -50,6 +50,26 @@ function suppressGhostClick(event) {
   if (event.pointerType === "touch" && event.cancelable) event.preventDefault();
 }
 
+/** What a screen reader should say about a token, and what a sighted user sees on focus. */
+function tokenLabel(player, unit, assignments) {
+  const owned = assignments.filter((item) => item.playerId === player.id);
+  const duties = owned.length
+    ? owned.map((item) => `${item.phase === "pre" ? "pre-snap" : "at snap"} ${item.type}`).join(", ")
+    : "no assignment";
+  const depth = player.y === 0
+    ? "on the line of scrimmage"
+    : `${Math.abs(player.y)} yards ${player.y > 0 ? "downfield" : "behind the line"}`;
+  return `${player.label}, ${unit}, ${depth}, ${duties}`;
+}
+
+/** Enter or Space activates a token, matching its button role. */
+function onTokenKeyDown(event, activate) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  event.stopPropagation();
+  activate();
+}
+
 /**
  * Tracks the canvas box in CSS pixels. The projection depends on it, because the
  * viewBox is derived from the viewport aspect rather than being a fixed
@@ -209,6 +229,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
         </defs>
 
         {ready ? <FieldMarkings projection={projection} /> : null}
+        <title>{`${play.name}, ${play.formation}, ${play.personnel}`}</title>
 
         {ready && layers.defense.visible ? play.defenders.map((player) => {
           const [screenX, screenY] = projection.project([player.x, player.y]);
@@ -218,6 +239,11 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               data-player={player.id}
               data-unit="defense"
               className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""}`}
+              tabIndex={layers.defense.locked ? -1 : 0}
+              role="button"
+              aria-label={tokenLabel(player, "defense", assignments)}
+              aria-current={selectedUnit === "defense" && selectedPlayerId === player.id}
+              onKeyDown={(event) => onTokenKeyDown(event, () => onSelectPlayer("defense", player.id, event))}
               onPointerDown={(event) => {
                 event.stopPropagation();
                 suppressGhostClick(event);
@@ -291,6 +317,11 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               data-player={player.id}
               data-unit="offense"
               className={`player ${onLine ? "line-player" : ""} ${isSelected ? "focus-player" : ""}`}
+              tabIndex={layers.offense.locked ? -1 : 0}
+              role="button"
+              aria-label={tokenLabel(player, "offense", assignments)}
+              aria-current={isSelected}
+              onKeyDown={(event) => onTokenKeyDown(event, () => onSelectPlayer("offense", player.id, event))}
               onPointerDown={(event) => {
                 event.stopPropagation();
                 suppressGhostClick(event);
