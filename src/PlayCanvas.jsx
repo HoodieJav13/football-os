@@ -285,7 +285,6 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
           const [screenX, screenY] = projection.project([player.x, player.y]);
           const isSelected = selectedUnit === "offense" && selectedPlayerId === player.id;
           const onLine = isLineLabel(player.label);
-          const labelSize = sizeOf(onLine ? TOKEN.lineLabel : TOKEN.skillLabel, projection);
           return (
             <g
               key={player.id}
@@ -300,10 +299,28 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             >
               <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} />
               <circle cx={screenX} cy={screenY} r={sizeOf(onLine ? TOKEN.line : TOKEN.skill, projection)} />
-              <text x={screenX} y={screenY + labelSize * 0.35} fontSize={labelSize}>
-                {player.label}
-              </text>
             </g>
+          );
+        }) : null}
+
+        {/*
+          Labels are a separate pass so a neighbouring token can never paint over
+          one. Interior linemen sit close enough that their two-character labels
+          were being clipped by the next circle in document order.
+        */}
+        {ready && layers.offense.visible ? play.players.map((player) => {
+          const [screenX, screenY] = projection.project([player.x, player.y]);
+          const labelSize = sizeOf(isLineLabel(player.label) ? TOKEN.lineLabel : TOKEN.skillLabel, projection);
+          return (
+            <text
+              key={`label-${player.id}`}
+              className="player-label"
+              x={screenX}
+              y={screenY + labelSize * 0.35}
+              fontSize={labelSize}
+            >
+              {player.label}
+            </text>
           );
         }) : null}
 

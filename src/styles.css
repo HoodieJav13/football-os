@@ -528,6 +528,7 @@ button:active { scale: 0.96; }
  * converts from CSS pixels so labels stay a constant size on screen.
  */
 .player text,
+.player-label,
 .defender text { fill: var(--text); text-anchor: middle; font-family: "Manrope Variable", sans-serif; font-weight: 700; pointer-events: none; }
 .focus-player circle { fill: oklch(0.2 0.045 75); stroke: var(--accent); stroke-width: 3.2; }
 .defender circle { fill: oklch(0.27 0.018 175 / 0.74); stroke: oklch(0.76 0.012 180 / 0.55); stroke-width: 1.4; cursor: pointer; vector-effect: non-scaling-stroke; }
@@ -1140,6 +1141,116 @@ button:active { scale: 0.96; }
   .print-pages { width: calc(100% - 16px); margin-top: 12px; }
   .print-page { padding: 14px; }
   .print-page > header strong { font-size: 18px; }
+}
+
+/*
+ * Short and wide: a phone in landscape.
+ *
+ * 844x390 sails past the 700px phone breakpoint, so it used to receive the
+ * desktop layout -- an 80px rail, a 292px inspector, a 118px filmstrip and a
+ * 76px timeline squeezed into 390px of height, leaving a 450x132 canvas at
+ * 3.31 px/yd. That is less than half the size the play gets in portrait.
+ *
+ * A play is wider than it is deep, so in this shape the canvas is height-bound
+ * and horizontal space is comparatively cheap. Every control therefore moves to
+ * the left and right columns, where it costs the field nothing: chrome along the
+ * top or bottom drops the scale to 6.97 px/yd, while chrome on the sides reaches
+ * 9.77 -- within 2% of the theoretical ceiling for this screen.
+ *
+ * `display: contents` promotes the children of the editor shell and the canvas
+ * wrapper into this grid, so the pieces can be placed in columns without
+ * restructuring the markup.
+ */
+@media (min-width: 701px) and (max-height: 520px) {
+  .app-shell {
+    position: relative;
+    min-height: 0;
+    grid-template-columns:
+      calc(64px + env(safe-area-inset-left, 0px))
+      minmax(0, 1fr)
+      calc(232px + env(safe-area-inset-right, 0px));
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .editor-shell,
+  .canvas-workspace { display: contents; }
+
+  .tool-rail { grid-column: 1; grid-row: 1 / 3; gap: 2px; padding: 6px 6px 6px calc(6px + env(safe-area-inset-left, 0px)); border-right: 1px solid var(--line); }
+  .tool-history { grid-template-columns: 1fr 1fr; gap: 3px; }
+  .tool-history button { height: 40px; }
+  .tool-rail-rule { display: none; }
+  /* Icon-only tools, so seven controls fit the column height. */
+  .tool-button { min-height: 44px; }
+  .tool-button span:last-child { display: none; }
+  .tool-icon { width: 40px; height: 34px; }
+  .tool-menu { left: 60px; bottom: 0; }
+
+  .layer-bar { grid-column: 1; grid-row: 3; height: 48px; padding: 0 4px 0 calc(4px + env(safe-area-inset-left, 0px)); border-top: 1px solid var(--line); border-bottom: 0; }
+  .mobile-layer-toggle { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 44px; color: var(--text-mid); background: transparent; }
+  .mobile-layer-toggle > strong,
+  .mobile-layer-toggle > svg:last-child { display: none; }
+  .mobile-layer-toggle > svg:first-child { color: var(--accent); }
+  .layer-visibility-summary { display: flex; align-items: center; gap: 3px; margin: 0; }
+  .layer-visibility-summary i { display: grid; place-items: center; width: 15px; height: 15px; border-radius: 4px; color: var(--text-low); background: var(--chrome); font-size: 8px; font-style: normal; font-weight: 800; }
+  .layer-visibility-summary i.on { color: var(--accent); background: var(--accent-soft); }
+  .layer-items { display: none; }
+  .layer-bar.mobile-open .layer-items {
+    position: absolute;
+    z-index: 20;
+    bottom: 56px;
+    left: 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 300px;
+    padding: 8px;
+    border-radius: 12px;
+    background: var(--chrome);
+    box-shadow: 0 0 0 1px var(--line-strong), var(--shadow);
+  }
+  .mobile-field-view { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; min-height: 44px; padding-left: 10px; border-radius: 9px; color: var(--text-mid); background: var(--chrome-raised); box-shadow: inset 0 0 0 1px var(--line); font-size: 11px; font-weight: 650; }
+  .mobile-field-view .segmented { display: flex; position: static; height: 40px; padding: 2px; border-radius: 8px; translate: none; }
+  .mobile-field-view .segmented button { min-width: 78px; height: 36px; padding-inline: 6px; font-size: 11px; }
+
+  .field-stage { grid-column: 2; grid-row: 1 / -1; }
+
+  /* Right column: identity, inspector, transport. */
+  .topbar { grid-column: 3; grid-row: 1; gap: 6px; height: 48px; padding: 0 calc(8px + env(safe-area-inset-right, 0px)) 0 8px; border-bottom: 1px solid var(--line); }
+  .play-heading { gap: 8px; }
+  .heading-rule,
+  .family-label,
+  .play-meta,
+  .offline-state,
+  .topbar .segmented,
+  .header-button { display: none; }
+  .playbook-trigger { padding: 0; }
+  .playbook-trigger-copy,
+  .playbook-trigger > svg:last-child { display: none; }
+  .title-line h1 { font-size: 14px; line-height: 18px; }
+  .run-button { min-height: 40px; padding-inline: 10px; font-size: 0; gap: 0; }
+  .run-button svg:last-child { display: none; }
+
+  .inspector { grid-column: 3; grid-row: 2; height: auto; padding: 10px 12px; border-left: 1px solid var(--line); }
+  .mobile-sheet-handle { display: none; }
+  .inspector h2 { font-size: 16px; line-height: 22px; }
+
+  .timeline { grid-column: 3; grid-row: 3; grid-template-columns: 44px 64px minmax(0, 1fr); height: 52px; padding-inline: 8px; border-top: 1px solid var(--line); }
+  .timeline-settings,
+  .time-labels,
+  .phase-labels { display: none; }
+  .timeline-track { grid-template-rows: minmax(0, 1fr); }
+
+  /*
+   * The filmstrip's cards cannot pay for themselves here. Browsing stays
+   * available through the documented swipe on the field and the [ and ] keys.
+   */
+  .filmstrip { display: none; }
+
+  .open-inspector { top: 8px; right: 0; }
+  .exit-present { right: 12px; bottom: 12px; }
+
+  /* Presenting hides the side columns entirely, so the field takes the screen. */
+  .is-presenting { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .is-presenting .field-stage { grid-column: 1; grid-row: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
