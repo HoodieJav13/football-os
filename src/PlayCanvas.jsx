@@ -231,33 +231,18 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
         {ready ? <FieldMarkings projection={projection} /> : null}
         <title>{`${play.name}, ${play.formation}, ${play.personnel}`}</title>
 
-        {ready && layers.defense.visible ? play.defenders.map((player) => {
-          const [screenX, screenY] = projection.project([player.x, player.y]);
-          return (
-            <g
-              key={player.id}
-              data-player={player.id}
-              data-unit="defense"
-              className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""}`}
-              tabIndex={layers.defense.locked ? -1 : 0}
-              role="button"
-              aria-label={tokenLabel(player, "defense", assignments)}
-              aria-current={selectedUnit === "defense" && selectedPlayerId === player.id}
-              onKeyDown={(event) => onTokenKeyDown(event, () => onSelectPlayer("defense", player.id, event))}
-              onPointerDown={(event) => {
-                event.stopPropagation();
-                suppressGhostClick(event);
-                onSelectPlayer("defense", player.id, event);
-              }}
-            >
-              <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} />
-              <circle cx={screenX} cy={screenY} r={defenderRadius} />
-              <text x={screenX} y={screenY + defenderLabelSize * 0.35} fontSize={defenderLabelSize}>
-                {player.label}
-              </text>
-            </g>
-          );
-        }) : null}
+        {/*
+          Layer order: markings, routes, offence, offence labels, defence,
+          handles, motion. SVG has no z-index, so paint order and tab order are
+          the same list read once -- which makes this ordering a compromise
+          rather than a free choice. Offence comes before defence so a coach
+          building an offensive play reaches their own eleven on the first Tab
+          instead of walking through the defence to get there. The cost is that
+          a defender now paints over an offensive player where the two overlap,
+          which no seeded play does: the units are 2.5 yd apart and the largest
+          token is 0.72 yd in radius. Routes sit under both token layers so a
+          route never crosses the player it belongs to.
+        */}
 
         {ready ? assignments.map((item) => assignmentVisible(item) ? (
           <polyline
@@ -286,26 +271,6 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             }}
           />
         ) : null) : null}
-
-        {ready && selected && assignmentVisible(selected) ? selected.points.slice(1).map((point, pointOffset) => {
-          const pointIndex = pointOffset + 1;
-          const [screenX, screenY] = projection.project(point);
-          return (
-            <circle
-              key={`${selected.id}-handle-${pointIndex}`}
-              className="route-handle"
-              cx={screenX}
-              cy={screenY}
-              r={sizeOf(TOKEN.handle, projection)}
-              data-route-point={pointIndex}
-              onPointerDown={(event) => {
-                event.stopPropagation();
-                suppressGhostClick(event);
-                onStartPointDrag(pointIndex, event);
-              }}
-            />
-          );
-        }) : null}
 
         {ready && layers.offense.visible ? play.players.map((player) => {
           const [screenX, screenY] = projection.project([player.x, player.y]);
@@ -352,6 +317,60 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             >
               {player.label}
             </text>
+          );
+        }) : null}
+
+        {ready && layers.defense.visible ? play.defenders.map((player) => {
+          const [screenX, screenY] = projection.project([player.x, player.y]);
+          return (
+            <g
+              key={player.id}
+              data-player={player.id}
+              data-unit="defense"
+              className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""}`}
+              tabIndex={layers.defense.locked ? -1 : 0}
+              role="button"
+              aria-label={tokenLabel(player, "defense", assignments)}
+              aria-current={selectedUnit === "defense" && selectedPlayerId === player.id}
+              onKeyDown={(event) => onTokenKeyDown(event, () => onSelectPlayer("defense", player.id, event))}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                suppressGhostClick(event);
+                onSelectPlayer("defense", player.id, event);
+              }}
+            >
+              <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} />
+              <circle cx={screenX} cy={screenY} r={defenderRadius} />
+              <text x={screenX} y={screenY + defenderLabelSize * 0.35} fontSize={defenderLabelSize}>
+                {player.label}
+              </text>
+            </g>
+          );
+        }) : null}
+
+        {/*
+          Route handles paint above both token layers because they are draggable
+          and a route drawn into the defence would otherwise bury its own handles
+          under the defenders. They never sit on the route's own player: point 0
+          is the anchor and is deliberately not given a handle.
+        */}
+        {ready && selected && assignmentVisible(selected) ? selected.points.slice(1).map((point, pointOffset) => {
+          const pointIndex = pointOffset + 1;
+          const [screenX, screenY] = projection.project(point);
+          return (
+            <circle
+              key={`${selected.id}-handle-${pointIndex}`}
+              className="route-handle"
+              cx={screenX}
+              cy={screenY}
+              r={sizeOf(TOKEN.handle, projection)}
+              data-route-point={pointIndex}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                suppressGhostClick(event);
+                onStartPointDrag(pointIndex, event);
+              }}
+            />
           );
         }) : null}
 

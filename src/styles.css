@@ -583,10 +583,47 @@ button:active { scale: 0.96; }
   background: var(--chrome);
   border-left: 1px solid var(--line);
 }
-.inspector-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/*
+ * The body is a column of fixed rows plus one elastic one, not a single
+ * scroller. Whichever section is open takes the leftover height and scrolls
+ * inside itself, so the collapsed summaries never leave the screen.
+ *
+ * Scrolling the body as a whole put them below the fold on any ordinary laptop:
+ * the editor's content is a fixed ~659px regardless of window size, which
+ * overflowed by 154px at 1440x900 and 334px at 1280x720 -- so at 1280x720 more
+ * than half of it, including the Timing and Player actions summaries, could
+ * only be found by scrolling past the route editor. `overflow-y: auto` stays as
+ * the fallback for when even the minimums do not fit.
+ */
+.inspector-body { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.inspector-body > * { flex: none; }
+/*
+ * The open section shrinks to fit but never grows past its content, and never
+ * below 188px: a 48px summary plus a 140px floor for the editor. The floor
+ * matters because at 1280x720 the body has only 325px, and without it the route
+ * editor was squeezed to a 7px scroll window -- the section must not be allowed
+ * to clip its own body away. 140px is the tallest section that fits its content
+ * whole (Timing is 137px), so the floor costs no slack there. The floor has to
+ * live on the section rather than on .section-body, because a flex item with
+ * `min-height: 0` shrinks past its children's minimums and this section clips.
+ */
+.inspector-section[open] { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 188px; }
+.inspector-section[open] > summary { flex: none; }
+/*
+ * Modern Chromium wraps a <details>'s content in a UA-generated box, so
+ * .section-body is a grandchild there and its `flex` never resolves against the
+ * section's height -- it took its full 341px and was silently clipped by the
+ * section's `overflow: clip`. Flexing that box passes the height through. Where
+ * the pseudo-element is not understood the whole rule is dropped, which is the
+ * behaviour we want: without the wrapper box .section-body is already a direct
+ * flex child and sizes correctly on its own.
+ */
+.inspector-section[open]::details-content { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.section-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 /* A hairline that reads as "there is more below" rather than a hard edge. */
 .inspector-body { border-top: 1px solid transparent; }
 .inspector-body:not(:hover) { scrollbar-width: thin; }
+.inspector-body:not(:hover) .section-body { scrollbar-width: thin; }
 .mobile-sheet-handle { display: none; }
 /* badge | identity | close, on one line */
 .inspector-head { display: grid; grid-template-columns: auto minmax(0, 1fr) 44px; align-items: center; gap: 11px; margin-bottom: 10px; }
@@ -1160,7 +1197,15 @@ button:active { scale: 0.96; }
   .inspector h2 { font-size: 18px; line-height: 24px; }
   .assignment-stage-picker { margin-top: 9px; }
   .mobile-peek .inspector-body { display: none; }
+  /*
+    The phone sheet scrolls as one surface: it is dragged to resize, and a nested
+    scroller inside it would swallow that drag. So the desktop model of pinning
+    the summaries and scrolling only the open section is deliberately off here.
+  */
   .mobile-expanded .inspector-body { display: block; }
+  .inspector-section[open] { display: block; min-height: 0; }
+  .inspector-section[open]::details-content { display: block; }
+  .section-body { min-height: 0; overflow: visible; }
   .presets-group { display: none; }
   .timeline { grid-template-columns: 44px 72px minmax(0, 1fr); padding-inline: 8px; }
   .timeline-settings { display: none; }
@@ -1266,8 +1311,13 @@ button:active { scale: 0.96; }
   .playbook-trigger-copy,
   .playbook-trigger > svg:last-child { display: none; }
   .title-line h1 { font-size: 14px; line-height: 18px; }
+  /*
+    The label is dropped here, so the icon is all that is left to identify the
+    button -- it must not be hidden. This rule used to drop a trailing caret;
+    once that caret went away it was hiding the play icon instead, leaving a
+    blank 84px button.
+  */
   .run-button { min-height: 40px; padding-inline: 10px; font-size: 0; gap: 0; }
-  .run-button svg:last-child { display: none; }
 
   .inspector { grid-column: 3; grid-row: 2; height: auto; padding: 10px 12px; border-left: 1px solid var(--line); }
   .mobile-sheet-handle { display: none; }
