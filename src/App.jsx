@@ -21,6 +21,7 @@ import {
   EyeSlash,
   FloppyDisk,
   GitMerge,
+  Info,
   LockSimple,
   LockSimpleOpen,
   MagnifyingGlass,
@@ -61,6 +62,7 @@ import {
 import { PlayCanvas } from "./PlayCanvas";
 import { fieldProjection, pointerToField, polylinePoints } from "./fieldView";
 import { FIELD } from "./playData";
+import { useDismissable } from "./useDismissable";
 import {
   applyConceptTemplateToPlay,
   applyFormationToPlay,
@@ -577,6 +579,57 @@ function ToolRail({
   );
 }
 
+/**
+ * Decodes the canvas. Seven distinct stroke treatments were on screen with
+ * nothing to explain them, so a coach handed the app in Present mode could not
+ * tell a zone drop from a motion.
+ *
+ * The swatches reuse the canvas classes, so the key cannot drift from what the
+ * field actually draws.
+ */
+const assignmentKeyEntries = [
+  ["Route", "route", "Receiver release, stem and breaks"],
+  ["Block", "block", "Blocking track and target"],
+  ["Motion", "motion", "Pre-snap movement"],
+  ["Rush", "rush", "Pass rush or blitz track"],
+  ["Man", "man", "Man coverage on a receiver"],
+  ["Zone", "zone", "Zone drop to a landmark"],
+  ["Fit", "fit", "Run fit responsibility"],
+];
+
+function AssignmentKey() {
+  const { open, toggle, containerRef } = useDismissable();
+  return (
+    <div className="assignment-key" ref={containerRef}>
+      <button type="button" aria-expanded={open} aria-haspopup="true" onClick={toggle}>
+        <Info size={17} />
+        <strong>Key</strong>
+      </button>
+      {open ? (
+        <div className="assignment-key-panel" role="group" aria-label="Assignment key">
+          <div className="assignment-key-head">Assignment types</div>
+          {assignmentKeyEntries.map(([label, type, meaning]) => (
+            <div className="assignment-key-row" key={type}>
+              <svg viewBox="0 0 34 10" aria-hidden="true">
+                <polyline className={`route assignment-${type}`} points="1,5 33,5" />
+              </svg>
+              <strong>{label}</strong>
+              <small>{meaning}</small>
+            </div>
+          ))}
+          <div className="assignment-key-row is-selected-note">
+            <svg viewBox="0 0 34 10" aria-hidden="true">
+              <polyline className="route assignment-route selected" points="1,5 33,5" />
+            </svg>
+            <strong>Selected</strong>
+            <small>Amber marks the selected assignment only</small>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function LayerBar({ layers, onChange, onView, view }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const update = (name, patch) => onChange((current) => ({
@@ -623,6 +676,7 @@ function LayerBar({ layers, onChange, onView, view }) {
             {layers.assignments.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
           </button>
         </div>
+        <AssignmentKey />
       </div>
     </div>
   );

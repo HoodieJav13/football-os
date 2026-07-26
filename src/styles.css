@@ -15,6 +15,14 @@
   --line-strong: oklch(0.9 0.012 205 / 0.2);
   --accent: oklch(0.81 0.155 76);
   --accent-soft: oklch(0.81 0.155 76 / 0.12);
+  /* Assignment type encoding. Amber is reserved for selection, so it is absent here. */
+  --assignment-route: oklch(0.95 0.008 200);
+  --assignment-block: oklch(0.84 0.02 200);
+  --assignment-motion: oklch(0.78 0.13 235);
+  --assignment-rush: oklch(0.72 0.17 28);
+  --assignment-man: oklch(0.78 0.12 322);
+  --assignment-zone: oklch(0.73 0.12 235);
+  --assignment-fit: oklch(0.79 0.13 145);
   --coral: oklch(0.69 0.17 28);
   --success: oklch(0.74 0.12 145);
   --shadow: 0 20px 48px oklch(0 0 0 / 0.3);
@@ -391,6 +399,43 @@ button:active { scale: 0.96; }
 .layer-item.assignments { margin-inline-start: auto; }
 .layer-item.assignments strong { min-width: 78px; }
 
+.assignment-key { position: relative; flex: 0 0 auto; }
+.assignment-key > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--text-mid);
+  background: var(--chrome);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.assignment-key > button:hover { color: var(--text); background: var(--chrome-raised); }
+.assignment-key > button[aria-expanded="true"] { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.assignment-key > button strong { font-size: 11px; line-height: 15px; font-weight: 650; }
+.assignment-key-panel {
+  position: absolute;
+  z-index: 30;
+  top: 48px;
+  right: 0;
+  display: grid;
+  gap: 2px;
+  width: 268px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--chrome);
+  box-shadow: 0 0 0 1px var(--line-strong), var(--shadow);
+}
+.assignment-key-head { padding: 2px 4px 6px; color: var(--text-low); font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.assignment-key-row { display: grid; grid-template-columns: 38px 46px minmax(0, 1fr); align-items: center; gap: 8px; padding: 4px; border-radius: 6px; }
+.assignment-key-row svg { width: 34px; height: 10px; overflow: visible; }
+.assignment-key-row .route { stroke-width: 2.5; cursor: default; pointer-events: none; }
+.assignment-key-row .route.selected { stroke-width: 3.25; filter: none; }
+.assignment-key-row strong { color: var(--text); font-size: 11px; line-height: 15px; font-weight: 650; }
+.assignment-key-row small { color: var(--text-low); font-size: 10px; line-height: 14px; }
+.assignment-key-row.is-selected-note { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
+
 .field-stage {
   position: relative;
   min-width: 0;
@@ -415,21 +460,38 @@ button:active { scale: 0.96; }
 /* The line of scrimmage is the origin of the whole coordinate system; show it. */
 .field-grid line.line-of-scrimmage { stroke: oklch(0.9 0.012 180 / 0.62); stroke-width: 2; stroke-dasharray: 10 6; }
 .field-grid text { fill: oklch(0.86 0.015 180 / 0.34); font-family: "Manrope Variable", sans-serif; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
-.route { fill: none; stroke: var(--text); stroke-width: 3.25; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; pointer-events: stroke; vector-effect: non-scaling-stroke; }
-.play-canvas marker path { fill: var(--text); }
+/*
+ * Assignment encoding.
+ *
+ * Colour and dash pattern carry the assignment TYPE. They were previously keyed
+ * to the assignment's index in the array (.route-0/-1/-2 green, .route-3 amber),
+ * which meant the accent landed on whichever assignment happened to be fourth,
+ * and `.selected` only changed stroke width -- so a selected route read as
+ * unselected while an unselected one read as active.
+ *
+ * Amber now belongs to selection and nothing else. The dash pattern is kept
+ * under selection so the type stays readable while highlighted.
+ */
+.route { fill: none; stroke: var(--assignment-route); stroke-width: 3.25; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; pointer-events: stroke; vector-effect: non-scaling-stroke; }
+.play-canvas marker path { fill: var(--assignment-route); }
 .play-canvas marker#route-arrow-active path { fill: var(--accent); }
-.route-0,
-.route-1,
-.route-2 { stroke: oklch(0.93 0.015 150); }
-.route-3 { stroke: var(--accent); }
-.route.selected { stroke-width: 4.4; }
-.assignment-block { stroke-dasharray: 8 5; }
-.assignment-motion { stroke: oklch(0.78 0.13 235); stroke-dasharray: 4 5; }
-.assignment-rush { stroke: oklch(0.72 0.17 28); }
-.assignment-man { stroke: oklch(0.78 0.12 322); stroke-dasharray: 5 4; }
-.assignment-zone { stroke: oklch(0.73 0.12 235); stroke-dasharray: 3 6; }
-.assignment-fit { stroke: oklch(0.79 0.13 145); }
-.route[data-assignment-unit="defense"].selected { stroke: var(--accent); }
+
+/* Type encoding */
+.assignment-route { stroke: var(--assignment-route); }
+.assignment-block { stroke: var(--assignment-block); stroke-dasharray: 8 5; }
+.assignment-motion { stroke: var(--assignment-motion); stroke-dasharray: 4 5; }
+.assignment-rush { stroke: var(--assignment-rush); }
+.assignment-man { stroke: var(--assignment-man); stroke-dasharray: 5 4; }
+.assignment-zone { stroke: var(--assignment-zone); stroke-dasharray: 3 6; }
+.assignment-fit { stroke: var(--assignment-fit); }
+
+/* Selection: amber, heavier, and lifted above the other paths. */
+.route.selected {
+  stroke: var(--accent);
+  stroke-width: 5;
+  paint-order: stroke;
+  filter: drop-shadow(0 0 3px oklch(0.81 0.155 76 / 0.45));
+}
 .route-handle { fill: var(--accent); stroke: var(--bg); stroke-width: 4; cursor: grab; pointer-events: all; vector-effect: non-scaling-stroke; }
 .route-handle:active { cursor: grabbing; }
 /*
@@ -457,8 +519,8 @@ button:active { scale: 0.96; }
 .dim-offense .route[data-assignment-unit="offense"] { opacity: 0.3; }
 .dim-defense .defender,
 .dim-defense .route[data-assignment-unit="defense"] { opacity: 0.3; }
-.motion-dot { fill: var(--text); stroke: var(--bg); stroke-width: 3; }
-.motion-3 { fill: var(--accent); }
+.motion-dot { fill: var(--text); stroke: var(--bg); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.motion-dot.selected { fill: var(--accent); }
 
 .inspector {
   position: relative;
