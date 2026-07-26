@@ -2,7 +2,17 @@ const OFFLINE_EVENT = "football-os:offline-status";
 
 const productionBuild = typeof import.meta.env !== "undefined" && import.meta.env.PROD;
 
+/*
+ * The last status is latched, because `registerOfflineSupport()` can emit
+ * synchronously at module load -- when there is no service worker to register --
+ * which is before React has mounted and subscribed. Without the latch that first
+ * status is lost and the header stays on "Preparing offline" forever, even though
+ * nothing is preparing.
+ */
+let lastStatus = null;
+
 function emitStatus(detail) {
+  lastStatus = detail;
   window.dispatchEvent(new CustomEvent(OFFLINE_EVENT, { detail }));
 }
 
@@ -51,12 +61,15 @@ export async function registerOfflineSupport() {
 }
 
 export function subscribeOfflineStatus(callback) {
-  const update = (event) => callback({
-    online: navigator.onLine,
-    supported: "serviceWorker" in navigator,
-    ready: event?.detail?.ready ?? Boolean(navigator.serviceWorker?.controller),
-    development: event?.detail?.development ?? !productionBuild,
-  });
+  const update = (event) => {
+    const detail = event?.detail ?? lastStatus;
+    callback({
+      online: navigator.onLine,
+      supported: detail?.supported ?? "serviceWorker" in navigator,
+      ready: detail?.ready ?? Boolean(navigator.serviceWorker?.controller),
+      development: detail?.development ?? !productionBuild,
+    });
+  };
   update();
   const onOnline = () => update();
   const onOffline = () => update();
