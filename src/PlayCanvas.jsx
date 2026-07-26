@@ -62,9 +62,16 @@ function tokenLabel(player, unit, assignments) {
   return `${player.label}, ${unit}, ${depth}, ${duties}`;
 }
 
-/** Enter or Space activates a token, matching its button role. */
+/**
+ * Enter activates a token. Space deliberately does not, even though the role is
+ * button: Space is run/pause, the shortcut a coach uses most, and clicking a
+ * player focuses its token. Activating on Space therefore swallowed the shortcut
+ * for the rest of the session after the single most common action in the app,
+ * and swallowed it silently, because activating an already-selected token does
+ * nothing visible. Enter alone still gives the keyboard a way in.
+ */
 function onTokenKeyDown(event, activate) {
-  if (event.key !== "Enter" && event.key !== " ") return;
+  if (event.key !== "Enter") return;
   event.preventDefault();
   event.stopPropagation();
   activate();
@@ -165,6 +172,29 @@ function FieldMarkings({ projection }) {
   );
 }
 
+/**
+ * Puts keyboard focus back on a token after the <svg> remounts.
+ *
+ * Starting a run bumps the play key so `animateMotion` restarts, which remounts
+ * the whole canvas and destroys the focused token, dropping focus to <body>.
+ * Now that tokens are focusable that would cost a keyboard user their place in
+ * the tab order -- 23 presses back to the field -- every time they previewed a
+ * play. Only fires when focus was genuinely lost, so it can never steal focus
+ * from something the coach moved to deliberately.
+ */
+function useRestoreTokenFocus(playKey) {
+  const lastToken = useRef(null);
+  const remember = (playerId) => { lastToken.current = playerId; };
+
+  useLayoutEffect(() => {
+    const playerId = lastToken.current;
+    if (!playerId || document.activeElement !== document.body) return;
+    document.querySelector(`[data-player="${playerId}"]`)?.focus?.();
+  }, [playKey]);
+
+  return remember;
+}
+
 export const PlayCanvas = forwardRef(function PlayCanvas({
   activeTool,
   draftAssignment,
@@ -185,6 +215,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   view,
 }, ref) {
   const [stageRef, size] = useElementSize();
+  const rememberFocusedToken = useRestoreTokenFocus(playKey);
   /*
    * The projection is a pure function of (box size, view), so App recomputes an
    * identical one from the same stage box when handling pointer input. Nothing
@@ -286,6 +317,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               role="button"
               aria-label={tokenLabel(player, "offense", assignments)}
               aria-current={isSelected}
+              onFocus={() => rememberFocusedToken(player.id)}
               onKeyDown={(event) => onTokenKeyDown(event, () => onSelectPlayer("offense", player.id, event))}
               onPointerDown={(event) => {
                 event.stopPropagation();
@@ -332,6 +364,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               role="button"
               aria-label={tokenLabel(player, "defense", assignments)}
               aria-current={selectedUnit === "defense" && selectedPlayerId === player.id}
+              onFocus={() => rememberFocusedToken(player.id)}
               onKeyDown={(event) => onTokenKeyDown(event, () => onSelectPlayer("defense", player.id, event))}
               onPointerDown={(event) => {
                 event.stopPropagation();
