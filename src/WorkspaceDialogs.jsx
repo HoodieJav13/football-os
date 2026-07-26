@@ -102,20 +102,19 @@ export function PrintCollectionPreview({ playbook, plays, onClose }) {
             <div className="print-field">
               <PlayCanvas
                 activeTool="Select"
-                draftRoute={[]}
+                draftAssignment={[]}
                 layers={printLayers}
                 onPointerDown={noop}
                 onPointerMove={noop}
                 onPointerUp={noop}
                 onSelectPlayer={noop}
-                onSelectRoute={noop}
+                onSelectAssignment={noop}
                 onStartPointDrag={noop}
-                paths={play.routes}
                 play={play}
                 playKey={`print-${play.id}`}
                 playback="idle"
-                selectedPlayer={null}
-                selectedRoute={null}
+                selectedPlayerId={null}
+                selectedAssignmentId={null}
                 selectedUnit="offense"
                 speed={1}
                 view="end"

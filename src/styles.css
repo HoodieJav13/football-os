@@ -7,6 +7,7 @@
   --chrome-raised: oklch(0.205 0.024 215);
   --chrome-active: oklch(0.235 0.026 210);
   --field: oklch(0.255 0.045 171);
+  --out-of-bounds: oklch(0.185 0.024 190);
   --text: oklch(0.97 0.005 200);
   --text-mid: oklch(0.76 0.012 205);
   --text-low: oklch(0.58 0.014 205);
@@ -264,11 +265,14 @@ button:active { scale: 0.96; }
 .film-card.create-card { color: var(--text-low); background: oklch(0.155 0.018 220); }
 .film-card.create-card:hover { color: var(--accent); background: oklch(0.19 0.026 210); }
 .create-play-icon { display: grid; place-items: center; width: 44px; height: 44px; justify-self: center; border: 1px dashed var(--line-strong); border-radius: 10px; }
-.mini-diagram { width: 100%; max-width: 148px; height: 58px; justify-self: center; overflow: visible; }
-.mini-diagram circle { fill: var(--chrome); stroke: oklch(0.9 0.008 205); stroke-width: 1.5; }
-.mini-diagram circle.focus { stroke: var(--accent); }
-.mini-route { fill: none; stroke: oklch(0.92 0.008 205); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.mini-route.active { stroke: var(--accent); }
+/* Same yard-true projection as the canvas, so a thumbnail is a faithful miniature. */
+.mini-diagram { width: 100%; max-width: 112px; height: 68px; justify-self: center; overflow: visible; }
+.mini-diagram circle { fill: var(--chrome); stroke: oklch(0.9 0.008 205); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.mini-line-of-scrimmage { stroke: oklch(0.9 0.012 180 / 0.4); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.mini-route { fill: none; stroke: oklch(0.92 0.008 205 / 0.9); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.mini-route.mini-defense { stroke: oklch(0.72 0.09 235 / 0.75); stroke-width: 1.4; }
+.mini-route.mini-block { stroke-dasharray: 4 3; }
+.mini-route.mini-motion { stroke: oklch(0.78 0.1 235 / 0.85); stroke-dasharray: 2 3; }
 .strip-arrow {
   position: absolute;
   z-index: 3;
@@ -396,11 +400,21 @@ button:active { scale: 0.96; }
   touch-action: none;
 }
 .play-canvas { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; }
+/*
+ * The canvas background is out-of-bounds; `.field-surface` is the playable area.
+ * Because the window is yard-true, a wide viewport shows real sideline space
+ * rather than empty chrome.
+ */
+.field-stage { background: var(--out-of-bounds); }
 .field-grid { pointer-events: none; }
-.field-grid line,
-.field-grid .field-boundary { fill: none; stroke: oklch(0.88 0.015 180 / 0.25); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.field-grid line.hash { stroke: oklch(0.88 0.015 180 / 0.33); stroke-width: 2; }
-.field-grid text { fill: oklch(0.86 0.015 180 / 0.38); font-family: "Manrope Variable", sans-serif; font-size: 34px; font-weight: 700; text-anchor: middle; }
+.field-grid .field-surface { fill: var(--field); }
+.field-grid line { fill: none; stroke: oklch(0.88 0.015 180 / 0.2); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.field-grid line.major { stroke: oklch(0.88 0.015 180 / 0.3); stroke-width: 1.5; }
+.field-grid line.hash { stroke: oklch(0.88 0.015 180 / 0.34); stroke-width: 1.75; }
+.field-grid line.sideline { stroke: oklch(0.9 0.012 180 / 0.5); stroke-width: 2; }
+/* The line of scrimmage is the origin of the whole coordinate system; show it. */
+.field-grid line.line-of-scrimmage { stroke: oklch(0.9 0.012 180 / 0.62); stroke-width: 2; stroke-dasharray: 10 6; }
+.field-grid text { fill: oklch(0.86 0.015 180 / 0.34); font-family: "Manrope Variable", sans-serif; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
 .route { fill: none; stroke: var(--text); stroke-width: 3.25; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; pointer-events: stroke; vector-effect: non-scaling-stroke; }
 .play-canvas marker path { fill: var(--text); }
 .play-canvas marker#route-arrow-active path { fill: var(--accent); }
@@ -418,16 +432,27 @@ button:active { scale: 0.96; }
 .route[data-assignment-unit="defense"].selected { stroke: var(--accent); }
 .route-handle { fill: var(--accent); stroke: var(--bg); stroke-width: 4; cursor: grab; pointer-events: all; vector-effect: non-scaling-stroke; }
 .route-handle:active { cursor: grabbing; }
+/*
+ * Tokens are drawn at true field positions, where interior-line splits are
+ * narrow. An invisible 44px hit circle keeps every player individually tappable
+ * without inflating the visible token.
+ */
+.token-hit { fill: transparent; stroke: none; pointer-events: all; }
 .player circle { fill: oklch(0.14 0.02 220); stroke: var(--text); stroke-width: 2.4; cursor: pointer; vector-effect: non-scaling-stroke; }
 .tool-select .player circle,
 .tool-select .defender circle { cursor: grab; }
 .tool-select .player:active circle,
 .tool-select .defender:active circle { cursor: grabbing; }
+/*
+ * No font-size here: inside a yard-based viewBox a CSS `font-size: 14px` means
+ * 14 *yards*. Sizes come from the `fontSize` attribute, which PlayCanvas
+ * converts from CSS pixels so labels stay a constant size on screen.
+ */
 .player text,
-.defender text { fill: var(--text); text-anchor: middle; font-family: "Manrope Variable", sans-serif; font-size: 14px; font-weight: 700; pointer-events: none; }
+.defender text { fill: var(--text); text-anchor: middle; font-family: "Manrope Variable", sans-serif; font-weight: 700; pointer-events: none; }
 .focus-player circle { fill: oklch(0.2 0.045 75); stroke: var(--accent); stroke-width: 3.2; }
 .defender circle { fill: oklch(0.27 0.018 175 / 0.74); stroke: oklch(0.76 0.012 180 / 0.55); stroke-width: 1.4; cursor: pointer; vector-effect: non-scaling-stroke; }
-.defender text { fill: oklch(0.82 0.008 180 / 0.76); font-size: 11px; font-weight: 600; }
+.defender text { fill: oklch(0.82 0.008 180 / 0.76); font-weight: 600; }
 .dim-offense .player,
 .dim-offense .route[data-assignment-unit="offense"] { opacity: 0.3; }
 .dim-defense .defender,
@@ -932,7 +957,14 @@ button:active { scale: 0.96; }
   .layer-item.assignments { grid-column: 1 / -1; width: auto; margin: 0; padding: 0 3px 0 8px; }
   .layer-item.assignments strong { display: block; margin-inline-end: auto; }
   .layer-item.assignments button { width: 44px; }
-  .field-stage { width: 100%; height: 100%; padding-bottom: 68px; }
+  /*
+   * Reserve the floating tool bar's space by shrinking the grid cell, not by
+   * padding `.field-stage`: the canvas is absolutely positioned, so padding
+   * would not move it, and the stage box must stay identical to the SVG box
+   * because pointer input is projected through it.
+   */
+  .canvas-workspace { padding-bottom: 68px; }
+  .field-stage { width: 100%; height: 100%; }
   .tool-rail {
     position: absolute;
     z-index: 10;

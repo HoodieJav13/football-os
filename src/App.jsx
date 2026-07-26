@@ -59,26 +59,39 @@ import {
   SaveConceptDialog,
 } from "./WorkspaceDialogs";
 import { PlayCanvas } from "./PlayCanvas";
+import { fieldProjection, pointerToField, polylinePoints } from "./fieldView";
+import { FIELD } from "./playData";
 import {
   applyConceptTemplateToPlay,
   applyFormationToPlay,
   assignmentDefinitionToPoints,
+  assignmentPhaseForType,
   assignmentStartSeconds,
   basePlayers,
   breakDirections,
+  clampFieldX,
+  clampFieldY,
+  clampPoint,
   clonePlaybook,
   createConceptTemplate,
   createPlayFromFormation,
   defaultFormations,
   defensiveAssignmentTypes,
+  findPlayer,
   formationStatus,
   inferRouteDefinition,
+  isLineLabel,
   MAIN_PLAYBOOK_ID,
+  manCoveragePoints,
   normalizePlay,
+  offensiveAssignmentTypes,
   playDuration,
+  playerLabel,
+  playerLocation,
   releaseOptions,
   routeDefinitionSummary,
   routeDefinitionToPoints,
+  sanitizeAssignmentDefinition,
   sanitizeBlockDefinition,
   sanitizeDefensiveDefinition,
   sanitizeMotionDefinition,
@@ -104,11 +117,9 @@ import {
 } from "./workspaceData";
 
 const LEGACY_LIBRARY_KEY = "football-os.library.v4";
-const GAME_DAY_KEY = "football-os.game-day.v5";
-const LEGACY_GAME_DAY_KEY = "football-os.game-day.v4";
-const linePlayers = new Set(["LT", "LG", "C", "RG", "RT"]);
+const GAME_DAY_KEY = "football-os.game-day.v6";
+const LEGACY_GAME_DAY_KEYS = ["football-os.game-day.v5", "football-os.game-day.v4"];
 const compactViewport = () => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
-const clampValue = (value, minimum = 2, maximum = 98) => Math.min(maximum, Math.max(minimum, value));
 
 const toolItems = [
   ["Select", CursorClick],
@@ -138,7 +149,9 @@ function readWorkspace() {
 function readGameDay() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(GAME_DAY_KEY))
-      ?? JSON.parse(window.localStorage.getItem(LEGACY_GAME_DAY_KEY));
+      ?? LEGACY_GAME_DAY_KEYS
+        .map((key) => JSON.parse(window.localStorage.getItem(key)))
+        .find(Boolean);
     return saved?.playId && saved?.snapshot
       ? { ...saved, playbookId: saved.playbookId ?? MAIN_PLAYBOOK_ID, snapshot: normalizePlay(saved.snapshot) }
       : null;
@@ -147,69 +160,71 @@ function readGameDay() {
   }
 }
 
-function defaultRouteIndex(play) {
-  const zRoute = play.routes.findIndex((route) => route.unit !== "defense" && route.player === "Z");
-  const firstOffense = play.routes.findIndex((route) => route.unit !== "defense");
-  return zRoute >= 0 ? zRoute : firstOffense >= 0 ? firstOffense : play.routes.length ? 0 : null;
+/** The flanker is the most useful default selection; fall back to any assignment. */
+function defaultAssignmentId(play) {
+  const flanker = play.players.find((player) => player.label === "Z");
+  const flankerAssignment = flanker
+    ? play.assignments.find((item) => item.unit === "offense" && item.playerId === flanker.id)
+    : null;
+  return flankerAssignment?.id
+    ?? play.assignments.find((item) => item.unit === "offense")?.id
+    ?? play.assignments[0]?.id
+    ?? null;
 }
 
-function assignmentPhaseForType(type) {
-  return type === "Motion" ? "pre" : "post";
+function assignmentFor(play, unit, playerId, phase) {
+  return play.assignments.find((item) => (
+    item.unit === unit && item.playerId === playerId && (!phase || item.phase === phase)
+  )) ?? null;
 }
 
-function assignmentIndexFor(play, unit, playerId, phase) {
-  return play.routes.findIndex((assignment) => (
-    (assignment.unit ?? "offense") === unit
-    && assignment.player === playerId
-    && (!phase || (assignment.phase ?? assignmentPhaseForType(assignment.type)) === phase)
-  ));
-}
-
-function preferredAssignmentIndex(play, unit, playerId) {
-  const postSnap = assignmentIndexFor(play, unit, playerId, "post");
-  return postSnap >= 0 ? postSnap : assignmentIndexFor(play, unit, playerId, "pre");
-}
-
-function playerLabelFor(play, unit, playerId) {
-  if (unit === "defense") return play.defenders.find((player) => player.id === playerId)?.label ?? playerId;
-  return playerId;
-}
-
-function playerStartFor(play, unit, playerId) {
-  if (unit === "defense") {
-    const player = play.defenders.find((item) => item.id === playerId);
-    return player ? [player.x, player.y] : null;
-  }
-  const player = play.players.find(([label]) => label === playerId);
-  return player ? [player[1], player[2]] : null;
+/** A player's post-snap assignment is the one a coach means by default. */
+function preferredAssignment(play, unit, playerId) {
+  return assignmentFor(play, unit, playerId, "post") ?? assignmentFor(play, unit, playerId, "pre");
 }
 
 function playerExists(play, unit, playerId) {
-  return unit === "defense"
-    ? play.defenders.some((player) => player.id === playerId)
-    : play.players.some(([label]) => label === playerId);
+  return Boolean(findPlayer(play, unit, playerId));
 }
 
-function createAssignment({ playId, playerId, start, type, unit }) {
+function isLinePlayer(play, unit, playerId) {
+  return unit === "offense" && isLineLabel(playerLabel(play, unit, playerId));
+}
+
+function createAssignment({ play, playerId, start, type, unit }) {
+  const towardField = start[0] < 0 ? "right" : "left";
   let definition;
   if (type === "Route") {
     definition = sanitizeRouteDefinition({ release: "none", stemYards: 10, breaks: [], condition: "" });
   } else if (type === "Block") {
-    definition = sanitizeBlockDefinition({ technique: "drive", direction: start[0] < 50 ? "right" : "left", target: "", climb: false });
+    definition = sanitizeBlockDefinition({ technique: "drive", direction: towardField, target: "", climb: false });
   } else if (type === "Motion") {
-    definition = sanitizeMotionDefinition({ motionType: "jet", direction: start[0] < 50 ? "right" : "left", distanceYards: 18 });
+    definition = sanitizeMotionDefinition({ motionType: "jet", direction: towardField, distanceYards: 18 });
+  } else if (type === "Man") {
+    // Default to covering the nearest uncovered receiver rather than nothing.
+    const covered = new Set(play.assignments
+      .filter((item) => item.type === "Man")
+      .map((item) => item.definition?.targetId));
+    const candidates = play.players
+      .filter((player) => !isLineLabel(player.label) && player.label !== "Q" && !covered.has(player.id))
+      .sort((a, b) => Math.abs(a.x - start[0]) - Math.abs(b.x - start[0]));
+    definition = sanitizeDefensiveDefinition(type, { targetId: candidates[0]?.id ?? "", leverage: "inside" });
   } else {
     definition = sanitizeDefensiveDefinition(type, {});
   }
-  const points = type === "Route"
-    ? routeDefinitionToPoints(start, definition)
+
+  const points = type === "Man"
+    ? manCoveragePoints(play, start, definition)
     : assignmentDefinitionToPoints(start, type, definition);
+
   return {
-    id: `${playId}-${unit}-${playerId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`,
-    player: playerId,
+    id: `${play.id}-${unit}-${playerId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${assignmentPhaseForType(type)}-${Date.now()}`,
+    playerId,
     unit,
     type,
-    preset: type === "Route" ? "Structured" : titleCase(definition.technique ?? definition.motionType ?? definition.area ?? definition.responsibility ?? type),
+    preset: type === "Route"
+      ? "Structured"
+      : titleCase(definition.technique ?? definition.motionType ?? definition.area ?? definition.responsibility ?? type),
     pace: 1,
     delay: type === "Motion" ? -1.5 : 0,
     phase: assignmentPhaseForType(type),
@@ -367,25 +382,40 @@ function Header({
   );
 }
 
-function previewPoint([x, y]) {
-  return [12 + x * 1.24, 5 + (y - 18) * 0.62];
-}
+/**
+ * The thumbnail uses the same yard-true projection as the canvas, at a box shaped
+ * to fit the whole fixed window, so a thumbnail is a faithful miniature of the
+ * play rather than a differently-distorted sketch.
+ */
+const MINI_BOX = { width: 96, height: 74 };
+const miniProjection = fieldProjection({ ...MINI_BOX, view: "end" });
 
 function MiniDiagram({ play }) {
-  const players = play.players ?? basePlayers;
   return (
-    <svg className="mini-diagram" viewBox="0 0 148 58" aria-hidden="true">
-      {players.map(([label, x, y]) => {
-        const [cx, cy] = previewPoint([x, y]);
-        return <circle key={`${play.id}-${label}-player`} className={label === "Z" ? "focus" : undefined} cx={cx} cy={cy} r="3.25" />;
-      })}
-      {play.routes.map((route, index) => (
+    <svg
+      className="mini-diagram"
+      viewBox={miniProjection.viewBox}
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+    >
+      <line
+        className="mini-line-of-scrimmage"
+        x1={-FIELD.halfWidthYards}
+        y1="0"
+        x2={FIELD.halfWidthYards}
+        y2="0"
+      />
+      {play.assignments.map((item) => (
         <polyline
-          key={route.id}
-          points={route.points.map((point) => previewPoint(point).join(",")).join(" ")}
-          className={`mini-route ${route.player === "Z" || index === play.routes.length - 1 ? "active" : ""}`}
+          key={item.id}
+          points={polylinePoints(item.points, miniProjection)}
+          className={`mini-route mini-${item.type.toLowerCase()} mini-${item.unit}`}
         />
       ))}
+      {play.players.map((player) => {
+        const [cx, cy] = miniProjection.project([player.x, player.y]);
+        return <circle key={player.id} cx={cx} cy={cy} r={miniProjection.pixels(3.25)} />;
+      })}
     </svg>
   );
 }
@@ -769,12 +799,12 @@ function Inspector({
   onSetAssignmentType,
   onSelectStage,
   onTiming,
-  playerLabel,
+  label,
   route,
   unit,
 }) {
   const [mobileExpanded, setMobileExpanded] = useState(false);
-  if (!playerLabel) return null;
+  if (!label) return null;
   const timingSummary = route
     ? `${route.delay > 0 ? "+" : ""}${(route.delay ?? 0).toFixed(2)}s · ${(route.pace ?? 1).toFixed(2)}×`
     : "No assignment";
@@ -801,8 +831,8 @@ function Inspector({
       </button>
       <div className="inspector-head"><div><small>{titleCase(unit)}</small><h2>{route ? route.type : "Player"}</h2></div><button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button></div>
       <div className="selected-assignment">
-        <span className={`assignment-badge ${unit}`}>{playerLabel}</span>
-        <div><strong>{playerLabel}{route ? ` ${route.type}` : " selected"}</strong><span title={route?.type === "Route" ? routeDefinitionSummary(route.definition) : undefined}><i aria-hidden="true" />{route?.type === "Route" ? `${route.definition.stemYards} yd stem · ${route.definition.breaks.length} break${route.definition.breaks.length === 1 ? "" : "s"}` : route?.preset ?? "Drag to reposition"}</span></div>
+        <span className={`assignment-badge ${unit}`}>{label}</span>
+        <div><strong>{label}{route ? ` ${route.type}` : " selected"}</strong><span title={route?.type === "Route" ? routeDefinitionSummary(route.definition) : undefined}><i aria-hidden="true" />{route?.type === "Route" ? `${route.definition.stemYards} yd stem · ${route.definition.breaks.length} break${route.definition.breaks.length === 1 ? "" : "s"}` : route?.preset ?? "Drag to reposition"}</span></div>
       </div>
       <AssignmentStagePicker
         activeId={route?.id ?? null}
@@ -818,7 +848,7 @@ function Inspector({
             <span>{route.templateOverride ? "Play-level override" : `Inherited from ${route.inheritedFrom.conceptName}`}</span>
           </div>
         ) : null}
-        <PositionLabelControl label={playerLabel} onSave={onRenamePlayer} />
+        <PositionLabelControl label={label} onSave={onRenamePlayer} />
         <div className="control-group">
           <span>Assignment</span>
           <AssignmentTypePicker unit={unit} value={route?.type ?? ""} onChange={onSetAssignmentType} />
@@ -1118,8 +1148,8 @@ export function App() {
     supported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
     development: true,
   });
-  const [selectedRoute, setSelectedRoute] = useState(() => compactViewport() ? null : 3);
-  const [selectedPlayer, setSelectedPlayer] = useState(() => compactViewport() ? null : "Z");
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState("offense");
   const [layers, setLayers] = useState({
     offense: { visible: true, dimmed: false, locked: false },
@@ -1128,7 +1158,7 @@ export function App() {
   });
   const [browserQuery, setBrowserQuery] = useState("");
   const [browserFolder, setBrowserFolder] = useState("all");
-  const [draftRoute, setDraftRoute] = useState([]);
+  const [draftAssignment, setDraftAssignment] = useState([]);
   const [toast, setToast] = useState("");
   const drawing = useRef(false);
   const historyRef = useRef(new Map());
@@ -1161,30 +1191,30 @@ export function App() {
   }, [browserFolder, browserQuery, library]);
   const playIndex = useMemo(() => Math.max(0, library.findIndex((item) => item.id === playId)), [library, playId]);
   const play = library[playIndex];
-  const route = selectedRoute === null ? null : play.routes[selectedRoute] ?? null;
-  const selectedPlayerLabel = selectedPlayer ? playerLabelFor(play, selectedUnit, selectedPlayer) : null;
-  const playerAssignments = useMemo(() => selectedPlayer
-    ? play.routes.filter((assignment) => (assignment.unit ?? "offense") === selectedUnit && assignment.player === selectedPlayer)
-    : [], [play.routes, selectedPlayer, selectedUnit]);
+  /*
+   * Selection is held as a stable assignment id rather than an index into
+   * play.assignments, so deleting, reordering, applying a concept, or undoing
+   * cannot silently move the selection onto a different player's assignment.
+   */
+  const route = selectedAssignmentId
+    ? play.assignments.find((item) => item.id === selectedAssignmentId) ?? null
+    : null;
+  const selectedPlayerLabel = selectedPlayerId ? playerLabel(play, selectedUnit, selectedPlayerId) : null;
+  const playerAssignments = useMemo(() => selectedPlayerId
+    ? play.assignments.filter((item) => item.unit === selectedUnit && item.playerId === selectedPlayerId)
+    : [], [play.assignments, selectedPlayerId, selectedUnit]);
   const currentLayerLocked = layers[selectedUnit]?.locked ?? false;
   const copyTargets = useMemo(() => {
-    if (!selectedPlayer) return [];
-    const phase = route?.phase ?? assignmentPhaseForType(route?.type);
-    const assigned = new Set(play.routes
-      .filter((assignment) => (
-        (assignment.unit ?? "offense") === selectedUnit
-        && (assignment.phase ?? assignmentPhaseForType(assignment.type)) === phase
-      ))
-      .map((assignment) => assignment.player));
-    if (selectedUnit === "defense") {
-      return play.defenders
-        .filter((player) => player.id !== selectedPlayer && !assigned.has(player.id))
-        .map((player) => ({ id: player.id, label: player.label }));
-    }
-    return play.players
-      .filter(([label]) => label !== selectedPlayer && !assigned.has(label))
-      .map(([label]) => ({ id: label, label }));
-  }, [play.defenders, play.players, play.routes, route?.phase, route?.type, selectedPlayer, selectedUnit]);
+    if (!selectedPlayerId) return [];
+    const phase = route?.phase ?? "post";
+    const assigned = new Set(play.assignments
+      .filter((item) => item.unit === selectedUnit && item.phase === phase)
+      .map((item) => item.playerId));
+    const roster = selectedUnit === "defense" ? play.defenders : play.players;
+    return roster
+      .filter((player) => player.id !== selectedPlayerId && !assigned.has(player.id))
+      .map((player) => ({ id: player.id, label: player.label }));
+  }, [play.assignments, play.defenders, play.players, route?.phase, selectedPlayerId, selectedUnit]);
   const temporary = gameDay?.playbookId === activePlaybook.id && gameDay?.playId === play.id;
   const currentFormationStatus = formationStatus(play.players);
   const historyEntry = historyRef.current.get(play.id) ?? { past: [], future: [] };
@@ -1210,10 +1240,25 @@ export function App() {
 
   useEffect(() => {
     if (playback !== "running") return undefined;
-    const duration = playDuration(play.routes, speed);
+    const duration = playDuration(play.assignments, speed);
     const timer = window.setTimeout(() => setPlayback("idle"), duration * 1000 + 150);
     return () => window.clearTimeout(timer);
-  }, [play.routes, playback, runKey, speed]);
+  }, [play.assignments, playback, runKey, speed]);
+
+  // Open on a useful selection, but leave phones on a clean, view-first canvas.
+  useEffect(() => {
+    if (compactViewport()) return;
+    const firstPlay = library[0];
+    if (!firstPlay) return;
+    const id = defaultAssignmentId(firstPlay);
+    const item = firstPlay.assignments.find((entry) => entry.id === id);
+    if (!item) return;
+    setSelectedAssignmentId(item.id);
+    setSelectedPlayerId(item.playerId);
+    setSelectedUnit(item.unit);
+    // Mount only: later selection is driven by interaction.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setLibrary = (nextValue) => {
     setWorkspace((current) => ({
@@ -1245,17 +1290,52 @@ export function App() {
     setLibrary((current) => current.map((item) => item.id === targetId ? updater(item) : item));
   };
 
-  const updateRoute = (updater, options = {}) => {
-    if (selectedRoute === null) return;
+  const updateSelectedAssignment = (updater, options = {}) => {
+    if (!selectedAssignmentId) return;
     const { markOverride = true, ...historyOptions } = options;
     updatePlay(play.id, (current) => ({
       ...current,
-      routes: current.routes.map((item, index) => {
-        if (index !== selectedRoute) return item;
+      assignments: current.assignments.map((item) => {
+        if (item.id !== selectedAssignmentId) return item;
         const updated = updater(item);
         return markOverride && item.inheritedFrom ? { ...updated, templateOverride: true } : updated;
       }),
     }), historyOptions);
+  };
+
+  const clearSelection = () => {
+    setSelectedAssignmentId(null);
+    setSelectedPlayerId(null);
+  };
+
+  /** Selects an assignment and brings its player and unit along with it. */
+  const focusAssignment = (targetPlay, assignmentId) => {
+    const item = targetPlay.assignments.find((entry) => entry.id === assignmentId);
+    if (!item) {
+      setSelectedAssignmentId(null);
+      return;
+    }
+    setSelectedAssignmentId(item.id);
+    setSelectedPlayerId(item.playerId);
+    setSelectedUnit(item.unit);
+  };
+
+  /*
+   * After a history jump the selected player may be gone, or may no longer own
+   * an assignment in the same phase. Both are resolved by id, so neither can
+   * land on an unrelated assignment.
+   */
+  const restoreSelection = (nextPlay) => {
+    if (selectedPlayerId && !playerExists(nextPlay, selectedUnit, selectedPlayerId)) {
+      clearSelection();
+      return;
+    }
+    if (nextPlay.assignments.some((item) => item.id === selectedAssignmentId)) return;
+    const replacement = selectedPlayerId
+      ? assignmentFor(nextPlay, selectedUnit, selectedPlayerId, route?.phase)
+        ?? preferredAssignment(nextPlay, selectedUnit, selectedPlayerId)
+      : null;
+    setSelectedAssignmentId(replacement?.id ?? null);
   };
 
   const undo = () => {
@@ -1267,9 +1347,7 @@ export function App() {
       future: [clonePlaybook([play])[0], ...entry.future].slice(0, 40),
     });
     replacePlay(play.id, previous);
-    const nextRoute = selectedPlayer ? assignmentIndexFor(previous, selectedUnit, selectedPlayer, route?.phase) : -1;
-    setSelectedRoute(nextRoute >= 0 ? nextRoute : null);
-    if (selectedPlayer && !playerExists(previous, selectedUnit, selectedPlayer)) setSelectedPlayer(null);
+    restoreSelection(previous);
     setHistoryVersion((value) => value + 1);
     setToast("Undid last change");
   };
@@ -1283,9 +1361,7 @@ export function App() {
       future: entry.future.slice(1),
     });
     replacePlay(play.id, next);
-    const nextRoute = selectedPlayer ? assignmentIndexFor(next, selectedUnit, selectedPlayer, route?.phase) : -1;
-    setSelectedRoute(nextRoute >= 0 ? nextRoute : null);
-    if (selectedPlayer && !playerExists(next, selectedUnit, selectedPlayer)) setSelectedPlayer(null);
+    restoreSelection(next);
     setHistoryVersion((value) => value + 1);
     setToast("Redid change");
   };
@@ -1293,12 +1369,10 @@ export function App() {
   const selectPlay = (nextId) => {
     const nextPlay = library.find((item) => item.id === nextId);
     if (!nextPlay) return;
-    const nextRouteIndex = compactViewport() ? null : defaultRouteIndex(nextPlay);
     setPlayId(nextId);
-    setSelectedRoute(nextRouteIndex);
-    setSelectedPlayer(nextRouteIndex === null ? null : nextPlay.routes[nextRouteIndex]?.player ?? null);
-    setSelectedUnit(nextRouteIndex === null ? "offense" : nextPlay.routes[nextRouteIndex]?.unit ?? "offense");
-    setDraftRoute([]);
+    if (compactViewport()) clearSelection();
+    else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
+    setDraftAssignment([]);
     setActiveTool("Select");
     setPlayback("idle");
   };
@@ -1315,15 +1389,13 @@ export function App() {
     const nextBook = playbooks.find((book) => book.id === nextBookId);
     if (!nextBook || nextBook.id === activePlaybook.id) return;
     const nextPlay = nextBook.plays[0];
-    const nextRouteIndex = compactViewport() ? null : defaultRouteIndex(nextPlay);
     setWorkspace((current) => ({ ...current, activePlaybookId: nextBookId }));
     setPlayId(nextPlay.id);
-    setSelectedRoute(nextRouteIndex);
-    setSelectedPlayer(nextRouteIndex === null ? null : nextPlay.routes[nextRouteIndex]?.player ?? null);
-    setSelectedUnit(nextRouteIndex === null ? "offense" : nextPlay.routes[nextRouteIndex]?.unit ?? "offense");
+    if (compactViewport()) clearSelection();
+    else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
     setBrowserQuery("");
     setBrowserFolder("all");
-    setDraftRoute([]);
+    setDraftAssignment([]);
     setActiveTool("Select");
     setPlayback("idle");
     setPresent(false);
@@ -1378,8 +1450,7 @@ export function App() {
       playbooks: [...current.playbooks, newBook],
     }));
     setPlayId(firstPlay.id);
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setNewPlaybookDialog(false);
     setToast(`${name} created`);
@@ -1395,7 +1466,10 @@ export function App() {
         id,
         name: uniqueName(library, name),
         variantOf: play.id,
-        routes: play.routes.map((item, index) => ({ ...clonePlaybook([item])[0], id: `${id}-assignment-${index + 1}` })),
+        assignments: play.assignments.map((item, index) => ({
+          ...clonePlaybook([item])[0],
+          id: `${id}-assignment-${index + 1}`,
+        })),
       };
     } else {
       const formation = mode === "blank"
@@ -1416,8 +1490,7 @@ export function App() {
 
     setLibrary((current) => [...current, created]);
     setPlayId(created.id);
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setCreatePlayDialog(false);
     setActiveTool("Select");
@@ -1440,10 +1513,8 @@ export function App() {
     historyRef.current.delete(play.id);
     setHistoryVersion((value) => value + 1);
     setPlayId(nextPlay.id);
-    const nextRouteIndex = compactViewport() ? null : defaultRouteIndex(nextPlay);
-    setSelectedRoute(nextRouteIndex);
-    setSelectedPlayer(nextRouteIndex === null ? null : nextPlay.routes[nextRouteIndex]?.player ?? null);
-    setSelectedUnit(nextRouteIndex === null ? "offense" : nextPlay.routes[nextRouteIndex]?.unit ?? "offense");
+    if (compactViewport()) clearSelection();
+    else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
     setDeletePlayDialog(false);
     setToast(`${play.name} deleted`);
   };
@@ -1477,11 +1548,12 @@ export function App() {
       setToast("Choose a legal saved formation");
       return;
     }
-    const nextLabels = new Set(formation.players.map(([label]) => label));
-    const removed = play.routes.filter((assignment) => (assignment.unit ?? "offense") === "offense" && !nextLabels.has(assignment.player)).length;
+    const nextLabels = new Set(formation.players.map((player) => player.label));
+    const removed = play.assignments.filter((item) => (
+      item.unit === "offense" && !nextLabels.has(playerLabel(play, "offense", item.playerId))
+    )).length;
     updatePlay(play.id, (current) => applyFormationToPlay(current, formation));
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setApplyFormationDialog(false);
     setToast(`${formation.name} applied${removed ? ` · ${removed} unmatched assignment${removed === 1 ? "" : "s"} removed` : " · matching assignments preserved"}`);
@@ -1514,8 +1586,7 @@ export function App() {
     const concept = activePlaybook.concepts.find((item) => item.id === conceptId);
     if (!concept) return;
     updatePlay(play.id, (current) => applyConceptTemplateToPlay(current, concept));
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setApplyConceptDialog(false);
     setToast(`${concept.name} applied · play-level overrides preserved`);
@@ -1545,8 +1616,7 @@ export function App() {
     const restoredBook = restored.playbooks.find((book) => book.id === restored.activePlaybookId) ?? restored.playbooks[0];
     setWorkspace(restored);
     setPlayId(restoredBook.plays[0].id);
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setGameDay(null);
     setRestoreCandidate(null);
@@ -1568,145 +1638,127 @@ export function App() {
     setToast(ready ? "Offline game-day copy refreshed" : "Offline copy could not be refreshed yet");
   };
 
+  /*
+   * Relabelling only touches the label. Identity lives on the player's id, so
+   * assignments stay attached and duplicate labels are allowed on both units --
+   * a defense can carry two `C` and two `T`, and so can an offense.
+   */
   const renamePlayer = (nextLabel) => {
-    if (!selectedPlayer || nextLabel === selectedPlayerLabel) return;
+    if (!selectedPlayerId || nextLabel === selectedPlayerLabel) return;
     if (currentLayerLocked) {
       setToast(`Unlock the ${selectedUnit} layer to relabel players`);
       return;
     }
-    if (selectedUnit === "defense") {
-      updatePlay(play.id, (current) => ({
-        ...current,
-        defenders: current.defenders.map((player) => player.id === selectedPlayer ? { ...player, label: nextLabel } : player),
-      }));
-      setToast(`${selectedPlayerLabel} relabeled as ${nextLabel}`);
-      return;
-    }
-    if (play.players.some(([label]) => label === nextLabel)) {
-      setToast(`${nextLabel} is already used in this formation`);
-      return;
-    }
-    const previousLabel = selectedPlayer;
+    const previousLabel = selectedPlayerLabel;
+    const rosterKey = selectedUnit === "defense" ? "defenders" : "players";
     updatePlay(play.id, (current) => ({
       ...current,
-      players: current.players.map(([label, x, y]) => label === previousLabel ? [nextLabel, x, y] : [label, x, y]),
-      routes: current.routes.map((item) => item.player === previousLabel ? { ...item, player: nextLabel } : item),
+      [rosterKey]: current[rosterKey].map((player) => (
+        player.id === selectedPlayerId ? { ...player, label: nextLabel } : player
+      )),
     }));
-    setSelectedPlayer(nextLabel);
     setToast(`${previousLabel} relabeled as ${nextLabel}`);
   };
 
   const deleteAssignment = () => {
-    if (selectedRoute === null || !route) return;
+    if (!route) return;
     if (currentLayerLocked) {
       setToast(`Unlock the ${selectedUnit} layer to delete assignments`);
       return;
     }
-    const fallbackIndex = play.routes.findIndex((item, index) => (
-      index !== selectedRoute
-      && (item.unit ?? "offense") === selectedUnit
-      && item.player === selectedPlayer
+    const removedId = route.id;
+    const label = selectedPlayerLabel;
+    const type = route.type.toLowerCase();
+    // The player's other stage, if they have one, becomes the selection.
+    const fallback = play.assignments.find((item) => (
+      item.id !== removedId && item.unit === selectedUnit && item.playerId === selectedPlayerId
     ));
     updatePlay(play.id, (current) => ({
       ...current,
-      routes: current.routes.filter((_, index) => index !== selectedRoute),
+      assignments: current.assignments.filter((item) => item.id !== removedId),
     }));
-    setSelectedRoute(fallbackIndex < 0 ? null : fallbackIndex > selectedRoute ? fallbackIndex - 1 : fallbackIndex);
-    setToast(`${route.player} ${route.type.toLowerCase()} deleted`);
+    setSelectedAssignmentId(fallback?.id ?? null);
+    setToast(`${label} ${type} deleted`);
   };
 
   const removePlayer = () => {
-    if (!selectedPlayer) return;
+    if (!selectedPlayerId) return;
     if (currentLayerLocked) {
       setToast(`Unlock the ${selectedUnit} layer to remove players`);
       return;
     }
-    const removed = selectedPlayer;
-    updatePlay(play.id, (current) => selectedUnit === "defense"
-      ? {
-          ...current,
-          defenders: current.defenders.filter((player) => player.id !== removed),
-          routes: current.routes.filter((item) => !((item.unit ?? "offense") === "defense" && item.player === removed)),
-        }
-      : {
-          ...current,
-          players: current.players.filter(([label]) => label !== removed),
-          routes: current.routes.filter((item) => !((item.unit ?? "offense") === "offense" && item.player === removed)),
-        });
-    setSelectedPlayer(null);
-    setSelectedRoute(null);
+    const removedId = selectedPlayerId;
+    const removedLabel = selectedPlayerLabel;
+    const rosterKey = selectedUnit === "defense" ? "defenders" : "players";
+    updatePlay(play.id, (current) => ({
+      ...current,
+      [rosterKey]: current[rosterKey].filter((player) => player.id !== removedId),
+      assignments: current.assignments.filter((item) => item.playerId !== removedId),
+    }));
+    clearSelection();
     setSelectedUnit("offense");
-    setToast(`${selectedPlayerLabel} removed — undo to restore`);
+    setToast(`${removedLabel} removed — undo to restore`);
   };
 
   const addPlayer = () => {
     if (play.players.length >= 11) return;
-    const labels = new Set(play.players.map(([label]) => label));
+    const labels = new Set(play.players.map((player) => player.label));
     let nextLabel = "P";
     let suffix = 2;
     while (labels.has(nextLabel)) {
       nextLabel = `P${suffix}`;
       suffix += 1;
     }
+    const id = `o-added-${Date.now()}`;
+    // Drop the new player in the backfield, behind the quarterback.
     updatePlay(play.id, (current) => ({
       ...current,
-      players: [...current.players, [nextLabel, 50, 88]],
+      players: [...current.players, { id, label: nextLabel, x: 0, y: -7.5 }],
     }));
     setSelectedUnit("offense");
-    setSelectedPlayer(nextLabel);
-    setSelectedRoute(null);
+    setSelectedPlayerId(id);
+    setSelectedAssignmentId(null);
     setToast(`${nextLabel} added — drag and relabel the player`);
   };
 
   const setAssignmentType = (type) => {
-    if (!selectedPlayer) return;
+    if (!selectedPlayerId) return;
     if (currentLayerLocked) {
       setToast(`Unlock the ${selectedUnit} layer to edit assignments`);
       return;
     }
-    const allowed = selectedUnit === "defense" ? defensiveAssignmentTypes : ["Route", "Block", "Motion"];
+    const allowed = selectedUnit === "defense" ? defensiveAssignmentTypes : offensiveAssignmentTypes;
     if (!allowed.includes(type)) return;
-    if (selectedUnit === "offense" && linePlayers.has(selectedPlayer) && type !== "Block") {
-      setToast(`${selectedPlayer} uses blocking assignments`);
+    if (isLinePlayer(play, selectedUnit, selectedPlayerId) && type !== "Block") {
+      setToast(`${selectedPlayerLabel} uses blocking assignments`);
       return;
     }
     const targetPhase = selectedUnit === "defense" ? "post" : assignmentPhaseForType(type);
-    const targetIndex = assignmentIndexFor(play, selectedUnit, selectedPlayer, targetPhase);
-    if (targetIndex >= 0 && play.routes[targetIndex]?.type === type) {
-      setSelectedRoute(targetIndex);
+    const existing = assignmentFor(play, selectedUnit, selectedPlayerId, targetPhase);
+    if (existing?.type === type) {
+      setSelectedAssignmentId(existing.id);
       return;
     }
-    const start = playerStartFor(play, selectedUnit, selectedPlayer);
+    const start = playerLocation(play, selectedUnit, selectedPlayerId);
     if (!start) return;
-    const previousAssignment = targetIndex >= 0 ? play.routes[targetIndex] : null;
     const nextAssignment = {
-      ...createAssignment({
-      playId: play.id,
-      playerId: selectedPlayer,
-      start,
-      type,
-      unit: selectedUnit,
-      }),
+      ...createAssignment({ play, playerId: selectedPlayerId, start, type, unit: selectedUnit }),
       ...(play.conceptTemplateId ? { templateOverride: true } : {}),
-      ...(previousAssignment?.inheritedFrom ? { inheritedFrom: previousAssignment.inheritedFrom } : {}),
+      ...(existing?.inheritedFrom ? { inheritedFrom: existing.inheritedFrom } : {}),
     };
-    if (targetIndex < 0) {
-      updatePlay(play.id, (current) => ({ ...current, routes: [...current.routes, nextAssignment] }));
-      setSelectedRoute(play.routes.length);
-    } else {
-      updatePlay(play.id, (current) => ({
-        ...current,
-        routes: current.routes.map((item, index) => index === targetIndex ? nextAssignment : item),
-      }));
-      setSelectedRoute(targetIndex);
-    }
+    updatePlay(play.id, (current) => ({
+      ...current,
+      assignments: existing
+        ? current.assignments.map((item) => item.id === existing.id ? nextAssignment : item)
+        : [...current.assignments, nextAssignment],
+    }));
+    setSelectedAssignmentId(nextAssignment.id);
     setActiveTool(selectedUnit === "defense" ? "Defense" : type);
     setToast(`${selectedPlayerLabel} ${type.toLowerCase()} assignment ready`);
   };
 
   const selectAssignmentStage = (assignmentId) => {
-    const index = play.routes.findIndex((assignment) => assignment.id === assignmentId);
-    if (index >= 0) setSelectedRoute(index);
+    if (play.assignments.some((item) => item.id === assignmentId)) setSelectedAssignmentId(assignmentId);
   };
 
   const addAssignmentStage = (phase) => {
@@ -1718,27 +1770,18 @@ export function App() {
       setAssignmentType("Rush");
       return;
     }
-    setAssignmentType(linePlayers.has(selectedPlayer) ? "Block" : "Route");
+    setAssignmentType(isLinePlayer(play, selectedUnit, selectedPlayerId) ? "Block" : "Route");
   };
 
   const changeAssignmentDefinition = (nextDefinition) => {
     if (!route || currentLayerLocked) return;
-    const start = playerStartFor(play, selectedUnit, selectedPlayer);
+    const start = playerLocation(play, selectedUnit, selectedPlayerId);
     if (!start) return;
-    const definition = route.type === "Block"
-      ? sanitizeBlockDefinition(nextDefinition)
-      : route.type === "Motion"
-        ? sanitizeMotionDefinition(nextDefinition)
-        : sanitizeDefensiveDefinition(route.type, nextDefinition);
-    let points = assignmentDefinitionToPoints(start, route.type, definition);
-    if (route.type === "Man") {
-      const target = play.players.find(([label]) => label === definition.target);
-      if (target) {
-        const leverageOffset = definition.leverage === "inside" ? (target[1] < 50 ? 3 : -3) : definition.leverage === "outside" ? (target[1] < 50 ? -3 : 3) : 0;
-        points = [start, [clampValue(target[1] + leverageOffset), clampValue(target[2] - 5, 4, 96)]];
-      }
-    }
-    updateRoute((current) => ({
+    const definition = sanitizeAssignmentDefinition(route.type, nextDefinition);
+    const points = route.type === "Man"
+      ? manCoveragePoints(play, start, definition)
+      : assignmentDefinitionToPoints(start, route.type, definition);
+    updateSelectedAssignment((current) => ({
       ...current,
       definition,
       preset: titleCase(definition.technique ?? definition.motionType ?? definition.area ?? definition.responsibility ?? current.type),
@@ -1750,40 +1793,39 @@ export function App() {
 
   const changeAssignmentTiming = (patch) => {
     if (!route || currentLayerLocked) return;
-    updateRoute((current) => ({ ...current, ...patch }));
+    updateSelectedAssignment((current) => ({ ...current, ...patch }));
   };
 
   const copyAssignment = (targetId) => {
     if (!route || currentLayerLocked) return;
-    const sourceStart = playerStartFor(play, selectedUnit, selectedPlayer);
-    const targetStart = playerStartFor(play, selectedUnit, targetId);
-    const phase = route.phase ?? assignmentPhaseForType(route.type);
-    if (!sourceStart || !targetStart || assignmentIndexFor(play, selectedUnit, targetId, phase) >= 0) return;
+    const sourceStart = playerLocation(play, selectedUnit, selectedPlayerId);
+    const targetStart = playerLocation(play, selectedUnit, targetId);
+    if (!sourceStart || !targetStart || assignmentFor(play, selectedUnit, targetId, route.phase)) return;
     const dx = targetStart[0] - sourceStart[0];
     const dy = targetStart[1] - sourceStart[1];
     const copy = {
       ...clonePlaybook([route])[0],
-      id: `${play.id}-${selectedUnit}-${targetId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${phase}-${Date.now()}`,
-      player: targetId,
-      points: route.points.map(([x, y]) => [clampValue(x + dx), clampValue(y + dy, 4, 96)]),
+      id: `${play.id}-${selectedUnit}-${targetId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${route.phase}-${Date.now()}`,
+      playerId: targetId,
+      points: route.points.map(([x, y]) => clampPoint([x + dx, y + dy])),
       evidence: route.evidence ? { ...route.evidence, coachEdited: true, method: "coach-copied" } : route.evidence,
       templateOverride: route.inheritedFrom ? true : route.templateOverride,
     };
-    updatePlay(play.id, (current) => ({ ...current, routes: [...current.routes, copy] }));
-    setSelectedPlayer(targetId);
-    setSelectedRoute(play.routes.length);
-    setToast(`Assignment copied to ${playerLabelFor(play, selectedUnit, targetId)}`);
+    updatePlay(play.id, (current) => ({ ...current, assignments: [...current.assignments, copy] }));
+    setSelectedPlayerId(targetId);
+    setSelectedAssignmentId(copy.id);
+    setToast(`Assignment copied to ${playerLabel(play, selectedUnit, targetId)}`);
   };
 
   const mirrorAssignment = () => {
     if (!route || currentLayerLocked) return;
-    const start = playerStartFor(play, selectedUnit, selectedPlayer);
+    const start = playerLocation(play, selectedUnit, selectedPlayerId);
     if (!start) return;
-    updateRoute((current) => ({
+    updateSelectedAssignment((current) => ({
       ...current,
       preset: `${current.preset ?? current.type} Mirror`,
       geometryMode: "manual",
-      points: current.points.map(([x, y]) => [clampValue(start[0] - (x - start[0])), y]),
+      points: current.points.map(([x, y]) => clampPoint([start[0] - (x - start[0]), y])),
       evidence: current.evidence ? { ...current.evidence, coachEdited: true } : current.evidence,
     }));
     setToast(`${selectedPlayerLabel} assignment mirrored`);
@@ -1809,23 +1851,30 @@ export function App() {
     setPlayback("running");
   };
 
+  /*
+   * The projection is a pure function of (stage box, view), so recomputing it
+   * here yields exactly the one PlayCanvas drew with -- pointer input therefore
+   * lands on the field yard under the finger, at any viewport size.
+   */
   const pointerPoint = (event) => {
     const box = svgRef.current?.parentElement?.getBoundingClientRect();
-    if (!box) return [50, 50];
-    const x = Math.min(98, Math.max(2, ((event.clientX - box.left) / box.width) * 100));
-    const y = Math.min(96, Math.max(4, ((event.clientY - box.top) / box.height) * 100));
-    return view === "end" ? [x, y] : [y, 100 - x];
+    if (!box) return [0, 0];
+    const projection = fieldProjection({ width: box.width, height: box.height, view });
+    return clampPoint(pointerToField(event, box, projection));
   };
+
+  /** Drawing needs a minimum travel in yards before it registers a new vertex. */
+  const DRAW_STEP_YARDS = 0.8;
 
   const startDraw = (event) => {
     if (activeTool === "Select") {
       canvasSwipe.current = { x: event.clientX, y: event.clientY };
       return;
     }
-    const drawingTool = ["Route", "Block", "Motion"].includes(activeTool)
+    const drawingTool = offensiveAssignmentTypes.includes(activeTool)
       || (activeTool === "Defense" && route?.unit === "defense");
     if (!drawingTool) return;
-    if (selectedRoute === null) {
+    if (!route) {
       setToast(`Select a ${activeTool === "Defense" ? "defender" : "player"} before drawing`);
       return;
     }
@@ -1833,22 +1882,23 @@ export function App() {
       setToast(currentLayerLocked ? `Unlock the ${selectedUnit} layer to draw` : "Show the assignments layer to draw");
       return;
     }
-    if (activeTool !== "Defense" && route?.type !== activeTool) {
-      setToast(`${route?.player ?? "This player"} already has a ${route?.type.toLowerCase() ?? "different assignment"}`);
+    if (activeTool !== "Defense" && route.type !== activeTool) {
+      setToast(`${selectedPlayerLabel ?? "This player"} already has a ${route.type.toLowerCase()}`);
       return;
     }
     drawing.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
     const start = route.points[0];
     const next = pointerPoint(event);
-    setDraftRoute(Math.hypot(next[0] - start[0], next[1] - start[1]) > 1.5 ? [start, next] : [start]);
+    setDraftAssignment(Math.hypot(next[0] - start[0], next[1] - start[1]) > DRAW_STEP_YARDS ? [start, next] : [start]);
   };
 
   const movePointer = (event) => {
     if (playerDrag.current) {
       const next = pointerPoint(event);
-      const snapped = playerDrag.current.unit === "offense"
-        ? [next[0], Math.abs(next[1] - 73) <= 3.5 ? 73 : next[1]]
+      // Snap an offensive player onto the line of scrimmage when they are close to it.
+      const snapped = playerDrag.current.unit === "offense" && Math.abs(next[1]) <= 0.7
+        ? [next[0], 0]
         : next;
       if (!playerDrag.current.moved) {
         pushHistory(play.id, playerDrag.current.snapshot);
@@ -1856,23 +1906,22 @@ export function App() {
       }
       const draggedId = playerDrag.current.id;
       const draggedUnit = playerDrag.current.unit;
+      const rosterKey = draggedUnit === "defense" ? "defenders" : "players";
       updatePlay(play.id, (current) => {
-        const currentStart = playerStartFor(current, draggedUnit, draggedId);
+        const currentStart = playerLocation(current, draggedUnit, draggedId);
         if (!currentStart) return current;
         const dx = snapped[0] - currentStart[0];
         const dy = snapped[1] - currentStart[1];
         return {
           ...current,
-          players: draggedUnit === "offense"
-            ? current.players.map(([label, x, y]) => label === draggedId ? [label, snapped[0], snapped[1]] : [label, x, y])
-            : current.players,
-          defenders: draggedUnit === "defense"
-            ? current.defenders.map((player) => player.id === draggedId ? { ...player, x: snapped[0], y: snapped[1] } : player)
-            : current.defenders,
-          routes: current.routes.map((item) => (item.unit ?? "offense") === draggedUnit && item.player === draggedId
+          [rosterKey]: current[rosterKey].map((player) => (
+            player.id === draggedId ? { ...player, x: snapped[0], y: snapped[1] } : player
+          )),
+          // An assignment travels with its player, so the path keeps its shape.
+          assignments: current.assignments.map((item) => item.playerId === draggedId
             ? {
                 ...item,
-                points: item.points.map(([x, y]) => [clampValue(x + dx), clampValue(y + dy, 4, 96)]),
+                points: item.points.map(([x, y]) => clampPoint([x + dx, y + dy])),
                 templateOverride: item.inheritedFrom ? true : item.templateOverride,
               }
             : item),
@@ -1881,14 +1930,14 @@ export function App() {
       return;
     }
 
-    if (routePointDrag.current && selectedRoute !== null) {
+    if (routePointDrag.current && route) {
       if (!routePointDrag.current.moved) {
         pushHistory(play.id, routePointDrag.current.snapshot);
         routePointDrag.current.moved = true;
       }
       const next = pointerPoint(event);
       const pointIndex = routePointDrag.current.pointIndex;
-      updateRoute((current) => ({
+      updateSelectedAssignment((current) => ({
         ...current,
         preset: "Custom",
         geometryMode: "manual",
@@ -1898,15 +1947,19 @@ export function App() {
       return;
     }
 
-    const drawingTool = ["Route", "Block", "Motion"].includes(activeTool) || activeTool === "Defense";
+    const drawingTool = offensiveAssignmentTypes.includes(activeTool) || activeTool === "Defense";
     if (!drawing.current || !drawingTool) return;
     const next = pointerPoint(event);
-    setDraftRoute((current) => current.length && Math.hypot(next[0] - current.at(-1)[0], next[1] - current.at(-1)[1]) < 1.5 ? current : [...current, next]);
+    setDraftAssignment((current) => (
+      current.length && Math.hypot(next[0] - current.at(-1)[0], next[1] - current.at(-1)[1]) < DRAW_STEP_YARDS
+        ? current
+        : [...current, next]
+    ));
   };
 
   const finishPointer = (event) => {
     if (playerDrag.current) {
-      const movedLabel = playerLabelFor(play, playerDrag.current.unit, playerDrag.current.id);
+      const movedLabel = playerLabel(play, playerDrag.current.unit, playerDrag.current.id);
       const moved = playerDrag.current.moved;
       playerDrag.current = null;
       if (moved) setToast(`${movedLabel} repositioned`);
@@ -1920,9 +1973,11 @@ export function App() {
     }
     if (drawing.current) {
       drawing.current = false;
-      if (draftRoute.length > 1) {
-        updateRoute((current) => {
-          const sketched = { ...current, points: draftRoute, preset: "Custom" };
+      if (draftAssignment.length > 1) {
+        const label = selectedPlayerLabel ?? "Player";
+        const type = route?.type.toLowerCase() ?? "assignment";
+        updateSelectedAssignment((current) => {
+          const sketched = { ...current, points: draftAssignment, preset: "Custom" };
           return {
             ...sketched,
             definition: current.type === "Route" ? inferRouteDefinition(sketched) : current.definition,
@@ -1930,10 +1985,9 @@ export function App() {
             evidence: current.evidence ? { ...current.evidence, coachEdited: true } : current.evidence,
           };
         });
-        setToast(`${route?.player ?? "Player"} ${route?.type.toLowerCase() ?? "assignment"} updated`);
+        setToast(`${label} ${type} updated`);
       }
-      setDraftRoute([]);
-      setActiveTool("Select");
+      setDraftAssignment([]);
     }
     if (canvasSwipe.current && event) {
       const dx = event.clientX - canvasSwipe.current.x;
@@ -1953,15 +2007,15 @@ export function App() {
         : ["Route", "Block"].includes(activeTool)
           ? "post"
           : null;
-    const existingIndex = toolPhase
-      ? assignmentIndexFor(play, unit, playerId, toolPhase)
-      : preferredAssignmentIndex(play, unit, playerId);
+    const existing = toolPhase
+      ? assignmentFor(play, unit, playerId, toolPhase)
+      : preferredAssignment(play, unit, playerId);
 
     setSelectedUnit(unit);
-    setSelectedPlayer(playerId);
+    setSelectedPlayerId(playerId);
 
     if (activeTool === "Select") {
-      setSelectedRoute(existingIndex >= 0 ? existingIndex : null);
+      setSelectedAssignmentId(existing?.id ?? null);
       if (!layers[unit].locked) {
         playerDrag.current = {
           id: playerId,
@@ -1976,16 +2030,15 @@ export function App() {
 
     const unitToolMatches = unit === "defense"
       ? activeTool === "Defense"
-      : ["Route", "Block", "Motion"].includes(activeTool);
+      : offensiveAssignmentTypes.includes(activeTool);
     if (!unitToolMatches) {
-      setSelectedRoute(existingIndex >= 0 ? existingIndex : null);
+      setSelectedAssignmentId(existing?.id ?? null);
       setToast(unit === "defense" ? "Use the Defense tool for defensive assignments" : "Choose Route, Block, or Motion for offensive players");
       return;
     }
 
-    if (existingIndex >= 0) {
-      setSelectedRoute(existingIndex);
-      const existing = play.routes[existingIndex];
+    if (existing) {
+      setSelectedAssignmentId(existing.id);
       return;
     }
 
@@ -1994,31 +2047,30 @@ export function App() {
       return;
     }
 
-    if (unit === "offense" && linePlayers.has(playerId) && activeTool !== "Block") {
-      setToast(`${playerId} uses blocking assignments`);
+    const label = playerLabel(play, unit, playerId);
+    if (isLinePlayer(play, unit, playerId) && activeTool !== "Block") {
+      setToast(`${label} uses blocking assignments`);
       return;
     }
 
-    const start = playerStartFor(play, unit, playerId);
+    const start = playerLocation(play, unit, playerId);
     if (!start) return;
     const type = unit === "defense" ? "Rush" : activeTool;
-    const newRoute = {
-      ...createAssignment({ playId: play.id, playerId, start, type, unit }),
+    const created = {
+      ...createAssignment({ play, playerId, start, type, unit }),
       ...(play.conceptTemplateId ? { templateOverride: true } : {}),
     };
-    updatePlay(play.id, (current) => ({ ...current, routes: [...current.routes, newRoute] }));
-    setSelectedRoute(play.routes.length);
-    setToast(`${playerLabelFor(play, unit, playerId)} ${type.toLowerCase()} added — draw or refine its handles`);
+    updatePlay(play.id, (current) => ({ ...current, assignments: [...current.assignments, created] }));
+    setSelectedAssignmentId(created.id);
+    setToast(`${label} ${type.toLowerCase()} added — draw or refine its handles`);
   };
 
-  const selectAssignment = (index) => {
-    setSelectedRoute(index);
-    setSelectedPlayer(play.routes[index]?.player ?? null);
-    setSelectedUnit(play.routes[index]?.unit ?? "offense");
+  const selectAssignment = (assignmentId) => {
+    focusAssignment(play, assignmentId);
   };
 
   const startPointDrag = (pointIndex, event) => {
-    if (selectedRoute === null) return;
+    if (!route) return;
     if (currentLayerLocked || !layers.assignments.visible) {
       setToast(currentLayerLocked ? `Unlock the ${selectedUnit} layer to edit paths` : "Show the assignments layer to edit paths");
       return;
@@ -2032,8 +2084,8 @@ export function App() {
   };
 
   const changeRouteDefinition = (definition) => {
-    if (currentLayerLocked) return;
-    updateRoute((current) => ({
+    if (!route || currentLayerLocked) return;
+    updateSelectedAssignment((current) => ({
       ...current,
       definition,
       geometryMode: "structured",
@@ -2041,19 +2093,19 @@ export function App() {
       points: routeDefinitionToPoints(current.points[0], definition),
       evidence: current.evidence ? { ...current.evidence, coachEdited: true } : current.evidence,
     }));
-    setDraftRoute([]);
-    setToast(`${route.player} route definition updated`);
+    setDraftAssignment([]);
+    setToast(`${selectedPlayerLabel} route definition updated`);
   };
 
   const regenerateRoute = () => {
     if (!route?.definition || currentLayerLocked) return;
-    updateRoute((current) => ({
+    updateSelectedAssignment((current) => ({
       ...current,
       geometryMode: "structured",
       preset: "Structured",
       points: routeDefinitionToPoints(current.points[0], current.definition),
     }));
-    setToast(`${route.player} regenerated from its route definition`);
+    setToast(`${selectedPlayerLabel} regenerated from its route definition`);
   };
 
   const openGameDay = () => {
@@ -2108,10 +2160,8 @@ export function App() {
     setLibrary(nextLibrary);
     setPlayId(nextId);
     const nextPlay = nextLibrary.find((item) => item.id === nextId);
-    const nextRouteIndex = compactViewport() ? null : defaultRouteIndex(nextPlay);
-    setSelectedRoute(nextRouteIndex);
-    setSelectedPlayer(nextRouteIndex === null ? null : nextPlay.routes[nextRouteIndex]?.player ?? null);
-    setSelectedUnit(nextRouteIndex === null ? "offense" : nextPlay.routes[nextRouteIndex]?.unit ?? "offense");
+    if (compactViewport()) clearSelection();
+    else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
     setGameDay(null);
     setGameDayDialog(false);
   };
@@ -2183,36 +2233,35 @@ export function App() {
           <PlayCanvas
             ref={svgRef}
             activeTool={activeTool}
-            draftRoute={draftRoute}
+            draftAssignment={draftAssignment}
             onPointerDown={startDraw}
             onPointerMove={movePointer}
             onPointerUp={finishPointer}
             onStartPointDrag={startPointDrag}
             onSelectPlayer={selectPlayer}
-            onSelectRoute={selectAssignment}
-            paths={play.routes}
+            onSelectAssignment={selectAssignment}
             play={play}
             playKey={`${play.id}-${view}-${runKey}`}
             playback={playback}
-            selectedPlayer={selectedPlayer}
-            selectedRoute={selectedRoute}
+            selectedPlayerId={selectedPlayerId}
+            selectedAssignmentId={selectedAssignmentId}
             selectedUnit={selectedUnit}
             layers={layers}
             speed={speed}
             view={view}
           />
         </div>
-        {!present && selectedPlayer ? (
+        {!present && selectedPlayerId ? (
           <Inspector
             assignments={playerAssignments}
             route={route}
             unit={selectedUnit}
-            playerLabel={selectedPlayerLabel}
+            label={selectedPlayerLabel}
             locked={currentLayerLocked}
             copyTargets={copyTargets}
             offensePlayers={play.players}
             onAddStage={addAssignmentStage}
-            onClose={() => { setSelectedRoute(null); setSelectedPlayer(null); }}
+            onClose={clearSelection}
             onAssignmentDefinition={changeAssignmentDefinition}
             onCopyAssignment={copyAssignment}
             onDefinition={changeRouteDefinition}
@@ -2226,11 +2275,17 @@ export function App() {
             onTiming={changeAssignmentTiming}
           />
         ) : null}
-        {!present && !selectedPlayer ? <button className="open-inspector" onClick={() => {
-          const nextRouteIndex = defaultRouteIndex(play);
-          setSelectedRoute(nextRouteIndex);
-          setSelectedPlayer(nextRouteIndex === null ? play.players.find(([label]) => !linePlayers.has(label))?.[0] ?? null : play.routes[nextRouteIndex]?.player ?? null);
-          setSelectedUnit(nextRouteIndex === null ? "offense" : play.routes[nextRouteIndex]?.unit ?? "offense");
+        {!present && !selectedPlayerId ? <button className="open-inspector" onClick={() => {
+          const fallbackId = defaultAssignmentId(play);
+          if (fallbackId) {
+            focusAssignment(play, fallbackId);
+            return;
+          }
+          // No assignments yet: open on the first skill player instead.
+          const player = play.players.find((item) => !isLineLabel(item.label)) ?? play.players[0];
+          setSelectedUnit("offense");
+          setSelectedPlayerId(player?.id ?? null);
+          setSelectedAssignmentId(null);
         }}><CaretLeft size={19} />Player inspector</button> : null}
         {present ? <button className="exit-present" onClick={() => setPresent(false)}><X size={18} />Exit presentation</button> : null}
       </section>

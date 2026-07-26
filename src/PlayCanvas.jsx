@@ -1,83 +1,178 @@
-import { forwardRef } from "react";
-import { assignmentStartSeconds, baseDefenders, basePlayers, routeDuration } from "./playData";
+import { forwardRef, useLayoutEffect, useRef, useState } from "react";
+import { assignmentStartSeconds, FIELD, isLineLabel, routeDuration } from "./playData";
+import {
+  fieldProjection,
+  motionPath,
+  polylinePoints,
+  visibleYardLines,
+  yardNumbers,
+} from "./fieldView";
 
-function screenPoint([x, y], view) {
-  return view === "end" ? [x * 10, y * 6.8] : [(100 - y) * 10, x * 6.8];
+/**
+ * Token sizing.
+ *
+ * Sizes are expressed in yards with a pixel floor and ceiling. A purely
+ * pixel-constant token would collide with its neighbours wherever the field is
+ * zoomed out (a narrow phone showing the full 53 yd width sits near 7 px/yd),
+ * while a purely yard-based one would become illegible. Bounding a yard size
+ * keeps tokens visually stable at normal zoom and separated when zoomed out.
+ */
+const TOKEN = {
+  skill: { yards: 1.05, min: 7, max: 13 },
+  // Interior linemen sit closest together, so their tokens are a little smaller.
+  line: { yards: 0.85, min: 5.5, max: 9.5 },
+  defense: { yards: 0.95, min: 6, max: 11 },
+  skillLabel: { yards: 1.1, min: 7, max: 12.5 },
+  lineLabel: { yards: 0.85, min: 6, max: 9.5 },
+  defenseLabel: { yards: 0.95, min: 6.5, max: 10.5 },
+  handle: { yards: 0.7, min: 5, max: 8 },
+  motionDot: { yards: 0.6, min: 4.5, max: 7 },
+  number: { yards: 2.4, min: 14, max: 30 },
+  /** Hit targets stay a true 44 CSS px regardless of zoom. */
+  hitRadiusPx: 22,
+};
+
+/** Resolves a token size to SVG user units (yards) for the current projection. */
+function sizeOf(spec, projection) {
+  const pixels = Math.min(spec.max, Math.max(spec.min, spec.yards * projection.pxPerYard));
+  return projection.pixels(pixels);
 }
 
-function pointsFor(points, view) {
-  return points.map((point) => screenPoint(point, view).join(",")).join(" ");
+/**
+ * Tracks the canvas box in CSS pixels. The projection depends on it, because the
+ * viewBox is derived from the viewport aspect rather than being a fixed
+ * rectangle stretched to fit.
+ */
+function useElementSize() {
+  const ref = useRef(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+    const measure = () => {
+      const box = element.getBoundingClientRect();
+      setSize((current) => (
+        Math.abs(current.width - box.width) < 0.5 && Math.abs(current.height - box.height) < 0.5
+          ? current
+          : { width: box.width, height: box.height }
+      ));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, size];
 }
 
-function motionPath(points, view) {
-  return points
-    .map((point) => screenPoint(point, view))
-    .map((point, index) => `${index ? "L" : "M"}${point[0]} ${point[1]}`)
-    .join(" ");
-}
+function FieldMarkings({ projection }) {
+  const half = FIELD.halfWidthYards;
+  const hash = FIELD.hashFromCentreYards;
+  const [nearDepth, farDepth] = projection.depthRange;
+  const yardLines = visibleYardLines(projection);
+  const numbers = yardNumbers(projection);
+  const tick = 0.45;
+  const numberInset = 4.5;
 
-function FieldMarkings({ view }) {
-  const yardLines = [14, 27, 40, 53, 66, 79, 92];
-  const hashColumns = [30, 70];
-  const yardLabels = [
-    [24, "30"],
-    [46, "20"],
-    [68, "10"],
-  ];
+  const line = (from, to, key, className) => {
+    const [x1, y1] = projection.project(from);
+    const [x2, y2] = projection.project(to);
+    return <line key={key} className={className} x1={x1} y1={y1} x2={x2} y2={y2} />;
+  };
 
-  if (view === "side") {
-    return (
-      <g className="field-grid" aria-hidden="true">
-        <rect x="26" y="26" width="948" height="628" rx="2" className="field-boundary" />
-        {yardLines.map((value) => <line key={value} x1={value * 10} y1="26" x2={value * 10} y2="654" />)}
-        {yardLines.flatMap((value) => [180, 500].map((y) => <line key={`${value}-${y}`} x1={value * 10 - 7} y1={y} x2={value * 10 + 7} y2={y} className="hash" />))}
-      </g>
-    );
-  }
+  // The playable surface, so the extra lateral room reads as out of bounds.
+  const corners = [projection.project([-half, nearDepth]), projection.project([half, farDepth])];
+  const surface = {
+    x: Math.min(corners[0][0], corners[1][0]),
+    y: Math.min(corners[0][1], corners[1][1]),
+    width: Math.abs(corners[1][0] - corners[0][0]),
+    height: Math.abs(corners[1][1] - corners[0][1]),
+  };
 
   return (
     <g className="field-grid" aria-hidden="true">
-      <rect x="26" y="26" width="948" height="628" rx="2" className="field-boundary" />
-      {yardLines.map((value) => <line key={value} x1="26" y1={value * 6.8} x2="974" y2={value * 6.8} />)}
-      {hashColumns.flatMap((x) => yardLines.flatMap((value) => [-18, 18].map((offset) => (
-        <line key={`${x}-${value}-${offset}`} x1={x * 10 + offset} y1={value * 6.8 - 7} x2={x * 10 + offset} y2={value * 6.8 + 7} className="hash" />
-      ))))}
-      {yardLabels.flatMap(([y, label]) => [150, 850].map((x) => (
-        <text key={`${label}-${x}`} x={x} y={y * 6.8} transform={`rotate(90 ${x} ${y * 6.8})`}>{label}</text>
+      <rect className="field-surface" x={surface.x} y={surface.y} width={surface.width} height={surface.height} />
+
+      {yardLines.filter((depth) => depth !== 0).map((depth) => (
+        line([-half, depth], [half, depth], `yard-${depth}`, depth % 10 === 0 ? "yard-line major" : "yard-line")
+      ))}
+
+      {/* Hash marks: short ticks along the field's length, at the real hash positions. */}
+      {yardLines.flatMap((depth) => [-hash, hash].map((x) => (
+        line([x, depth - tick], [x, depth + tick], `hash-${x}-${depth}`, "hash")
       )))}
+
+      {/* Sidelines */}
+      {line([-half, nearDepth], [-half, farDepth], "sideline-left", "sideline")}
+      {line([half, nearDepth], [half, farDepth], "sideline-right", "sideline")}
+
+      {/*
+        The line of scrimmage, drawn as its own emphasised line. Previously the
+        LOS was only inferable from where the linemen happened to be standing.
+      */}
+      {line([-half, 0], [half, 0], "line-of-scrimmage", "line-of-scrimmage")}
+
+      {numbers.flatMap(({ depth, label }) => [-(half - numberInset), half - numberInset].map((x) => {
+        const [screenX, screenY] = projection.project([x, depth]);
+        const rotation = projection.view === "end" ? 90 : 0;
+        return (
+          <text
+            key={`number-${depth}-${x}`}
+            x={screenX}
+            y={screenY}
+            fontSize={sizeOf(TOKEN.number, projection)}
+            transform={`rotate(${rotation} ${screenX} ${screenY})`}
+          >
+            {label}
+          </text>
+        );
+      }))}
     </g>
   );
 }
 
 export const PlayCanvas = forwardRef(function PlayCanvas({
   activeTool,
-  draftRoute,
+  draftAssignment,
   onPointerDown,
   onPointerMove,
   onPointerUp,
   onStartPointDrag,
   onSelectPlayer,
-  onSelectRoute,
-  paths,
+  onSelectAssignment,
   play,
   playKey,
   playback,
-  selectedPlayer,
-  selectedRoute,
+  selectedPlayerId,
+  selectedAssignmentId,
   selectedUnit,
   layers,
   speed,
   view,
 }, ref) {
+  const [stageRef, size] = useElementSize();
+  /*
+   * The projection is a pure function of (box size, view), so App recomputes an
+   * identical one from the same stage box when handling pointer input. Nothing
+   * needs to be shared through a ref.
+   */
+  const projection = fieldProjection({ width: size.width, height: size.height, view });
+
   const showMotion = playback !== "idle";
-  const players = play.players ?? basePlayers;
-  const defenders = play.defenders ?? baseDefenders;
-  const assignmentVisible = (assignment) => layers.assignments.visible && layers[assignment.unit ?? "offense"].visible;
-  const selectedAssignment = selectedRoute === null ? null : paths[selectedRoute];
-  const selectedAssignmentVisible = selectedAssignment ? assignmentVisible(selectedAssignment) : false;
+  const assignments = play.assignments;
+  const assignmentVisible = (item) => layers.assignments.visible && layers[item.unit].visible;
+  const selected = assignments.find((item) => item.id === selectedAssignmentId) ?? null;
+  const ready = size.width > 0 && size.height > 0;
+
+  const defenderRadius = sizeOf(TOKEN.defense, projection);
+  const defenderLabelSize = sizeOf(TOKEN.defenseLabel, projection);
+  const hitRadius = projection.pixels(TOKEN.hitRadiusPx);
 
   return (
     <div
+      ref={stageRef}
       className={`field-stage ${view} tool-${activeTool.toLowerCase()} ${layers.offense.dimmed ? "dim-offense" : ""} ${layers.defense.dimmed ? "dim-defense" : ""}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -88,8 +183,8 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
         ref={ref}
         key={playKey}
         className="play-canvas"
-        viewBox="0 0 1000 680"
-        preserveAspectRatio="none"
+        viewBox={projection.viewBox}
+        preserveAspectRatio="xMidYMid meet"
         aria-label={`${play.name} play diagram`}
       >
         <defs>
@@ -101,60 +196,67 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
           </marker>
         </defs>
 
-        <FieldMarkings view={view} />
+        {ready ? <FieldMarkings projection={projection} /> : null}
 
-        {layers.defense.visible && defenders.map((player) => {
-          const [screenX, screenY] = screenPoint([player.x, player.y], view);
+        {ready && layers.defense.visible ? play.defenders.map((player) => {
+          const [screenX, screenY] = projection.project([player.x, player.y]);
           return (
             <g
               key={player.id}
               data-player={player.id}
               data-unit="defense"
-              className={`defender ${selectedUnit === "defense" && selectedPlayer === player.id ? "focus-player" : ""}`}
+              className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""}`}
               onPointerDown={(event) => {
                 event.stopPropagation();
                 onSelectPlayer("defense", player.id, event);
               }}
             >
-              <circle cx={screenX} cy={screenY} r="16" />
-              <text x={screenX} y={screenY + 5}>{player.label}</text>
+              <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} />
+              <circle cx={screenX} cy={screenY} r={defenderRadius} />
+              <text x={screenX} y={screenY + defenderLabelSize * 0.35} fontSize={defenderLabelSize}>
+                {player.label}
+              </text>
             </g>
           );
-        })}
+        }) : null}
 
-        {paths.map((routeData, index) => assignmentVisible(routeData) ? (
+        {ready ? assignments.map((item) => assignmentVisible(item) ? (
           <polyline
-            key={routeData.id}
-            data-route-id={routeData.id}
-            data-preset={routeData.preset}
-            data-pace={routeData.pace}
-            data-assignment-type={routeData.type}
-            data-assignment-unit={routeData.unit ?? "offense"}
-            data-assignment-delay={routeData.delay}
-            data-geometry-mode={routeData.geometryMode}
-            data-release={routeData.definition?.release}
-            data-stem-yards={routeData.definition?.stemYards}
-            data-break-count={routeData.definition?.breaks?.length}
-            points={pointsFor(index === selectedRoute && draftRoute.length > 1 ? draftRoute : routeData.points, view)}
-            className={`route assignment-${routeData.type.toLowerCase()} route-${index} ${selectedRoute === index ? "selected" : ""}`}
-            markerEnd={selectedRoute === index ? "url(#route-arrow-active)" : "url(#route-arrow)"}
+            key={item.id}
+            data-assignment-id={item.id}
+            data-preset={item.preset}
+            data-pace={item.pace}
+            data-assignment-type={item.type}
+            data-assignment-unit={item.unit}
+            data-assignment-delay={item.delay}
+            data-assignment-phase={item.phase}
+            data-geometry-mode={item.geometryMode}
+            data-release={item.definition?.release}
+            data-stem-yards={item.definition?.stemYards}
+            data-break-count={item.definition?.breaks?.length}
+            points={polylinePoints(
+              item.id === selectedAssignmentId && draftAssignment.length > 1 ? draftAssignment : item.points,
+              projection,
+            )}
+            className={`route assignment-${item.type.toLowerCase()} ${item.id === selectedAssignmentId ? "selected" : ""}`}
+            markerEnd={item.id === selectedAssignmentId ? "url(#route-arrow-active)" : "url(#route-arrow)"}
             onPointerDown={(event) => {
               event.stopPropagation();
-              onSelectRoute(index);
+              onSelectAssignment(item.id);
             }}
           />
-        ) : null)}
+        ) : null) : null}
 
-        {selectedAssignmentVisible && paths[selectedRoute]?.points.slice(1).map((point, pointOffset) => {
+        {ready && selected && assignmentVisible(selected) ? selected.points.slice(1).map((point, pointOffset) => {
           const pointIndex = pointOffset + 1;
-          const [screenX, screenY] = screenPoint(point, view);
+          const [screenX, screenY] = projection.project(point);
           return (
             <circle
-              key={`${paths[selectedRoute].id}-handle-${pointIndex}`}
+              key={`${selected.id}-handle-${pointIndex}`}
               className="route-handle"
               cx={screenX}
               cy={screenY}
-              r="10"
+              r={sizeOf(TOKEN.handle, projection)}
               data-route-point={pointIndex}
               onPointerDown={(event) => {
                 event.stopPropagation();
@@ -162,38 +264,47 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               }}
             />
           );
-        })}
+        }) : null}
 
-        {layers.offense.visible && players.map(([label, x, y]) => {
-          const [screenX, screenY] = screenPoint([x, y], view);
-          const isSelected = selectedUnit === "offense" && selectedPlayer === label;
+        {ready && layers.offense.visible ? play.players.map((player) => {
+          const [screenX, screenY] = projection.project([player.x, player.y]);
+          const isSelected = selectedUnit === "offense" && selectedPlayerId === player.id;
+          const onLine = isLineLabel(player.label);
+          const labelSize = sizeOf(onLine ? TOKEN.lineLabel : TOKEN.skillLabel, projection);
           return (
             <g
-              key={`${label}-${x}-${y}`}
-              data-player={label}
+              key={player.id}
+              data-player={player.id}
               data-unit="offense"
-              className={`player ${isSelected ? "focus-player" : ""}`}
+              className={`player ${onLine ? "line-player" : ""} ${isSelected ? "focus-player" : ""}`}
               onPointerDown={(event) => {
                 event.stopPropagation();
-                onSelectPlayer("offense", label, event);
+                onSelectPlayer("offense", player.id, event);
               }}
             >
-              <circle cx={screenX} cy={screenY} r="17" />
-              <text x={screenX} y={screenY + 5}>{label}</text>
+              <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} />
+              <circle cx={screenX} cy={screenY} r={sizeOf(onLine ? TOKEN.line : TOKEN.skill, projection)} />
+              <text x={screenX} y={screenY + labelSize * 0.35} fontSize={labelSize}>
+                {player.label}
+              </text>
             </g>
           );
-        })}
+        }) : null}
 
-        {showMotion && paths.map((routeData, index) => assignmentVisible(routeData) ? (
-          <circle key={`motion-${playKey}-${routeData.id}`} className={`motion-dot motion-${index}`} r="9">
+        {ready && showMotion ? assignments.map((item) => assignmentVisible(item) ? (
+          <circle
+            key={`motion-${playKey}-${item.id}`}
+            className={`motion-dot ${item.id === selectedAssignmentId ? "selected" : ""}`}
+            r={sizeOf(TOKEN.motionDot, projection)}
+          >
             <animateMotion
-              dur={`${routeDuration(routeData, speed)}s`}
-              begin={`${assignmentStartSeconds(routeData)}s`}
-              path={motionPath(routeData.points, view)}
+              dur={`${routeDuration(item, speed)}s`}
+              begin={`${assignmentStartSeconds(item)}s`}
+              path={motionPath(item.points, projection)}
               fill="freeze"
             />
           </circle>
-        ) : null)}
+        ) : null) : null}
       </svg>
     </div>
   );

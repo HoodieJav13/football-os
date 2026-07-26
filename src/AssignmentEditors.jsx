@@ -46,7 +46,8 @@ export function AssignmentStagePicker({
   return (
     <div className="assignment-stage-picker" role="group" aria-label="Assignment stages">
       {stages.map(([phase, label]) => {
-        const assignment = assignments.find((item) => (item.phase ?? (item.type === "Motion" ? "pre" : "post")) === phase);
+        // `phase` is guaranteed by normalization, so no fallback is needed here.
+        const assignment = assignments.find((item) => item.phase === phase);
         return (
           <button
             key={phase}
@@ -153,8 +154,10 @@ export function DefensiveEditor({ assignment, offensePlayers, onChange }) {
       <div className="football-definition">
         <div className="definition-grid">
           <label>Match
-            <select value={definition.target} onChange={(event) => onChange({ ...definition, target: event.target.value })}>
-              {offensePlayers.map(([label]) => <option key={label} value={label}>{label}</option>)}
+            {/* Coverage tracks a player id, so it survives that receiver being relabelled. */}
+            <select value={definition.targetId} onChange={(event) => onChange({ ...definition, targetId: event.target.value })}>
+              {definition.targetId ? null : <option value="">Choose a receiver</option>}
+              {offensePlayers.map((player) => <option key={player.id} value={player.id}>{player.label}</option>)}
             </select>
           </label>
           <label>Leverage

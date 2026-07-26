@@ -43,7 +43,22 @@ export function downloadWorkspaceBackup(workspace) {
   downloadBlob(blob, `football-os-backup-${date}.footballos`);
 }
 
-function cloneSvgWithInlineStyles(svg) {
+const EXPORT_PIXELS_PER_YARD = 26;
+const FIELD_BACKGROUND = "#12352c";
+
+/**
+ * The viewBox is derived from the live canvas rather than assumed, because it
+ * now depends on the viewport aspect. Reading it back keeps the export framed
+ * exactly like what the coach is looking at.
+ */
+function readViewBox(svg) {
+  const [minX, minY, width, height] = (svg.getAttribute("viewBox") ?? "0 0 100 100")
+    .split(/[\s,]+/)
+    .map(Number);
+  return { minX, minY, width, height };
+}
+
+function cloneSvgWithInlineStyles(svg, viewBox, size) {
   const clone = svg.cloneNode(true);
   const originalElements = [svg, ...svg.querySelectorAll("*")];
   const cloneElements = [clone, ...clone.querySelectorAll("*")];
@@ -59,21 +74,28 @@ function cloneSvgWithInlineStyles(svg) {
   });
 
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  clone.setAttribute("width", "1600");
-  clone.setAttribute("height", "1088");
+  clone.setAttribute("width", String(size.width));
+  clone.setAttribute("height", String(size.height));
+
   const background = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  background.setAttribute("x", "0");
-  background.setAttribute("y", "0");
-  background.setAttribute("width", "1000");
-  background.setAttribute("height", "680");
-  background.setAttribute("fill", "#063b2d");
+  background.setAttribute("x", String(viewBox.minX));
+  background.setAttribute("y", String(viewBox.minY));
+  background.setAttribute("width", String(viewBox.width));
+  background.setAttribute("height", String(viewBox.height));
+  background.setAttribute("fill", FIELD_BACKGROUND);
   clone.insertBefore(background, clone.firstChild);
   return clone;
 }
 
 export async function svgToPngBlob(svg) {
   if (!svg) throw new Error("The play canvas is not available.");
-  const clone = cloneSvgWithInlineStyles(svg);
+  const viewBox = readViewBox(svg);
+  // Yard-true output: one scale for both axes, so the PNG is not stretched either.
+  const size = {
+    width: Math.round(viewBox.width * EXPORT_PIXELS_PER_YARD),
+    height: Math.round(viewBox.height * EXPORT_PIXELS_PER_YARD),
+  };
+  const clone = cloneSvgWithInlineStyles(svg, viewBox, size);
   const markup = new XMLSerializer().serializeToString(clone);
   const svgBlob = new Blob([markup], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(svgBlob);
@@ -85,10 +107,10 @@ export async function svgToPngBlob(svg) {
       image.src = url;
     });
     const canvas = document.createElement("canvas");
-    canvas.width = 1600;
-    canvas.height = 1088;
+    canvas.width = size.width;
+    canvas.height = size.height;
     const context = canvas.getContext("2d");
-    context.fillStyle = "#063b2d";
+    context.fillStyle = FIELD_BACKGROUND;
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     return await new Promise((resolve, reject) => {
