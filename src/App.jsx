@@ -25,7 +25,6 @@ import {
   LockSimple,
   LockSimpleOpen,
   MagnifyingGlass,
-  Minus,
   NotePencil,
   Pause,
   Play,
@@ -72,8 +71,6 @@ import {
   assignmentStartSeconds,
   basePlayers,
   breakDirections,
-  clampFieldX,
-  clampFieldY,
   clampPoint,
   clonePlaybook,
   createConceptTemplate,
@@ -264,7 +261,7 @@ function SegmentedControl({ value, onChange }) {
   );
 }
 
-function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDataTools, onSwitch, play, playbooks }) {
+function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDataTools, onSwitch, playbooks }) {
   const { open, setOpen, toggle, containerRef } = useDismissable();
   const canCopy = activePlaybook.id !== mainPlaybook.id;
   return (
@@ -351,7 +348,6 @@ function Header({
           onCreate={onCreate}
           onDataTools={onDataTools}
           onSwitch={onSwitch}
-          play={play}
           playbooks={playbooks}
         />
         <span className="heading-rule" aria-hidden="true" />
@@ -1377,6 +1373,12 @@ export function App() {
     if (gameDay) window.localStorage.setItem(GAME_DAY_KEY, JSON.stringify(gameDay));
     else window.localStorage.removeItem(GAME_DAY_KEY);
   }, [gameDay]);
+
+  /*
+   * Feedback is scoped to the play it was raised on -- an "Undo" offered for a
+   * deleted assignment must not still be sitting there after switching plays.
+   */
+  useEffect(() => { setFeedback(null); }, [play.id]);
 
   // Confirmations fade; problems stay until acknowledged or superseded.
   useEffect(() => {
