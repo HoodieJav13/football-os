@@ -877,6 +877,19 @@ function Inspector({
   unit,
 }) {
   const [mobileExpanded, setMobileExpanded] = useState(false);
+  /*
+   * On a phone this sheet appears directly under the finger that selected the
+   * player, and the tap's trailing `click` would land on whatever is now beneath
+   * it -- reliably the drag handle, which expanded the sheet over the whole field
+   * on every tap. Suppressing the synthetic mouse events is not enough on its own
+   * (Chrome still delivers the click), so the sheet ignores input until the tap
+   * that opened it has finished.
+   */
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setArmed(true), 350);
+    return () => window.clearTimeout(timer);
+  }, []);
   if (!label) return null;
   const timingSummary = route
     ? `${route.delay > 0 ? "+" : ""}${(route.delay ?? 0).toFixed(2)}s · ${(route.pace ?? 1).toFixed(2)}×`
@@ -891,7 +904,10 @@ function Inspector({
           ? `${route.type} details`
           : "Assignment details";
   return (
-    <aside className={`inspector ${mobileExpanded ? "mobile-expanded" : "mobile-peek"}`} aria-label="Selected player inspector">
+    <aside
+      className={`inspector ${mobileExpanded ? "mobile-expanded" : "mobile-peek"} ${armed ? "" : "is-arming"}`}
+      aria-label="Selected player inspector"
+    >
       <button
         type="button"
         className="mobile-sheet-handle"

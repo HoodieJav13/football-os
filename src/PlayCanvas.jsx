@@ -39,6 +39,18 @@ function sizeOf(spec, projection) {
 }
 
 /**
+ * Suppresses the compatibility mouse events a touch generates.
+ *
+ * Selecting a player opens the inspector as a bottom sheet, and without this the
+ * synthetic `mousedown`/`click` that follows the tap lands on whatever the sheet
+ * just put under the finger -- in practice the sheet's own drag handle, which
+ * expanded it over the whole field on every single tap.
+ */
+function suppressGhostClick(event) {
+  if (event.pointerType === "touch" && event.cancelable) event.preventDefault();
+}
+
+/**
  * Tracks the canvas box in CSS pixels. The projection depends on it, because the
  * viewBox is derived from the viewport aspect rather than being a fixed
  * rectangle stretched to fit.
@@ -208,6 +220,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""}`}
               onPointerDown={(event) => {
                 event.stopPropagation();
+                suppressGhostClick(event);
                 onSelectPlayer("defense", player.id, event);
               }}
             >
@@ -242,6 +255,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             markerEnd={item.id === selectedAssignmentId ? "url(#route-arrow-active)" : "url(#route-arrow)"}
             onPointerDown={(event) => {
               event.stopPropagation();
+              suppressGhostClick(event);
               onSelectAssignment(item.id);
             }}
           />
@@ -260,6 +274,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               data-route-point={pointIndex}
               onPointerDown={(event) => {
                 event.stopPropagation();
+                suppressGhostClick(event);
                 onStartPointDrag(pointIndex, event);
               }}
             />
@@ -279,6 +294,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               className={`player ${onLine ? "line-player" : ""} ${isSelected ? "focus-player" : ""}`}
               onPointerDown={(event) => {
                 event.stopPropagation();
+                suppressGhostClick(event);
                 onSelectPlayer("offense", player.id, event);
               }}
             >

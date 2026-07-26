@@ -1096,6 +1096,8 @@ button:active { scale: 0.96; }
     transition-duration: 200ms;
     transition-timing-function: var(--ease);
   }
+  /* Only on phones, where the sheet opens under the finger that summoned it. */
+  .inspector.is-arming { pointer-events: none; }
   .inspector.mobile-peek { height: 246px; overflow: hidden; }
   .inspector.mobile-expanded { height: min(680px, calc(100% - 16px)); overflow-y: auto; }
   .mobile-sheet-handle {

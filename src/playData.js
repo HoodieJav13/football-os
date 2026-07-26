@@ -1131,6 +1131,15 @@ export function applyConceptTemplateToPlay(playData, concept) {
   });
 }
 
+/**
+ * Deep copy for play data.
+ *
+ * `structuredClone` needs Safari 15.4, which is newer than some of the iPads this
+ * gets used on. Play data is plain JSON, so the fallback is exact rather than
+ * merely close — and without it the app throws during its very first render and
+ * shows nothing at all.
+ */
 export function clonePlaybook(value = plays) {
-  return structuredClone(value);
+  if (typeof structuredClone === "function") return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
 }
