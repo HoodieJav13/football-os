@@ -54,7 +54,7 @@ button:active { scale: 0.96; }
 .app-shell:focus { outline: none; }
 .app-shell {
   display: grid;
-  grid-template-rows: 72px 118px minmax(0, 1fr) 76px;
+  grid-template-rows: 72px 118px minmax(0, 1fr) 52px;
   width: 100vw;
   height: 100dvh;
   min-height: 680px;
@@ -243,7 +243,7 @@ button:active { scale: 0.96; }
 .filmstrip-scroll {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(174px, 1fr);
+  grid-auto-columns: minmax(196px, 1fr);
   height: 100%;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -256,10 +256,10 @@ button:active { scale: 0.96; }
 .film-card {
   position: relative;
   display: grid;
-  grid-template-rows: 14px 1fr 22px;
+  grid-template-rows: 12px minmax(0, 1fr) 18px;
   align-items: center;
   min-width: 0;
-  padding: 8px 14px 7px;
+  padding: 4px 10px 6px;
   scroll-snap-align: start;
   background: transparent;
   color: var(--text-mid);
@@ -276,10 +276,10 @@ button:active { scale: 0.96; }
 .film-card.create-card:hover { color: var(--accent); background: oklch(0.19 0.026 210); }
 .create-play-icon { display: grid; place-items: center; width: 44px; height: 44px; justify-self: center; border: 1px dashed var(--line-strong); border-radius: 10px; }
 /* Same yard-true projection as the canvas, so a thumbnail is a faithful miniature. */
-.mini-diagram { width: 100%; max-width: 112px; height: 68px; justify-self: center; overflow: visible; }
-.mini-diagram circle { fill: var(--chrome); stroke: oklch(0.9 0.008 205); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.mini-diagram { width: 100%; height: 100%; min-height: 0; justify-self: center; overflow: visible; }
+.mini-diagram circle { fill: oklch(0.16 0.02 218); stroke: oklch(0.92 0.008 205); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .mini-line-of-scrimmage { stroke: oklch(0.9 0.012 180 / 0.4); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.mini-route { fill: none; stroke: oklch(0.92 0.008 205 / 0.9); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.mini-route { fill: none; stroke: oklch(0.94 0.008 205); stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .mini-route.mini-defense { stroke: oklch(0.72 0.09 235 / 0.75); stroke-width: 1.4; }
 .mini-route.mini-block { stroke-dasharray: 4 3; }
 .mini-route.mini-motion { stroke: oklch(0.78 0.1 235 / 0.85); stroke-dasharray: 2 3; }
@@ -306,6 +306,16 @@ button:active { scale: 0.96; }
   grid-template-columns: 80px minmax(0, 1fr) 292px;
   min-height: 0;
   overflow: hidden;
+}
+/*
+ * Past this width the canvas is height-bound with ~30 yd of sideline to spare, so
+ * widening the inspector costs no field scale at all and buys the route editor
+ * room to lay out on fewer lines.
+ */
+@media (min-width: 1360px) {
+  .editor-shell { grid-template-columns: 80px minmax(0, 1fr) 372px; }
+  .definition-grid,
+  .break-measures { grid-template-columns: 1fr 1fr; }
 }
 
 .tool-rail {
@@ -540,28 +550,37 @@ button:active { scale: 0.96; }
 .motion-dot { fill: var(--text); stroke: var(--bg); stroke-width: 3; vector-effect: non-scaling-stroke; }
 .motion-dot.selected { fill: var(--accent); }
 
+/*
+ * The inspector holds ~980px of content. Rather than scroll the whole column and
+ * take the player's identity, stage and assignment type off screen with it, the
+ * top is pinned and only the detail editor scrolls.
+ */
 .inspector {
   position: relative;
   z-index: 8;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-width: 0;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
   padding: 16px 14px;
   background: var(--chrome);
   border-left: 1px solid var(--line);
 }
+.inspector-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* A hairline that reads as "there is more below" rather than a hard edge. */
+.inspector-body { border-top: 1px solid transparent; }
+.inspector-body:not(:hover) { scrollbar-width: thin; }
 .mobile-sheet-handle { display: none; }
-.inspector-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.inspector-head > div { display: grid; gap: 1px; }
-.inspector-head small { color: var(--text-low); font-size: 10px; line-height: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+/* badge | identity | close, on one line */
+.inspector-head { display: grid; grid-template-columns: auto minmax(0, 1fr) 44px; align-items: center; gap: 11px; margin-bottom: 10px; }
+.inspector-head > div { display: grid; min-width: 0; gap: 1px; }
+.inspector-head small { overflow: hidden; color: var(--text-low); font-size: 10px; line-height: 14px; font-weight: 700; letter-spacing: 0.04em; text-overflow: ellipsis; white-space: nowrap; }
 .inspector h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -0.015em; }
-.selected-assignment { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-.assignment-badge { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-size: 20px; line-height: 28px; font-weight: 700; }
+.assignment-badge { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 auto; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-size: 17px; line-height: 22px; font-weight: 700; }
 .assignment-badge.defense { border-color: oklch(0.72 0.13 235); color: oklch(0.8 0.11 235); }
-.selected-assignment div { display: flex; flex-direction: column; gap: 2px; }
-.selected-assignment strong { font-size: 14px; line-height: 20px; }
-.selected-assignment div span { display: flex; align-items: center; gap: 6px; color: var(--text-mid); font-size: 12px; line-height: 16px; }
-.selected-assignment i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-.position-label-control { display: grid; gap: 7px; margin-top: 14px; color: var(--text-mid); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+/* Label and field on one line, rather than stacked over 67px. */
+.position-label-control { display: grid; grid-template-columns: minmax(0, 1fr) 104px; align-items: center; gap: 10px; margin-top: 12px; color: var(--text-mid); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 .position-label-control input {
   width: 100%;
   min-height: 44px;
@@ -579,7 +598,8 @@ button:active { scale: 0.96; }
 .position-label-control input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .control-group { display: block; margin-top: 14px; }
 .control-group > span { display: block; margin-bottom: 8px; color: var(--text-mid); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-.assignment-type-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+/* auto-fit, so three offensive types sit on one row and four defensive ones pack. */
+.assignment-type-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 5px; }
 .assignment-type-picker button { min-height: 44px; border-radius: 8px; color: var(--text-low); background: var(--chrome-raised); box-shadow: inset 0 0 0 1px var(--line); font-size: 11px; }
 .assignment-type-picker button.active { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .assignment-stage-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 14px; }
@@ -703,7 +723,10 @@ button:active { scale: 0.96; }
 .inspector-secondary.danger-text { color: oklch(0.75 0.14 28); }
 .inspector-hint { margin: 12px 0 0; color: var(--text-low); font-size: 12px; line-height: 1.5; }
 .route-definition { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-.definition-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 7px 9px; border-radius: 8px; color: var(--text-mid); background: var(--chrome-raised); box-shadow: inset 0 0 0 1px var(--line); font-size: 11px; line-height: 15px; }
+/* Informational by default, so it does not need a 44px control's worth of height. */
+.definition-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 9px; border-radius: 8px; color: var(--text-mid); background: var(--chrome-raised); box-shadow: inset 0 0 0 1px var(--line); font-size: 11px; line-height: 15px; }
+/* Only the manual state carries a Regenerate button, which does need the height. */
+.definition-status.manual { min-height: 44px; padding-block: 7px; }
 .definition-status.structured { color: var(--success); }
 .definition-status.detected { color: oklch(0.78 0.11 235); }
 .definition-status.manual { color: var(--accent); }
@@ -738,7 +761,7 @@ button:active { scale: 0.96; }
 .break-measures { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .add-break { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 44px; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--accent); background: transparent; font-size: 11px; }
 .route-condition { display: grid; gap: 6px; }
-.route-condition textarea { width: 100%; min-height: 66px; resize: vertical; padding: 9px 10px; border: 0; border-radius: 8px; outline: 0; color: var(--text); background: var(--chrome-raised); box-shadow: inset 0 0 0 1px var(--line); font: inherit; font-size: 11px; line-height: 16px; text-transform: none; }
+.route-condition textarea { width: 100%; min-height: 44px; resize: vertical; padding: 9px 10px; border: 0; border-radius: 8px; outline: 0; color: var(--text); background: var(--chrome-raised); box-shadow: inset 0 0 0 1px var(--line); font: inherit; font-size: 11px; line-height: 16px; text-transform: none; }
 .route-condition textarea:focus { box-shadow: inset 0 0 0 1px var(--accent); }
 .apply-condition { min-height: 44px; margin-top: -4px; border-radius: 8px; color: oklch(0.17 0.025 75); background: var(--accent); font-size: 11px; line-height: 15px; font-weight: 700; }
 .open-inspector { position: absolute; z-index: 8; right: 0; top: 16px; display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 12px; border-radius: 8px 0 0 8px; background: var(--chrome); box-shadow: 0 0 0 1px var(--line); font-size: 12px; line-height: 16px; }
@@ -750,13 +773,15 @@ button:active { scale: 0.96; }
   grid-template-columns: 56px 92px minmax(0, 1fr) 56px;
   align-items: center;
   gap: 12px;
-  padding: 8px 18px;
+  padding: 4px 18px;
   background: var(--bg);
   border-top: 1px solid var(--line);
 }
-.timeline-play { color: var(--text); background: var(--chrome); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.timeline-play { height: 44px; color: var(--text); background: var(--chrome); box-shadow: inset 0 0 0 1px var(--line-strong); }
 .speed-control { display: flex; align-items: center; justify-content: center; gap: 5px; height: 44px; border-radius: 8px; background: var(--chrome); box-shadow: 0 0 0 1px var(--line); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
-.timeline-track { display: grid; grid-template-rows: 18px 12px 18px; min-width: 0; }
+/* One legend row plus the bar; the numeric axis duplicated what the labels say. */
+.timeline-track { display: grid; grid-template-rows: 15px 12px; min-width: 0; }
+.timeline .time-labels { display: none; }
 .phase-labels,
 .time-labels { display: grid; grid-template-columns: 38% 8% 54%; align-items: center; color: var(--text-low); font-size: 11px; line-height: 16px; font-variant-numeric: tabular-nums; }
 .phase-labels span:first-child { text-align: center; }
@@ -1117,7 +1142,6 @@ button:active { scale: 0.96; }
   .mobile-sheet-handle svg { margin-left: 4px; }
   .inspector-head { margin-bottom: 7px; }
   .inspector h2 { font-size: 18px; line-height: 24px; }
-  .selected-assignment { padding-bottom: 9px; }
   .assignment-stage-picker { margin-top: 9px; }
   .mobile-peek .inspector-body { display: none; }
   .mobile-expanded .inspector-body { display: block; }

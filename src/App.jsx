@@ -382,38 +382,45 @@ function Header({
 }
 
 /**
- * The thumbnail uses the same yard-true projection as the canvas, at a box shaped
- * to fit the whole fixed window, so a thumbnail is a faithful miniature of the
- * play rather than a differently-distorted sketch.
+ * Play thumbnail.
+ *
+ * These were drawn through the whole fixed field window, so a 112x68 card showed
+ * the play at about 2.4 px/yd occupying under half the box — six variants of the
+ * same family were indistinguishable smudges. Framing each thumbnail to its own
+ * play makes the differences the browser exists to show actually visible, and
+ * uses the same projection as the canvas so it stays a faithful miniature.
  */
-const MINI_BOX = { width: 96, height: 74 };
-const miniProjection = fieldProjection({ ...MINI_BOX, view: "end" });
+const MINI_BOX = { width: 150, height: 96 };
 
 function MiniDiagram({ play }) {
+  const projection = useMemo(
+    () => fieldProjection({ ...MINI_BOX, view: "end", play }),
+    [play],
+  );
   return (
     <svg
       className="mini-diagram"
-      viewBox={miniProjection.viewBox}
+      viewBox={projection.viewBox}
       preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
     >
       <line
         className="mini-line-of-scrimmage"
-        x1={-FIELD.halfWidthYards}
+        x1={projection.lateralRange[0]}
         y1="0"
-        x2={FIELD.halfWidthYards}
+        x2={projection.lateralRange[1]}
         y2="0"
       />
       {play.assignments.map((item) => (
         <polyline
           key={item.id}
-          points={polylinePoints(item.points, miniProjection)}
+          points={polylinePoints(item.points, projection)}
           className={`mini-route mini-${item.type.toLowerCase()} mini-${item.unit}`}
         />
       ))}
       {play.players.map((player) => {
-        const [cx, cy] = miniProjection.project([player.x, player.y]);
-        return <circle key={player.id} cx={cx} cy={cy} r={miniProjection.pixels(3.25)} />;
+        const [cx, cy] = projection.project([player.x, player.y]);
+        return <circle key={player.id} cx={cx} cy={cy} r={projection.pixels(3)} />;
       })}
     </svg>
   );
@@ -918,10 +925,24 @@ function Inspector({
         <span aria-hidden="true" />
         {mobileExpanded ? <CaretDown size={17} /> : <CaretUp size={17} />}
       </button>
-      <div className="inspector-head"><div><small>{titleCase(unit)}</small><h2>{route ? route.type : "Player"}</h2></div><button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button></div>
-      <div className="selected-assignment">
+      {/*
+        One identity row. This was two: a head reading "Offense / Route" above a
+        badge row repeating "Z / Z Route", which cost ~50px of pinned height to
+        say the same thing twice.
+      */}
+      <div className="inspector-head">
         <span className={`assignment-badge ${unit}`}>{label}</span>
-        <div><strong>{label}{route ? ` ${route.type}` : " selected"}</strong><span title={route?.type === "Route" ? routeDefinitionSummary(route.definition) : undefined}><i aria-hidden="true" />{route?.type === "Route" ? `${route.definition.stemYards} yd stem · ${route.definition.breaks.length} break${route.definition.breaks.length === 1 ? "" : "s"}` : route?.preset ?? "Drag to reposition"}</span></div>
+        <div>
+          <h2>{label}{route ? ` ${route.type}` : ""}</h2>
+          <small title={route?.type === "Route" ? routeDefinitionSummary(route.definition) : undefined}>
+            {titleCase(unit)}
+            {" · "}
+            {route?.type === "Route"
+              ? `${route.definition.stemYards} yd stem · ${route.definition.breaks.length} break${route.definition.breaks.length === 1 ? "" : "s"}`
+              : route?.preset ?? "Drag to reposition"}
+          </small>
+        </div>
+        <button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button>
       </div>
       <AssignmentStagePicker
         activeId={route?.id ?? null}
