@@ -1143,3 +1143,59 @@ export function clonePlaybook(value = plays) {
   if (typeof structuredClone === "function") return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
 }
+
+/** How close a dragged player must be to another's row or column to snap to it. */
+export const ALIGN_SNAP_YARDS = 0.35;
+/** How close an offensive player must be to the LOS to snap onto it. */
+export const LOS_SNAP_YARDS = 0.7;
+
+/**
+ * Where a dragged player should actually land, and why.
+ *
+ * Dragging is magnetic rather than gridded: the position moves freely (rounded
+ * to a tenth of a yard so float noise never reaches stored data) but clicks
+ * onto meaningful lines when it passes near one — another player's depth or
+ * column, or the line of scrimmage for an offensive player. Alignment is
+ * relative in football ("stack behind Z", "same depth as F"), so the magnets
+ * are other players rather than arbitrary grid lines. `free` (the Alt key)
+ * bypasses the magnets for the rare deliberate near-miss placement.
+ *
+ * Returns `{ point, guides }`, where each guide names the axis value snapped to
+ * and the player that produced it, so the canvas can draw the alignment line
+ * through that player rather than an anonymous ruler.
+ */
+export function snapDragTarget(play, unit, playerId, target, { free = false } = {}) {
+  const point = clampPoint([roundTo(target[0], 0.1), roundTo(target[1], 0.1)]);
+  if (free) return { point, guides: { x: null, y: null } };
+
+  const others = [...play.players, ...play.defenders].filter((player) => player.id !== playerId);
+  const nearest = (axis) => {
+    let best = null;
+    for (const player of others) {
+      const gap = Math.abs(player[axis] - point[axis === "x" ? 0 : 1]);
+      if (gap <= ALIGN_SNAP_YARDS && (!best || gap < best.gap)) best = { gap, player };
+    }
+    return best;
+  };
+
+  const guides = { x: null, y: null };
+  const columnMatch = nearest("x");
+  if (columnMatch) {
+    point[0] = columnMatch.player.x;
+    guides.x = { value: columnMatch.player.x, playerId: columnMatch.player.id };
+  }
+
+  // The LOS outranks a player-depth magnet: "on the line" is the alignment that
+  // matters most, and it is also where most nearby players already stand.
+  if (unit === "offense" && Math.abs(point[1]) <= LOS_SNAP_YARDS) {
+    point[1] = 0;
+    guides.y = point[1] === target[1] ? null : { value: 0, playerId: null };
+  } else {
+    const rowMatch = nearest("y");
+    if (rowMatch) {
+      point[1] = rowMatch.player.y;
+      guides.y = { value: rowMatch.player.y, playerId: rowMatch.player.id };
+    }
+  }
+  return { point, guides };
+}

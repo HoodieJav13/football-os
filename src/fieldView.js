@@ -154,11 +154,19 @@ export function polylinePoints(points, projection) {
   return points.map((point) => projection.project(point).join(",")).join(" ");
 }
 
-/** Turns a list of field points into an SVG path, for `animateMotion`. */
-export function motionPath(points, projection) {
+/**
+ * An assignment's path expressed relative to a token's own position, so
+ * `animateMotion` can move the token itself along it during playback.
+ * `animateMotion` treats path coordinates as offsets added to the element's
+ * static position, so a token drawn at its alignment needs its path translated
+ * to start at (0,0) -- an absolute path would displace the already-positioned
+ * token by its alignment all over again.
+ */
+export function tokenMotionPath(points, projection, origin) {
+  const [originX, originY] = projection.project(origin);
   return points
     .map((point) => projection.project(point))
-    .map((point, index) => `${index ? "L" : "M"}${round(point[0])} ${round(point[1])}`)
+    .map(([x, y], index) => `${index ? "L" : "M"}${round(x - originX)} ${round(y - originY)}`)
     .join(" ");
 }
 

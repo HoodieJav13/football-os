@@ -6,6 +6,7 @@ import {
   playBounds,
   pointerToField,
   polylinePoints,
+  tokenMotionPath,
   visibleYardLines,
   yardNumbers,
 } from "../src/fieldView.js";
@@ -192,4 +193,23 @@ test("pointer input stays accurate under a fitted window", () => {
   const clientY = ((sy - projection.bounds.minY) / (projection.bounds.maxY - projection.bounds.minY)) * box.height;
   const back = pointerToField({ clientX, clientY }, box, projection);
   assert.ok(Math.hypot(back[0] - target[0], back[1] - target[1]) < 1e-9);
+});
+
+test("a token's motion path starts at zero and mirrors the absolute geometry", () => {
+  const projection = fieldProjection({ ...IPAD, view: "end" });
+  const origin = [4, 0];
+  const points = [[4, 0], [4, 12], [9, 18]];
+  const path = tokenMotionPath(points, projection, origin);
+  // Anchored assignments start on their player, so the relative path must open at the origin.
+  assert.ok(path.startsWith("M0 0"), path);
+  // Each segment's offset must equal the projected absolute difference.
+  const [ox, oy] = projection.project(origin);
+  const [px, py] = projection.project([9, 18]);
+  assert.ok(path.endsWith(`L${Math.round((px - ox) * 1000) / 1000} ${Math.round((py - oy) * 1000) / 1000}`), path);
+});
+
+test("a token's motion path never emits negative zero", () => {
+  const projection = fieldProjection({ ...IPAD, view: "end" });
+  const path = tokenMotionPath([[0, 0], [0, 10]], projection, [0, 0]);
+  assert.ok(!path.includes("-0 "), path);
 });

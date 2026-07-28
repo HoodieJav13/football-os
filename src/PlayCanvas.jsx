@@ -2,8 +2,8 @@ import { forwardRef, useLayoutEffect, useRef, useState } from "react";
 import { assignmentStartSeconds, FIELD, isLineLabel, routeDuration } from "./playData";
 import {
   fieldProjection,
-  motionPath,
   polylinePoints,
+  tokenMotionPath,
   visibleYardLines,
   yardNumbers,
 } from "./fieldView";
@@ -26,7 +26,6 @@ const TOKEN = {
   lineLabel: { yards: 0.85, min: 6, max: 9.5 },
   defenseLabel: { yards: 0.95, min: 6.5, max: 10.5 },
   handle: { yards: 0.7, min: 5, max: 8 },
-  motionDot: { yards: 0.6, min: 4.5, max: 7 },
   number: { yards: 2.4, min: 14, max: 30 },
   /** Hit targets stay a true 44 CSS px regardless of zoom. */
   hitRadiusPx: 22,
@@ -60,6 +59,37 @@ function tokenLabel(player, unit, assignments) {
     ? "on the line of scrimmage"
     : `${Math.abs(player.y)} yards ${player.y > 0 ? "downfield" : "behind the line"}`;
   return `${player.label}, ${unit}, ${depth}, ${duties}`;
+}
+
+/**
+ * The animations that carry a token through its assignments during playback.
+ *
+ * Playback used to move small anonymous dots along the routes while all
+ * twenty-two players stood frozen at alignment -- accurate, but nothing like
+ * watching a play. The tokens themselves now run their assignments. The path is
+ * relative to the token's alignment (see `tokenMotionPath`), and begin/dur come
+ * from the same timing model the dots used, so pre-snap motion still goes in
+ * motion-speed before the snap and routes still leave on their delays.
+ */
+function tokenRunAnimations(player, assignments, projection, speed, visible) {
+  return assignments
+    .filter((item) => item.playerId === player.id && visible(item))
+    .map((item) => (
+      <animateMotion
+        key={`run-${item.id}`}
+        begin={`${assignmentStartSeconds(item)}s`}
+        dur={`${routeDuration(item, speed)}s`}
+        fill="freeze"
+        path={tokenMotionPath(item.points, projection, [player.x, player.y])}
+      />
+    ));
+}
+
+/** "12.3 L · on LOS" -- the live spot readout shown while dragging a player. */
+export function describeSpot([x, y]) {
+  const lateral = x === 0 ? "middle" : `${Math.abs(x).toFixed(1)} ${x > 0 ? "R" : "L"}`;
+  const depth = y === 0 ? "on LOS" : y > 0 ? `${y.toFixed(1)} deep` : `${Math.abs(y).toFixed(1)} back`;
+  return `${lateral} · ${depth}`;
 }
 
 /**
@@ -213,6 +243,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   layers,
   speed,
   view,
+  dragInfo,
 }, ref) {
   const [stageRef, size] = useElementSize();
   const rememberFocusedToken = useRestoreTokenFocus(playKey);
@@ -232,11 +263,18 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   const defenderRadius = sizeOf(TOKEN.defense, projection);
   const defenderLabelSize = sizeOf(TOKEN.defenseLabel, projection);
   const hitRadius = projection.pixels(TOKEN.hitRadiusPx);
+  const runAnimations = (player) => (showMotion
+    ? tokenRunAnimations(player, assignments, projection, speed, assignmentVisible)
+    : null);
+
+  const draggedPlayer = ready && dragInfo
+    ? (dragInfo.unit === "defense" ? play.defenders : play.players).find((p) => p.id === dragInfo.playerId)
+    : null;
 
   return (
     <div
       ref={stageRef}
-      className={`field-stage ${view} tool-${activeTool.toLowerCase()} ${layers.offense.dimmed ? "dim-offense" : ""} ${layers.defense.dimmed ? "dim-defense" : ""}`}
+      className={`field-stage ${view} tool-${activeTool.toLowerCase()} ${dragInfo ? "is-dragging" : ""} ${layers.offense.dimmed ? "dim-offense" : ""} ${layers.defense.dimmed ? "dim-defense" : ""}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -327,6 +365,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             >
               <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} />
               <circle cx={screenX} cy={screenY} r={sizeOf(onLine ? TOKEN.line : TOKEN.skill, projection)} />
+              {runAnimations(player)}
             </g>
           );
         }) : null}
@@ -348,6 +387,8 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               fontSize={labelSize}
             >
               {player.label}
+              {/* Labels live outside their token's group, so they run the play separately. */}
+              {runAnimations(player)}
             </text>
           );
         }) : null}
@@ -377,6 +418,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               <text x={screenX} y={screenY + defenderLabelSize * 0.35} fontSize={defenderLabelSize}>
                 {player.label}
               </text>
+              {runAnimations(player)}
             </g>
           );
         }) : null}
@@ -407,21 +449,48 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
           );
         }) : null}
 
-        {ready && showMotion ? assignments.map((item) => assignmentVisible(item) ? (
-          <circle
-            key={`motion-${playKey}-${item.id}`}
-            className={`motion-dot ${item.id === selectedAssignmentId ? "selected" : ""}`}
-            r={sizeOf(TOKEN.motionDot, projection)}
-          >
-            <animateMotion
-              dur={`${routeDuration(item, speed)}s`}
-              begin={`${assignmentStartSeconds(item)}s`}
-              path={motionPath(item.points, projection)}
-              fill="freeze"
-            />
-          </circle>
-        ) : null) : null}
+        {/*
+          Alignment guides while dragging: a line through the row or column the
+          player just snapped to, so "why did it click there" is always visible.
+        */}
+        {draggedPlayer && dragInfo.guides ? (
+          <g className="drag-guides" aria-hidden="true">
+            {dragInfo.guides.x ? (() => {
+              const [nearDepth, farDepth] = projection.depthRange;
+              const [x1, y1] = projection.project([dragInfo.guides.x.value, nearDepth]);
+              const [x2, y2] = projection.project([dragInfo.guides.x.value, farDepth]);
+              return <line className="drag-guide" x1={x1} y1={y1} x2={x2} y2={y2} />;
+            })() : null}
+            {dragInfo.guides.y ? (() => {
+              const [nearLateral, farLateral] = projection.lateralRange;
+              const [x1, y1] = projection.project([nearLateral, dragInfo.guides.y.value]);
+              const [x2, y2] = projection.project([farLateral, dragInfo.guides.y.value]);
+              return <line className="drag-guide" x1={x1} y1={y1} x2={x2} y2={y2} />;
+            })() : null}
+          </g>
+        ) : null}
       </svg>
+
+      {/*
+        The live spot readout, as chrome rather than SVG so it can hold a
+        constant size and never fight the diagram for space. It trails the token
+        by a fixed offset; position comes from the same projection the token
+        used, so it cannot drift.
+      */}
+      {draggedPlayer ? (() => {
+        const [sx, sy] = projection.project([draggedPlayer.x, draggedPlayer.y]);
+        return (
+          <output
+            className="drag-readout"
+            style={{
+              left: (sx - projection.bounds.minX) * projection.pxPerYard,
+              top: (sy - projection.bounds.minY) * projection.pxPerYard,
+            }}
+          >
+            {describeSpot([draggedPlayer.x, draggedPlayer.y])}
+          </output>
+        );
+      })() : null}
     </div>
   );
 });

@@ -38,6 +38,7 @@ playbook renders at the same scale and is directly comparable.
 | `Delete` | Remove the selected assignment |
 | `Space` | Run, pause or resume the animation |
 | `[` / `]` | Previous or next play in the current filter |
+| `Alt` + drag | Place a player freely, ignoring the alignment magnets |
 | `Escape` | Drop the drawing tool, leave presentation, then clear the selection |
 
 Dialogs close on `Escape` or a click outside, and keep keyboard focus inside

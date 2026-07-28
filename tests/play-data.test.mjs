@@ -27,6 +27,7 @@ import {
   routeDefinitionToPoints,
   routeDuration,
   seedPlaybooks,
+  snapDragTarget,
 } from "../src/playData.js";
 
 const byLabel = (roster, label) => roster.find((player) => player.label === label);
@@ -492,4 +493,53 @@ test("a migrated legacy play keeps its own alignment rather than the reseeded on
   const migrated = migrateLegacyPlay(legacyPlay());
   assert.equal(byLabel(migrated.players, "H").y, -12.3);
   assert.notEqual(byLabel(migrated.players, "H").y, byLabel(basePlayers, "H").y);
+});
+
+test("dragging snaps to another player's row and column, and says whose", () => {
+  const play = plays[0];
+  const anchor = play.players.find((player) => player.label === "X");
+  const mover = play.players.find((player) => player.label === "Z");
+  const { point, guides } = snapDragTarget(play, "offense", mover.id, [anchor.x + 0.2, anchor.y - 6.3]);
+  assert.equal(point[0], anchor.x);
+  assert.equal(guides.x.playerId, anchor.id);
+  assert.equal(guides.y, null);
+});
+
+test("dragging beyond the snap window moves freely, rounded to a tenth", () => {
+  const play = plays[0];
+  const mover = play.players.find((player) => player.label === "Z");
+  const { point, guides } = snapDragTarget(play, "offense", mover.id, [4.4401, -6.3399]);
+  assert.deepEqual(point, [4.4, -6.3]);
+  assert.equal(guides.x, null);
+  assert.equal(guides.y, null);
+});
+
+test("Alt drags free even inside the snap window", () => {
+  const play = plays[0];
+  const anchor = play.players.find((player) => player.label === "X");
+  const mover = play.players.find((player) => player.label === "Z");
+  const { point, guides } = snapDragTarget(play, "offense", mover.id, [anchor.x + 0.2, -6.3], { free: true });
+  assert.equal(point[0], Math.round((anchor.x + 0.2) * 10) / 10);
+  assert.equal(guides.x, null);
+});
+
+test("an offensive player near the line snaps onto it, outranking a row magnet", () => {
+  const play = plays[0];
+  const mover = play.players.find((player) => player.label === "Z");
+  const { point } = snapDragTarget(play, "offense", mover.id, [17, 0.6]);
+  assert.equal(point[1], 0);
+});
+
+test("a defender is never pulled onto the LOS by the offensive line snap", () => {
+  const play = plays[0];
+  const mover = play.defenders[0];
+  const { point } = snapDragTarget(play, "defense", mover.id, [17.77, 0.62]);
+  assert.notEqual(point[1], 0);
+});
+
+test("the dragged player is not its own magnet", () => {
+  const play = plays[0];
+  const mover = play.players.find((player) => player.label === "Z");
+  const { guides } = snapDragTarget(play, "offense", mover.id, [mover.x + 0.2, mover.y - 4]);
+  assert.notEqual(guides.x?.playerId, mover.id);
 });

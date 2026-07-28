@@ -59,7 +59,7 @@ import {
   SaveConceptDialog,
 } from "./WorkspaceDialogs";
 import { Modal } from "./Modal";
-import { PlayCanvas } from "./PlayCanvas";
+import { describeSpot, PlayCanvas } from "./PlayCanvas";
 import { fieldProjection, pointerToField, polylinePoints } from "./fieldView";
 import { FIELD } from "./playData";
 import { useDismissable } from "./useDismissable";
@@ -96,6 +96,7 @@ import {
   sanitizeDefensiveDefinition,
   sanitizeMotionDefinition,
   sanitizeRouteDefinition,
+  snapDragTarget,
 } from "./playData";
 import {
   downloadPlayPng,
@@ -1287,6 +1288,8 @@ export function App() {
   const [browserQuery, setBrowserQuery] = useState("");
   const [browserFolder, setBrowserFolder] = useState("all");
   const [draftAssignment, setDraftAssignment] = useState([]);
+  /** Live drag feedback: which player is in hand, and which guides it snapped to. */
+  const [dragInfo, setDragInfo] = useState(null);
   /*
    * One transient toast used to carry everything: "Undid last change" and a
    * blocking "A name and legal formation are required" got the same polite,
@@ -2117,15 +2120,21 @@ export function App() {
   const movePointer = (event) => {
     if (playerDrag.current) {
       const next = pointerPoint(event);
-      // Snap an offensive player onto the line of scrimmage when they are close to it.
-      const snapped = playerDrag.current.unit === "offense" && Math.abs(next[1]) <= 0.7
-        ? [next[0], 0]
-        : next;
+      // Magnetic placement: rows, columns and the LOS pull the player in; Alt
+      // drags free for the rare deliberate near-miss alignment.
+      const { point, guides } = snapDragTarget(
+        play,
+        playerDrag.current.unit,
+        playerDrag.current.id,
+        next,
+        { free: event.altKey },
+      );
       if (!playerDrag.current.moved) {
         pushHistory(play.id, playerDrag.current.snapshot);
         playerDrag.current.moved = true;
       }
-      movePlayerTo(playerDrag.current.unit, playerDrag.current.id, snapped, { record: false });
+      movePlayerTo(playerDrag.current.unit, playerDrag.current.id, point, { record: false });
+      setDragInfo({ unit: playerDrag.current.unit, playerId: playerDrag.current.id, guides });
       return;
     }
 
@@ -2159,9 +2168,11 @@ export function App() {
   const finishPointer = (event) => {
     if (playerDrag.current) {
       const movedLabel = playerLabel(play, playerDrag.current.unit, playerDrag.current.id);
+      const landedAt = playerLocation(play, playerDrag.current.unit, playerDrag.current.id);
       const moved = playerDrag.current.moved;
       playerDrag.current = null;
-      if (moved) notify(`${movedLabel} repositioned`);
+      setDragInfo(null);
+      if (moved) notify(`${movedLabel} placed ${landedAt ? describeSpot(landedAt) : ""}`.trim());
       return;
     }
     if (routePointDrag.current) {
@@ -2564,6 +2575,7 @@ export function App() {
             layers={layers}
             speed={speed}
             view={view}
+            dragInfo={dragInfo}
           />
         </div>
         {!present && selectedPlayerId ? (
