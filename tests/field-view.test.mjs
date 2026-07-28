@@ -213,3 +213,19 @@ test("a token's motion path never emits negative zero", () => {
   const path = tokenMotionPath([[0, 0], [0, 10]], projection, [0, 0]);
   assert.ok(!path.includes("-0 "), path);
 });
+
+test("the sideline view frames the play at any canvas width", () => {
+  const play = createSeedPlaybooks()[0].plays[0];
+  const desktop = { width: 1200, height: 650 };
+  const fitted = fieldProjection({ ...desktop, view: "side", play });
+  const fixed = fieldProjection({ ...desktop, view: "side" });
+  // Fitting must zoom in relative to the fixed window, never out.
+  assert.ok(fitted.pxPerYard > fixed.pxPerYard,
+    `fitted ${fitted.pxPerYard} should beat fixed ${fixed.pxPerYard}`);
+  // And the play must still be fully inside the window.
+  const bounds = playBounds(play);
+  const [near, far] = fitted.depthRange;
+  const [left, right] = fitted.lateralRange;
+  assert.ok(bounds.minY >= near && bounds.maxY <= far, "depth in frame");
+  assert.ok(bounds.minX >= left && bounds.maxX <= right, "width in frame");
+});

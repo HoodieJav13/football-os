@@ -279,10 +279,19 @@ button:active { scale: 0.96; }
 .mini-diagram { width: 100%; height: 100%; min-height: 0; justify-self: center; overflow: visible; }
 .mini-diagram circle { fill: oklch(0.16 0.02 218); stroke: oklch(0.92 0.008 205); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .mini-line-of-scrimmage { stroke: oklch(0.9 0.012 180 / 0.4); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.mini-route { fill: none; stroke: oklch(0.94 0.008 205); stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.mini-route.mini-defense { stroke: oklch(0.72 0.09 235 / 0.75); stroke-width: 1.4; }
-.mini-route.mini-block { stroke-dasharray: 4 3; }
-.mini-route.mini-motion { stroke: oklch(0.78 0.1 235 / 0.85); stroke-dasharray: 2 3; }
+/*
+ * Thumbnails reuse the canvas's assignment colour tokens, so what a coach
+ * learns from the Key applies in the browser too. Before this the cards were
+ * near-monochrome and six variants of one family read as six identical plays.
+ */
+.mini-route { fill: none; stroke: var(--assignment-route); stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.mini-route.mini-defense { stroke-width: 1.4; opacity: 0.8; }
+.mini-route.mini-block { stroke: var(--assignment-block); stroke-dasharray: 4 3; }
+.mini-route.mini-motion { stroke: var(--assignment-motion); stroke-dasharray: 2 3; }
+.mini-route.mini-rush { stroke: var(--assignment-rush); }
+.mini-route.mini-man { stroke: var(--assignment-man); }
+.mini-route.mini-zone { stroke: var(--assignment-zone); }
+.mini-route.mini-fit { stroke: var(--assignment-fit); }
 .strip-arrow {
   position: absolute;
   z-index: 3;
@@ -979,6 +988,17 @@ button:active { scale: 0.96; }
 .print-page > footer { display: flex; justify-content: space-between; color: #65747a; font-size: 10px; }
 .toast { position: fixed; z-index: 80; left: 50%; bottom: 92px; display: flex; align-items: center; gap: 10px; max-width: min(480px, calc(100vw - 32px)); padding: 11px 14px; border-radius: 9px; color: var(--text); background: var(--chrome-active); box-shadow: 0 0 0 1px var(--line-strong), var(--shadow); font-size: 13px; line-height: 18px; opacity: 0; pointer-events: none; translate: -50% 8px; transition: opacity 180ms var(--ease), translate 180ms var(--ease); }
 .toast.show { opacity: 1; translate: -50% 0; }
+/*
+ * On desktop the toast anchors bottom-left of the canvas instead of centred
+ * over it: bottom-centre is where the backfield stands, so confirmations kept
+ * covering the players a coach had just moved. Bottom-left is out-of-bounds
+ * turf in the end-zone view -- the least diagram-bearing corner of the stage.
+ * Phones keep the centred slot; their chrome already owns both side edges.
+ */
+@media (min-width: 861px) {
+  .toast { left: 96px; translate: 0 8px; }
+  .toast.show { translate: 0 0; }
+}
 /* A problem needs to be reachable, so it accepts pointer events and is tinted. */
 .toast.show.is-problem { pointer-events: auto; color: oklch(0.94 0.03 28); background: oklch(0.28 0.07 28); box-shadow: 0 0 0 1px oklch(0.72 0.17 28 / 0.55), var(--shadow); }
 .toast.is-problem > svg { flex: 0 0 auto; color: oklch(0.8 0.15 28); }

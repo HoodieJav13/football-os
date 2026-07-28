@@ -53,10 +53,19 @@ export function playBounds(play) {
 }
 
 /** The window to cover, in field yards, as { centre, width, depth }. */
-function windowFor(play, canvasWidth) {
-  const bounds = play && canvasWidth > 0 && canvasWidth < FIT_TO_PLAY_MAX_WIDTH
-    ? playBounds(play)
-    : null;
+function windowFor(play, canvasWidth, view) {
+  /*
+   * The sideline view frames the play at any width, not just narrow canvases.
+   * It maps depth to the wide screen axis, so the fixed window's 46 yd of depth
+   * spreads across the width while the full 53 1/3 yd lateral axis binds the
+   * height -- huddling every formation into the left third of the stage with
+   * ~30 yd of empty grass to its right. Comparability survives because the
+   * fitted window still has minimum spans: framing varies with the play only
+   * once the play itself outgrows them.
+   */
+  const fit = play && canvasWidth > 0
+    && (view === "side" || canvasWidth < FIT_TO_PLAY_MAX_WIDTH);
+  const bounds = fit ? playBounds(play) : null;
 
   if (!bounds) {
     return {
@@ -106,7 +115,7 @@ function orient(view, window) {
  * @returns projection describing the viewBox, the scale, and a point mapper
  */
 export function fieldProjection({ width, height, view = "end", play = null }) {
-  const { toScreen, windowWidth, windowHeight, centre } = orient(view, windowFor(play, width));
+  const { toScreen, windowWidth, windowHeight, centre } = orient(view, windowFor(play, width, view));
   const safeWidth = width > 0 ? width : windowWidth;
   const safeHeight = height > 0 ? height : windowHeight;
 
