@@ -244,15 +244,16 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   speed,
   view,
   dragInfo,
+  zoom,
 }, ref) {
   const [stageRef, size] = useElementSize();
   const rememberFocusedToken = useRestoreTokenFocus(playKey);
   /*
-   * The projection is a pure function of (box size, view), so App recomputes an
-   * identical one from the same stage box when handling pointer input. Nothing
-   * needs to be shared through a ref.
+   * The projection is a pure function of (box size, view, zoom), so App
+   * recomputes an identical one from the same stage box when handling pointer
+   * input. Nothing needs to be shared through a ref.
    */
-  const projection = fieldProjection({ width: size.width, height: size.height, view, play });
+  const projection = fieldProjection({ width: size.width, height: size.height, view, play, zoom });
 
   const showMotion = playback !== "idle";
   const assignments = play.assignments;
@@ -274,7 +275,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   return (
     <div
       ref={stageRef}
-      className={`field-stage ${view} tool-${activeTool.toLowerCase()} ${dragInfo ? "is-dragging" : ""} ${layers.offense.dimmed ? "dim-offense" : ""} ${layers.defense.dimmed ? "dim-defense" : ""}`}
+      className={`field-stage ${view} tool-${activeTool.toLowerCase()} ${dragInfo ? "is-dragging" : ""} ${projection.zoomFactor > 1 ? "is-zoomed" : ""} ${layers.offense.dimmed ? "dim-offense" : ""} ${layers.defense.dimmed ? "dim-defense" : ""}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

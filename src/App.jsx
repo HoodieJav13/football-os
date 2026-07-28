@@ -60,7 +60,7 @@ import {
 } from "./WorkspaceDialogs";
 import { Modal } from "./Modal";
 import { describeSpot, PlayCanvas } from "./PlayCanvas";
-import { fieldProjection, pointerToField, polylinePoints } from "./fieldView";
+import { fieldProjection, pointerToField, polylinePoints, ZOOM_MAX } from "./fieldView";
 import { FIELD } from "./playData";
 import { useDismissable } from "./useDismissable";
 import {
@@ -1290,6 +1290,8 @@ export function App() {
   const [draftAssignment, setDraftAssignment] = useState([]);
   /** Live drag feedback: which player is in hand, and which guides it snapped to. */
   const [dragInfo, setDragInfo] = useState(null);
+  /** Camera: null at base framing, else { factor, centre: [fieldX, fieldDepth] }. */
+  const [zoom, setZoom] = useState(null);
   /*
    * One transient toast used to carry everything: "Undid last change" and a
    * blocking "A name and legal formation are required" got the same polite,
@@ -1303,6 +1305,8 @@ export function App() {
   const playerDrag = useRef(null);
   const routePointDrag = useRef(null);
   const canvasSwipe = useRef(null);
+  /** A pan in progress: the projection frozen at pan start, plus start points. */
+  const panSession = useRef(null);
   const svgRef = useRef(null);
   const [, setHistoryVersion] = useState(0);
 
@@ -2055,15 +2059,67 @@ export function App() {
   const pointerPoint = (event) => {
     const box = svgRef.current?.parentElement?.getBoundingClientRect();
     if (!box) return [0, 0];
-    const projection = fieldProjection({ width: box.width, height: box.height, view, play });
+    const projection = fieldProjection({ width: box.width, height: box.height, view, play, zoom });
     return clampPoint(pointerToField(event, box, projection));
   };
+
+  /**
+   * Wheel-zoom about the cursor. The invariant that makes it feel right: the
+   * field point under the pointer stays under the pointer through the zoom, so
+   * a coach aims the wheel at the guard they care about and the camera dives
+   * there. Bound as a real (non-passive) listener because a React wheel handler
+   * cannot preventDefault, and a trackpad pinch arrives as ctrl+wheel that
+   * would otherwise zoom the whole page.
+   */
+  useEffect(() => {
+    const stage = svgRef.current?.parentElement;
+    if (!stage) return undefined;
+    const onWheel = (event) => {
+      event.preventDefault();
+      const box = stage.getBoundingClientRect();
+      setZoom((current) => {
+        const oldFactor = current?.factor ?? 1;
+        const nextFactor = Math.min(ZOOM_MAX, Math.max(1, oldFactor * Math.exp(-event.deltaY * 0.002)));
+        if (nextFactor <= 1) return null;
+        const projection = fieldProjection({ width: box.width, height: box.height, view, play, zoom: current });
+        const under = pointerToField(event, box, projection);
+        const centre = [
+          (projection.lateralRange[0] + projection.lateralRange[1]) / 2,
+          (projection.depthRange[0] + projection.depthRange[1]) / 2,
+        ];
+        const keep = oldFactor / nextFactor;
+        return {
+          factor: nextFactor,
+          centre: [under[0] - (under[0] - centre[0]) * keep, under[1] - (under[1] - centre[1]) * keep],
+        };
+      });
+    };
+    stage.addEventListener("wheel", onWheel, { passive: false });
+    return () => stage.removeEventListener("wheel", onWheel);
+  }, [view, play]);
 
   /** Drawing needs a minimum travel in yards before it registers a new vertex. */
   const DRAW_STEP_YARDS = 0.8;
 
   const startDraw = (event) => {
     if (activeTool === "Select") {
+      // Zoomed in, an empty-field drag pans the camera; at base framing the
+      // same gesture keeps its old meaning, a swipe between plays.
+      if (zoom?.factor > 1) {
+        const box = event.currentTarget.getBoundingClientRect();
+        const projection = fieldProjection({ width: box.width, height: box.height, view, play, zoom });
+        panSession.current = {
+          box,
+          projection,
+          start: pointerToField(event, box, projection),
+          centre: [
+            (projection.lateralRange[0] + projection.lateralRange[1]) / 2,
+            (projection.depthRange[0] + projection.depthRange[1]) / 2,
+          ],
+        };
+        capturePointer(event.currentTarget, event.pointerId);
+        return;
+      }
       canvasSwipe.current = { x: event.clientX, y: event.clientY };
       return;
     }
@@ -2118,6 +2174,19 @@ export function App() {
   };
 
   const movePointer = (event) => {
+    if (panSession.current) {
+      /*
+       * The projection stays frozen at pan start: recomputing it per move would
+       * chase its own centre and feed back into the delta being measured.
+       */
+      const { box, projection, start, centre } = panSession.current;
+      const now = pointerToField(event, box, projection);
+      setZoom((current) => (current ? {
+        ...current,
+        centre: [centre[0] - (now[0] - start[0]), centre[1] - (now[1] - start[1])],
+      } : current));
+      return;
+    }
     if (playerDrag.current) {
       const next = pointerPoint(event);
       // Magnetic placement: rows, columns and the LOS pull the player in; Alt
@@ -2166,6 +2235,10 @@ export function App() {
   };
 
   const finishPointer = (event) => {
+    if (panSession.current) {
+      panSession.current = null;
+      return;
+    }
     if (playerDrag.current) {
       const movedLabel = playerLabel(play, playerDrag.current.unit, playerDrag.current.id);
       const landedAt = playerLocation(play, playerDrag.current.unit, playerDrag.current.id);
@@ -2576,7 +2649,14 @@ export function App() {
             speed={speed}
             view={view}
             dragInfo={dragInfo}
+            zoom={zoom}
           />
+          {zoom ? (
+            <button className="zoom-reset" onClick={() => setZoom(null)}>
+              <CornersOut size={16} />
+              {`Fit · ${zoom.factor.toFixed(1)}×`}
+            </button>
+          ) : null}
         </div>
         {!present && selectedPlayerId ? (
           <Inspector

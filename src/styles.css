@@ -404,6 +404,7 @@ button:active { scale: 0.96; }
 .tool-menu button.danger-action { color: oklch(0.75 0.14 28); }
 
 .canvas-workspace {
+  position: relative;
   display: grid;
   grid-template-rows: 52px minmax(0, 1fr);
   min-width: 0;
@@ -411,6 +412,26 @@ button:active { scale: 0.96; }
   overflow: hidden;
   background: var(--field);
 }
+/* Appears only while zoomed: one press back to the base framing. */
+.zoom-reset {
+  position: absolute;
+  z-index: 6;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--chrome-active);
+  box-shadow: 0 0 0 1px var(--line-strong), var(--shadow);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.zoom-reset:hover { background: var(--chrome-raised); }
 .layer-bar {
   position: relative;
   z-index: 6;
@@ -581,6 +602,9 @@ button:active { scale: 0.96; }
 .defender:focus-visible .token-hit { fill: oklch(0.95 0.02 180 / 0.08); }
 /* A drawing tool is armed: the whole surface is a pen target. */
 .tool-route, .tool-block, .tool-motion, .tool-defense { cursor: crosshair; }
+/* Zoomed in, empty field pans -- say so with the hand. */
+.field-stage.is-zoomed.tool-select { cursor: grab; }
+.field-stage.is-zoomed.tool-select:active { cursor: grabbing; }
 .player circle { fill: oklch(0.14 0.02 220); stroke: var(--text); stroke-width: 2.4; vector-effect: non-scaling-stroke; }
 /*
  * No font-size here: inside a yard-based viewBox a CSS `font-size: 14px` means

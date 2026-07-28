@@ -110,20 +110,51 @@ function orient(view, window) {
       };
 }
 
+/** How far the camera may magnify past the base framing. */
+export const ZOOM_MAX = 6;
+
 /**
  * @param {{width: number, height: number, view?: "end"|"side"}} viewport pixel size of the canvas
+ * @param zoom optional camera: `{ factor, centre: [fieldX, fieldDepth] }`.
+ *   Factor multiplies the base scale; the centre is in field yards so it means
+ *   the same spot in either view. Panning is expressed by moving the centre.
  * @returns projection describing the viewBox, the scale, and a point mapper
  */
-export function fieldProjection({ width, height, view = "end", play = null }) {
+export function fieldProjection({ width, height, view = "end", play = null, zoom = null }) {
   const { toScreen, windowWidth, windowHeight, centre } = orient(view, windowFor(play, width, view));
   const safeWidth = width > 0 ? width : windowWidth;
   const safeHeight = height > 0 ? height : windowHeight;
 
   // One scale for both axes: whichever axis is tighter decides it.
-  const pxPerYard = Math.min(safeWidth / windowWidth, safeHeight / windowHeight);
+  const factor = zoom && zoom.factor > 1 ? Math.min(zoom.factor, ZOOM_MAX) : 1;
+  const pxPerYard = Math.min(safeWidth / windowWidth, safeHeight / windowHeight) * factor;
   const viewYardsWidth = safeWidth / pxPerYard;
   const viewYardsHeight = safeHeight / pxPerYard;
-  const [centreX, centreY] = centre;
+  const [baseCentreX, baseCentreY] = centre;
+  let [centreX, centreY] = factor > 1 && zoom.centre ? toScreen(zoom.centre) : centre;
+
+  /*
+   * The camera may not leave the base framing: the zoomed window is clamped
+   * inside what the unzoomed view would show, so panning can reach everything
+   * that was visible before zooming and nothing that was not. Because the
+   * zoomed span is the base span divided by the factor, the clamp range is
+   * never empty.
+   */
+  if (factor > 1) {
+    const baseViewWidth = viewYardsWidth * factor;
+    const baseViewHeight = viewYardsHeight * factor;
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    centreX = clamp(
+      centreX,
+      baseCentreX - (baseViewWidth - viewYardsWidth) / 2,
+      baseCentreX + (baseViewWidth - viewYardsWidth) / 2,
+    );
+    centreY = clamp(
+      centreY,
+      baseCentreY - (baseViewHeight - viewYardsHeight) / 2,
+      baseCentreY + (baseViewHeight - viewYardsHeight) / 2,
+    );
+  }
 
   const minX = centreX - viewYardsWidth / 2;
   const minY = centreY - viewYardsHeight / 2;
@@ -139,6 +170,8 @@ export function fieldProjection({ width, height, view = "end", play = null }) {
   return {
     view,
     pxPerYard,
+    /** the applied camera magnification, 1 when unzoomed */
+    zoomFactor: factor,
     /** visible yards downfield of the LOS, as [nearest, deepest] */
     depthRange,
     /** visible yards either side of the field centre, as [left, right] */

@@ -7,6 +7,7 @@ import {
   pointerToField,
   polylinePoints,
   tokenMotionPath,
+  ZOOM_MAX,
   visibleYardLines,
   yardNumbers,
 } from "../src/fieldView.js";
@@ -228,4 +229,42 @@ test("the sideline view frames the play at any canvas width", () => {
   const [left, right] = fitted.lateralRange;
   assert.ok(bounds.minY >= near && bounds.maxY <= far, "depth in frame");
   assert.ok(bounds.minX >= left && bounds.maxX <= right, "width in frame");
+});
+
+test("zoom multiplies the scale and keeps its centre put", () => {
+  const base = fieldProjection(IPAD);
+  const zoomed = fieldProjection({ ...IPAD, zoom: { factor: 2, centre: [5, 8] } });
+  assert.ok(Math.abs(zoomed.pxPerYard - base.pxPerYard * 2) < 1e-9);
+  const [left, right] = zoomed.lateralRange;
+  const [near, far] = zoomed.depthRange;
+  assert.ok(Math.abs((left + right) / 2 - 5) < 1e-9);
+  assert.ok(Math.abs((near + far) / 2 - 8) < 1e-9);
+});
+
+test("zoom clamps to its maximum and a unit factor is a no-op", () => {
+  const base = fieldProjection(IPAD);
+  const capped = fieldProjection({ ...IPAD, zoom: { factor: 40, centre: [0, 0] } });
+  assert.ok(Math.abs(capped.pxPerYard - base.pxPerYard * ZOOM_MAX) < 1e-9);
+  const unit = fieldProjection({ ...IPAD, zoom: { factor: 1, centre: [9, 9] } });
+  assert.equal(unit.viewBox, base.viewBox);
+});
+
+test("panning cannot leave the base framing", () => {
+  const base = fieldProjection(IPAD);
+  const dragged = fieldProjection({ ...IPAD, zoom: { factor: 2, centre: [500, -500] } });
+  // The clamped window must stay inside what the unzoomed view showed.
+  assert.ok(dragged.lateralRange[1] <= base.lateralRange[1] + 1e-9);
+  assert.ok(dragged.depthRange[0] >= base.depthRange[0] - 1e-9);
+});
+
+test("pointer input stays accurate through a zoom", () => {
+  const zoom = { factor: 3, centre: [-4, 6] };
+  const projection = fieldProjection({ ...IPAD, zoom });
+  const box = { left: 0, top: 0, width: IPAD.width, height: IPAD.height };
+  const target = [-6, 9];
+  const [sx, sy] = projection.project(target);
+  const clientX = ((sx - projection.bounds.minX) / (projection.bounds.maxX - projection.bounds.minX)) * box.width;
+  const clientY = ((sy - projection.bounds.minY) / (projection.bounds.maxY - projection.bounds.minY)) * box.height;
+  const back = pointerToField({ clientX, clientY }, box, projection);
+  assert.ok(Math.hypot(back[0] - target[0], back[1] - target[1]) < 1e-9);
 });
