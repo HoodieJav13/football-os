@@ -72,6 +72,16 @@
 .assignment-key-panel,
 .speed-menu { transform-origin: top; animation: pop-in var(--dur-med) var(--ease-enter) both; }
 .inspector { animation: panel-in-right var(--dur-slow) var(--ease-enter) both; }
+/*
+ * Elevation: the chrome surfaces sit above the field and cast soft shade onto
+ * it. The shadows point at the canvas -- inspector left, filmstrip down,
+ * timeline up -- so the field reads as the recessed work surface and the
+ * panels as tools resting over it.
+ */
+.inspector { box-shadow: -14px 0 34px oklch(0 0 0 / 0.28); }
+.filmstrip { position: relative; z-index: 7; box-shadow: 0 10px 28px oklch(0 0 0 / 0.24); }
+.timeline { position: relative; z-index: 7; box-shadow: 0 -10px 28px oklch(0 0 0 / 0.24); }
+.tool-rail { box-shadow: 12px 0 30px oklch(0 0 0 / 0.2); }
 /* Layer toggles crossfade instead of blinking; hidden layers give up the pointer. */
 .unit-layer,
 .assignments-layer,
@@ -582,7 +592,10 @@ button:active { scale: 0.96; }
  */
 .field-stage { background: var(--out-of-bounds); }
 .field-grid { pointer-events: none; }
-.field-grid .field-surface { fill: var(--field); }
+/* Lit surface, not vector fill: the gradients are defined in FieldMarkings. */
+.field-grid .field-surface { fill: url(#field-light); }
+.field-vignette { fill: url(#field-vignette); }
+.los-glow { stroke: oklch(0.95 0.01 180 / 0.1); stroke-width: 9; vector-effect: non-scaling-stroke; }
 .field-grid line { fill: none; stroke: oklch(0.88 0.015 180 / 0.2); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .field-grid line.major { stroke: oklch(0.88 0.015 180 / 0.3); stroke-width: 1.5; }
 .field-grid line.hash { stroke: oklch(0.88 0.015 180 / 0.34); stroke-width: 1.75; }
@@ -670,7 +683,18 @@ button:active { scale: 0.96; }
 /* Zoomed in, empty field pans -- say so with the hand. */
 .field-stage.is-zoomed.tool-select { cursor: grab; }
 .field-stage.is-zoomed.tool-select:active { cursor: grabbing; }
-.player circle { fill: oklch(0.14 0.02 220); stroke: var(--text); stroke-width: 2.4; vector-effect: non-scaling-stroke; }
+/*
+ * Elevation on the field: offensive tokens cast a soft shadow so they sit ON
+ * the turf; defenders deliberately stay flat -- printed into the surface --
+ * which keeps the unit hierarchy readable without any colour change. The
+ * selected player breathes, slowly enough to be felt rather than watched.
+ */
+.player circle { fill: oklch(0.14 0.02 220); stroke: var(--text); stroke-width: 2.4; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1.5px 2.5px oklch(0 0 0 / 0.5)); }
+@keyframes focus-breathe {
+  0%, 100% { filter: drop-shadow(0 1.5px 2.5px oklch(0 0 0 / 0.5)) drop-shadow(0 0 3px oklch(0.81 0.155 76 / 0.3)); }
+  50% { filter: drop-shadow(0 1.5px 2.5px oklch(0 0 0 / 0.5)) drop-shadow(0 0 9px oklch(0.81 0.155 76 / 0.6)); }
+}
+.focus-player circle:not(.token-hit) { animation: focus-breathe 2.6s var(--ease) infinite; }
 /*
  * No font-size here: inside a yard-based viewBox a CSS `font-size: 14px` means
  * 14 *yards*. Sizes come from the `fontSize` attribute, which PlayCanvas

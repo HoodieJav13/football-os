@@ -127,17 +127,48 @@ function useFormationMorph({ stageRef, play, projection, ready, playback, positi
         return; // WAAPI missing or SVG transforms unsupported: hard cut, as before.
       }
     }
-    for (const element of svg.querySelectorAll(".route, .route-handle")) {
-      try {
-        element.animate(
-          [{ opacity: 0 }, { opacity: 1 }],
-          { duration: 200, delay: 140, fill: "backwards", easing: "ease-out" },
-        );
-      } catch {
-        return;
-      }
-    }
+    drawRoutesIn(svg, 120);
   });
+}
+
+/**
+ * Routes draw themselves -- the whiteboard gesture of the sport. Solid strokes
+ * reveal via dash offset from the player outward, staggered so the play is
+ * authored in front of you rather than stamped. Dashed assignments (blocks,
+ * motion) fade instead: a dash-offset reveal would destroy their dash pattern
+ * for the duration of the animation. The arrowhead stays parked at the
+ * destination while its line draws to it, which reads as "target marked".
+ */
+function drawRoutesIn(svg, baseDelay = 0) {
+  let index = 0;
+  for (const element of svg.querySelectorAll(".route")) {
+    const delay = baseDelay + index * 36;
+    index += 1;
+    try {
+      const type = element.dataset.assignmentType;
+      if (type === "Block" || type === "Motion") {
+        element.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay, fill: "backwards", easing: "ease-out" });
+        continue;
+      }
+      const length = element.getTotalLength();
+      element.animate(
+        [
+          { strokeDasharray: `${length}`, strokeDashoffset: length },
+          { strokeDasharray: `${length}`, strokeDashoffset: 0 },
+        ],
+        { duration: 280, delay, fill: "backwards", easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+      );
+    } catch {
+      return; // no WAAPI: routes simply appear, as before
+    }
+  }
+  for (const element of svg.querySelectorAll(".route-handle")) {
+    try {
+      element.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: baseDelay + 160, fill: "backwards", easing: "ease-out" });
+    } catch {
+      return;
+    }
+  }
 }
 
 /** "@12" or "@7.5" -- a break's depth the way an install sheet writes it. */
@@ -223,6 +254,24 @@ function FieldMarkings({ projection }) {
 
   return (
     <g className="field-grid" aria-hidden="true">
+      {/*
+        The lighting model: a soft radial lift where the play lives, a vignette
+        that lets the edges fall away, and a low glow under the LOS. All of it
+        is deliberately near-subliminal -- the aim is that the field reads as a
+        lit surface rather than a vector fill, not that anyone notices a
+        gradient.
+      */}
+      <defs>
+        <radialGradient id="field-light" cx="50%" cy="42%" r="85%">
+          <stop offset="0%" stopColor="oklch(0.285 0.05 171)" />
+          <stop offset="55%" stopColor="oklch(0.255 0.045 171)" />
+          <stop offset="100%" stopColor="oklch(0.235 0.042 171)" />
+        </radialGradient>
+        <radialGradient id="field-vignette" cx="50%" cy="46%" r="78%">
+          <stop offset="62%" stopColor="oklch(0 0 0 / 0)" />
+          <stop offset="100%" stopColor="oklch(0 0 0 / 0.26)" />
+        </radialGradient>
+      </defs>
       <rect className="field-surface" x={surface.x} y={surface.y} width={surface.width} height={surface.height} />
 
       {yardLines.filter((depth) => depth !== 0).map((depth) => (
@@ -239,9 +288,11 @@ function FieldMarkings({ projection }) {
       {line([half, nearDepth], [half, farDepth], "sideline-right", "sideline")}
 
       {/*
-        The line of scrimmage, drawn as its own emphasised line. Previously the
-        LOS was only inferable from where the linemen happened to be standing.
+        The line of scrimmage, drawn as its own emphasised line over a soft
+        glow. Previously the LOS was only inferable from where the linemen
+        happened to be standing.
       */}
+      {line([-half, 0], [half, 0], "los-glow", "los-glow")}
       {line([-half, 0], [half, 0], "line-of-scrimmage", "line-of-scrimmage")}
 
       {numbers.flatMap(({ depth, label }) => [-(half - numberInset), half - numberInset].map((x) => {
@@ -259,6 +310,8 @@ function FieldMarkings({ projection }) {
           </text>
         );
       }))}
+
+      <rect className="field-vignette" x={surface.x} y={surface.y} width={surface.width} height={surface.height} />
     </g>
   );
 }
@@ -345,7 +398,14 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   const entering = !entered.current;
   // Only counts once tokens have actually rendered: the first mount is a
   // zero-size canvas with nothing on it, and flipping there would skip the show.
-  useLayoutEffect(() => { if (ready) entered.current = true; }, [ready]);
+  // The first-load routes draw in after the roster has landed.
+  useLayoutEffect(() => {
+    if (!ready || entered.current) return;
+    entered.current = true;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+    const svg = stageRef.current?.querySelector("svg");
+    if (svg) drawRoutesIn(svg, 340);
+  }, [ready]);
   const enterStyle = (index) => (entering ? { animationDelay: `${index * 18}ms` } : undefined);
 
   const offenseMorph = morphKeys(play.players, "offense");
