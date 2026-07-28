@@ -307,6 +307,8 @@ button:active { scale: 0.96; }
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
+  /* Cards dissolve at the edges instead of being guillotined by the clip. */
+  mask-image: linear-gradient(90deg, transparent 0, black 14px, black calc(100% - 30px), transparent 100%);
 }
 .filmstrip-scroll::-webkit-scrollbar { display: none; }
 .filmstrip-empty { display: grid; place-items: center; align-content: center; gap: 3px; min-width: 210px; padding: 12px; color: var(--text-low); text-align: center; }
@@ -323,11 +325,13 @@ button:active { scale: 0.96; }
   background: transparent;
   color: var(--text-mid);
   border-right: 1px solid var(--line);
-  transition-property: background-color, color, box-shadow, scale;
+  transition-property: background-color, color, box-shadow, scale, translate;
   transition-duration: 180ms;
   transition-timing-function: var(--ease);
 }
 .film-card:hover { color: var(--text); background: oklch(0.19 0.025 215); }
+/* Hover lifts the card off the strip; the active card stays seated. */
+.film-card:hover:not(.active) { translate: 0 -2px; box-shadow: 0 8px 20px oklch(0 0 0 / 0.32); }
 .film-card.active { color: var(--text); background: oklch(0.19 0.027 212); box-shadow: inset 0 0 0 1px var(--accent), inset 0 -3px 0 var(--accent); }
 .film-index { justify-self: start; color: var(--text-low); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
 .film-card strong { overflow: hidden; max-width: 100%; justify-self: center; font-size: 12px; line-height: 16px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
@@ -591,18 +595,51 @@ button:active { scale: 0.96; }
  * rather than empty chrome.
  */
 .field-stage { background: var(--out-of-bounds); }
+/*
+ * Screen-space grain over the whole stage, at a whisper. A tiled CSS
+ * background rather than an SVG filter in the field's own coordinate space:
+ * it rasterises once and never re-renders on pan or zoom, and grain that
+ * stays fixed while the field moves under it reads like material, not noise.
+ */
+.field-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
 .field-grid { pointer-events: none; }
 /* Lit surface, not vector fill: the gradients are defined in FieldMarkings. */
 .field-grid .field-surface { fill: url(#field-light); }
 .field-vignette { fill: url(#field-vignette); }
 .los-glow { stroke: oklch(0.95 0.01 180 / 0.1); stroke-width: 9; vector-effect: non-scaling-stroke; }
+@keyframes los-flash {
+  0%, 100% { stroke: oklch(0.95 0.01 180 / 0.1); stroke-width: 9; }
+  30% { stroke: oklch(0.97 0.015 180 / 0.5); stroke-width: 15; }
+}
+.los-glow.snap-flash { animation: los-flash 450ms var(--ease); }
+/*
+ * The field is the stage while a play runs: surrounding chrome recedes a
+ * little, and comes back the moment you reach into it or the run ends.
+ */
+.is-running .tool-rail,
+.is-running .filmstrip,
+.is-running .topbar,
+.is-running .inspector { opacity: 0.68; transition: opacity var(--dur-slow) var(--ease); }
+.is-running .tool-rail:hover,
+.is-running .filmstrip:hover,
+.is-running .topbar:hover,
+.is-running .inspector:hover { opacity: 1; }
+.tool-rail, .filmstrip, .topbar, .inspector { transition: opacity var(--dur-slow) var(--ease); }
 .field-grid line { fill: none; stroke: oklch(0.88 0.015 180 / 0.2); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .field-grid line.major { stroke: oklch(0.88 0.015 180 / 0.3); stroke-width: 1.5; }
 .field-grid line.hash { stroke: oklch(0.88 0.015 180 / 0.34); stroke-width: 1.75; }
 .field-grid line.sideline { stroke: oklch(0.9 0.012 180 / 0.5); stroke-width: 2; }
 /* The line of scrimmage is the origin of the whole coordinate system; show it. */
 .field-grid line.line-of-scrimmage { stroke: oklch(0.9 0.012 180 / 0.62); stroke-width: 2; stroke-dasharray: 10 6; }
-.field-grid text { fill: oklch(0.88 0.015 180 / 0.46); font-family: "Manrope Variable", sans-serif; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+.field-grid text { fill: oklch(0.88 0.015 180 / 0.46); font-family: "Manrope Variable", sans-serif; font-weight: 800; letter-spacing: 0.05em; text-anchor: middle; dominant-baseline: middle; }
 /*
  * Assignment encoding.
  *
@@ -1133,9 +1170,35 @@ button:active { scale: 0.96; }
 .toast-dismiss:hover { background: oklch(1 0 0 / 0.16); }
 
 .exit-present { position: absolute; z-index: 8; right: 20px; bottom: 20px; display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 14px; border-radius: 8px; background: var(--chrome); box-shadow: 0 0 0 1px var(--line-strong), var(--shadow); font-size: 14px; line-height: 20px; }
-.is-presenting { grid-template-rows: 72px minmax(0, 1fr); }
-.is-presenting .editor-shell { grid-template-columns: minmax(0, 1fr); }
-.is-presenting .canvas-workspace { grid-template-rows: minmax(0, 1fr); }
+/*
+ * Present is cinema: the chrome slides off its own edge -- rail left, filmstrip
+ * and layer bar up, timeline down -- while the grid rows and columns collapse
+ * underneath, so the field glides to fullscreen instead of snapping there.
+ * Sliding (rather than clipping in a shrinking row) means nothing needs
+ * overflow:hidden, which would have cut off the tool rail's popover menus.
+ * visibility flips after the ride so off-stage controls leave the tab order.
+ */
+.app-shell { transition: grid-template-rows var(--dur-slow) var(--ease); }
+.canvas-workspace { transition: grid-template-rows var(--dur-slow) var(--ease); }
+.tool-rail, .filmstrip, .timeline, .layer-bar {
+  transition: translate var(--dur-slow) var(--ease), opacity var(--dur-slow) var(--ease), visibility 0s 0s;
+}
+.is-presenting { grid-template-rows: 72px 0px minmax(0, 1fr) 0px; }
+.is-presenting .editor-shell { grid-template-columns: 0px minmax(0, 1fr) 0px; }
+.is-presenting .canvas-workspace { grid-template-rows: 0px minmax(0, 1fr); }
+.is-presenting .tool-rail { translate: -105% 0; }
+.is-presenting .filmstrip { translate: 0 -110%; }
+.is-presenting .layer-bar { translate: 0 -130%; }
+.is-presenting .timeline { translate: 0 110%; }
+.is-presenting .tool-rail,
+.is-presenting .filmstrip,
+.is-presenting .layer-bar,
+.is-presenting .timeline {
+  opacity: 0;
+  visibility: hidden;
+  transition: translate var(--dur-slow) var(--ease), opacity var(--dur-slow) var(--ease), visibility 0s var(--dur-slow);
+}
+.exit-present { animation: pop-in var(--dur-med) var(--ease-enter) both; animation-delay: var(--dur-slow); }
 .is-presenting .offline-state { display: none; }
 
 @media (max-width: 1120px) {

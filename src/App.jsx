@@ -2194,6 +2194,42 @@ export function App() {
   }, [runKey, playback]);
 
   /*
+   * Playback theater: while the play runs, each route brightens for exactly
+   * the window its player is running it and dims otherwise, and the LOS glow
+   * flashes at the snap. Driven per-frame from the SVG clock rather than CSS
+   * animation delays, so it stays truthful through pause and scrubbing -- a
+   * CSS timeline would keep counting while SMIL stood still. The rAF writes
+   * inline opacity; the .route transition turns those discrete flips into
+   * eased light changes.
+   */
+  useEffect(() => {
+    if (playback === "idle") return undefined;
+    const svg = svgRef.current;
+    if (!svg?.getCurrentTime) return undefined;
+    let lastTime = svg.getCurrentTime();
+    let frame = requestAnimationFrame(function step() {
+      const t = svg.getCurrentTime();
+      for (const element of svg.querySelectorAll(".route[data-run-start]")) {
+        if (element.classList.contains("layer-hidden")) continue;
+        const start = Number(element.dataset.runStart);
+        const end = start + Number(element.dataset.runDur);
+        element.style.opacity = t >= start && t <= end ? "1" : t < start ? "0.38" : "0.55";
+      }
+      const glow = svg.querySelector(".los-glow");
+      if (glow && lastTime < 2 && t >= 2) {
+        glow.classList.add("snap-flash");
+        window.setTimeout(() => glow.classList.remove("snap-flash"), 500);
+      }
+      lastTime = t;
+      frame = requestAnimationFrame(step);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      for (const element of svg.querySelectorAll(".route[data-run-start]")) element.style.opacity = "";
+    };
+  }, [playback, runKey]);
+
+  /*
    * The projection is a pure function of (stage box, view), so recomputing it
    * here yields exactly the one PlayCanvas drew with -- pointer input therefore
    * lands on the field yard under the finger, at any viewport size.
@@ -2708,7 +2744,7 @@ export function App() {
   });
 
   return (
-    <main className={`app-shell ${present ? "is-presenting" : ""}`} tabIndex={-1}>
+    <main className={`app-shell ${present ? "is-presenting" : ""} ${playback === "running" ? "is-running" : ""}`} tabIndex={-1}>
       <Header
         activePlaybook={activePlaybook}
         formationLegal={currentFormationStatus.legal}
@@ -2732,7 +2768,7 @@ export function App() {
         onView={(nextView) => { setView(nextView); setPlayback("idle"); }}
         temporary={temporary}
       />
-      {!present ? (
+      {(
         <Filmstrip
           family={activePlaybook.name}
           familyBases={familyBases}
@@ -2747,9 +2783,9 @@ export function App() {
           onFolder={setBrowserFolder}
           onQuery={setBrowserQuery}
         />
-      ) : null}
+      )}
       <section className={`editor-shell ${!present && selectedPlayerId ? "" : "inspector-closed"}`}>
-        {!present ? (
+        {(
           <ToolRail
             activeTool={activeTool}
             canAddPlayer={play.players.length < 11}
@@ -2769,9 +2805,9 @@ export function App() {
             onUndo={undo}
             temporary={temporary}
           />
-        ) : null}
+        )}
         <div className="canvas-workspace">
-          {!present ? <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} /> : null}
+          <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} />
           <PlayCanvas
             ref={svgRef}
             activeTool={activeTool}
@@ -2847,7 +2883,7 @@ export function App() {
         }}><CaretLeft size={19} />Player inspector</button> : null}
         {present ? <button className="exit-present" onClick={() => setPresent(false)}><X size={18} />Exit presentation</button> : null}
       </section>
-      {!present ? (
+      {(
         <Timeline
           assignment={route}
           playback={playback}
@@ -2859,7 +2895,7 @@ export function App() {
           speed={speed}
           onSpeed={setSpeed}
         />
-      ) : null}
+      )}
       {gameDayDialog ? <GameDayDialog active={Boolean(gameDay)} play={gameDay ? playbooks.find((book) => book.id === gameDay.playbookId)?.plays.find((item) => item.id === gameDay.playId) ?? play : play} onClose={() => setGameDayDialog(false)} onStart={startGameDay} onResolve={resolveGameDay} /> : null}
       {detailsDialog ? <PlayDetailsDialog play={play} onClose={() => setDetailsDialog(false)} onSave={(details) => { updatePlay(play.id, (current) => ({ ...current, ...details })); setDetailsDialog(false); notify("Play details saved"); }} /> : null}
       {createPlayDialog ? <CreatePlayDialog currentPlay={play} formations={activePlaybook.formations} onClose={() => setCreatePlayDialog(false)} onCreate={createPlay} /> : null}
