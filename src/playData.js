@@ -1144,6 +1144,64 @@ export function clonePlaybook(value = plays) {
   return JSON.parse(JSON.stringify(value));
 }
 
+/**
+ * Cross-play identity for players. Player ids are unique per play, so anything
+ * that matches players across plays -- the formation morph, the thumbnail diff
+ * -- matches by unit, label, and occurrence index instead: "the second
+ * defensive T" maps to the second defensive T of the other play. The
+ * occurrence index exists because duplicate labels are legal on both units.
+ */
+export function morphKeys(roster, unit) {
+  const seen = new Map();
+  const keys = new Map();
+  for (const player of roster) {
+    const occurrence = seen.get(player.label) ?? 0;
+    seen.set(player.label, occurrence + 1);
+    keys.set(player.id, `${unit}|${player.label}|${occurrence}`);
+  }
+  return keys;
+}
+
+/**
+ * Which of a play's assignments differ from the family's base play -- the thing
+ * a browser thumbnail should emphasise, since variants of one family usually
+ * share everything but a route or two. An assignment counts as changed when the
+ * base has no counterpart for that player and phase, or the counterpart has a
+ * different type or shape, or its path moved by more than two yards anywhere.
+ * The tolerance is deliberately coarse: in real families the shared routes
+ * drift by a yard or so of re-spacing (measured 1.3-1.5 yd across the seeds)
+ * while the route a variant is actually about goes somewhere else entirely
+ * (10+ yd). A tight tolerance flagged everything and emphasised nothing.
+ */
+export function changedAssignmentIds(play, basePlay) {
+  if (!basePlay || basePlay.id === play.id) return new Set();
+  const keyFor = (target) => {
+    const offense = morphKeys(target.players ?? [], "offense");
+    const defense = morphKeys(target.defenders ?? [], "defense");
+    return (item) => {
+      const player = offense.get(item.playerId) ?? defense.get(item.playerId);
+      return player ? `${player}|${item.phase}` : null;
+    };
+  };
+  const baseKey = keyFor(basePlay);
+  const counterparts = new Map();
+  for (const item of basePlay.assignments ?? []) {
+    const key = baseKey(item);
+    if (key) counterparts.set(key, item);
+  }
+  const samePath = (a, b) => a.length === b.length
+    && a.every(([x, y], index) => Math.abs(x - b[index][0]) <= 2 && Math.abs(y - b[index][1]) <= 2);
+
+  const playKey = keyFor(play);
+  const changed = new Set();
+  for (const item of play.assignments ?? []) {
+    const key = playKey(item);
+    const other = key ? counterparts.get(key) : null;
+    if (!other || other.type !== item.type || !samePath(item.points, other.points)) changed.add(item.id);
+  }
+  return changed;
+}
+
 /** How close a dragged player must be to another's row or column to snap to it. */
 export const ALIGN_SNAP_YARDS = 0.35;
 /** How close an offensive player must be to the LOS to snap onto it. */

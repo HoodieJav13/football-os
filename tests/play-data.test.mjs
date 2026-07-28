@@ -26,6 +26,7 @@ import {
   plays,
   routeDefinitionToPoints,
   routeDuration,
+  changedAssignmentIds,
   seedPlaybooks,
   snapDragTarget,
 } from "../src/playData.js";
@@ -542,4 +543,47 @@ test("the dragged player is not its own magnet", () => {
   const mover = play.players.find((player) => player.label === "Z");
   const { guides } = snapDragTarget(play, "offense", mover.id, [mover.x + 0.2, mover.y - 4]);
   assert.notEqual(guides.x?.playerId, mover.id);
+});
+
+test("a play diffs empty against itself and against no base", () => {
+  assert.equal(changedAssignmentIds(plays[0], plays[0]).size, 0);
+  assert.equal(changedAssignmentIds(plays[0], null).size, 0);
+});
+
+test("family variants flag exactly the assignments that differ from the base", () => {
+  const base = plays[0];
+  for (const variant of plays.slice(1)) {
+    const changed = changedAssignmentIds(variant, base);
+    for (const item of variant.assignments) {
+      const flagged = changed.has(item.id);
+      // Re-derive the expectation independently: match by player label + phase.
+      const label = (p, id) => [...p.players, ...p.defenders].find((pl) => pl.id === id)?.label;
+      const counterpart = base.assignments.find((other) =>
+        label(base, other.playerId) === label(variant, item.playerId) && other.phase === item.phase);
+      const same = counterpart && counterpart.type === item.type
+        && counterpart.points.length === item.points.length
+        && counterpart.points.every(([x, y], i) => Math.abs(x - item.points[i][0]) <= 2 && Math.abs(y - item.points[i][1]) <= 2);
+      assert.equal(flagged, !same, `${variant.name}/${item.id}`);
+    }
+    // A variant must differ somewhere, or it would not be a variant.
+    assert.ok(changed.size > 0, `${variant.name} should differ from ${base.name}`);
+  }
+});
+
+test("re-spacing is ignored, a re-route or shape change is flagged", () => {
+  const base = plays[0];
+  const copy = clonePlaybook([base])[0];
+  copy.id = "copy";
+  copy.assignments = copy.assignments.map((item, index) => index === 0
+    ? { ...item, points: item.points.map(([x, y]) => [x + 1.4, y]) }
+    : item);
+  assert.equal(changedAssignmentIds(copy, base).size, 0, "1.4 yd re-spacing ignored");
+  copy.assignments = copy.assignments.map((item, index) => index === 0
+    ? { ...item, points: item.points.map(([x, y]) => [x + 6, y]) }
+    : item);
+  assert.equal(changedAssignmentIds(copy, base).size, 1, "6 yd re-route flagged");
+  copy.assignments = copy.assignments.map((item, index) => index === 1
+    ? { ...item, points: [...item.points, [0, 30]] }
+    : item);
+  assert.equal(changedAssignmentIds(copy, base).size, 2, "extra break flagged as a shape change");
 });

@@ -37,6 +37,7 @@ playbook renders at the same scale and is directly comparable.
 | Arrow keys | Nudge the selected player by 0.25 yd (hold `Shift` for 1 yd) |
 | `Delete` | Remove the selected assignment |
 | `Space` | Run, pause or resume the animation |
+| Timeline arrows | With the track focused, step the playhead 0.1s (`Shift` for 0.5s); `Home`/`End` jump |
 | `[` / `]` | Previous or next play in the current filter |
 | `Alt` + drag | Place a player freely, ignoring the alignment magnets |
 | `Escape` | Drop the drawing tool, leave presentation, then clear the selection |

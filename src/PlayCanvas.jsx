@@ -1,5 +1,5 @@
 import { forwardRef, useLayoutEffect, useRef, useState } from "react";
-import { assignmentStartSeconds, FIELD, isLineLabel, routeDuration } from "./playData";
+import { assignmentStartSeconds, FIELD, isLineLabel, morphKeys, routeDuration } from "./playData";
 import {
   fieldProjection,
   polylinePoints,
@@ -26,6 +26,7 @@ const TOKEN = {
   lineLabel: { yards: 0.85, min: 6, max: 9.5 },
   defenseLabel: { yards: 0.95, min: 6.5, max: 10.5 },
   handle: { yards: 0.7, min: 5, max: 8 },
+  depthTag: { yards: 1.0, min: 8, max: 11 },
   number: { yards: 2.4, min: 14, max: 30 },
   /** Hit targets stay a true 44 CSS px regardless of zoom. */
   hitRadiusPx: 22,
@@ -86,24 +87,6 @@ function tokenRunAnimations(player, assignments, projection, speed, visible) {
 }
 
 /**
- * Identity for morphing between plays. Player ids are unique per play, so a
- * formation-to-formation transition matches tokens by unit, label, and
- * occurrence index instead -- "the second defensive T" maps to the second
- * defensive T of the next play. Duplicate labels are legal on both units,
- * which is why the occurrence index exists.
- */
-function morphKeys(roster, unit) {
-  const seen = new Map();
-  const keys = new Map();
-  for (const player of roster) {
-    const occurrence = seen.get(player.label) ?? 0;
-    seen.set(player.label, occurrence + 1);
-    keys.set(player.id, `${unit}|${player.label}|${occurrence}`);
-  }
-  return keys;
-}
-
-/**
  * Morphs the board when the play changes: matched tokens glide from their old
  * alignment to the new one and routes fade in behind them, so browsing a family
  * reads as one living playbook instead of six flashcards. Uses FLIP over WAAPI
@@ -155,6 +138,12 @@ function useFormationMorph({ stageRef, play, projection, ready, playback, positi
       }
     }
   });
+}
+
+/** "@12" or "@7.5" -- a break's depth the way an install sheet writes it. */
+function depthTag(depth) {
+  const rounded = Math.round(depth * 2) / 2;
+  return `@${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}`;
 }
 
 /** "12.3 L · on LOS" -- the live spot readout shown while dragging a player. */
@@ -317,6 +306,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   view,
   dragInfo,
   zoom,
+  showDepths,
 }, ref) {
   const [stageRef, size] = useElementSize();
   const rememberFocusedToken = useRestoreTokenFocus(playKey);
@@ -422,6 +412,32 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             }}
           />
         ) : null) : null}
+
+        {/*
+          Break depths, the way an install sheet annotates them. Route-type only:
+          stems and breaks are where depth is coached ("stick at 6, corner at
+          12"); blocks and motion have no depth vocabulary. Behind a toggle in
+          the Key because they are reference detail, not always-on signal.
+        */}
+        {ready && showDepths ? assignments.flatMap((item) => (
+          item.type === "Route" && assignmentVisible(item)
+            ? item.points.slice(1).map((point, pointOffset) => {
+                const [screenX, screenY] = projection.project(point);
+                const size = sizeOf(TOKEN.depthTag, projection);
+                return (
+                  <text
+                    key={`depth-${item.id}-${pointOffset + 1}`}
+                    className="depth-tag"
+                    x={screenX + size * 0.65}
+                    y={screenY - size * 0.45}
+                    fontSize={size}
+                  >
+                    {depthTag(point[1])}
+                  </text>
+                );
+              })
+            : []
+        )) : null}
 
         {ready && layers.offense.visible ? play.players.map((player) => {
           const [screenX, screenY] = projection.project([player.x, player.y]);

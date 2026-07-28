@@ -94,6 +94,7 @@ import {
   sanitizeAssignmentDefinition,
   sanitizeBlockDefinition,
   sanitizeDefensiveDefinition,
+  changedAssignmentIds,
   sanitizeMotionDefinition,
   sanitizeRouteDefinition,
   snapDragTarget,
@@ -393,11 +394,18 @@ function Header({
  */
 const MINI_BOX = { width: 150, height: 96 };
 
-function MiniDiagram({ play }) {
+function MiniDiagram({ play, basePlay }) {
   const projection = useMemo(
     () => fieldProjection({ ...MINI_BOX, view: "end", play }),
     [play],
   );
+  /*
+   * Variants of one family share almost everything, which made their cards
+   * read as identical. Routes that differ from the family's base play are
+   * emphasised and the shared ones recede, so a card says what its variant
+   * *changes* rather than repeating the family.
+   */
+  const changed = useMemo(() => changedAssignmentIds(play, basePlay), [play, basePlay]);
   return (
     <svg
       className="mini-diagram"
@@ -416,7 +424,7 @@ function MiniDiagram({ play }) {
         <polyline
           key={item.id}
           points={polylinePoints(item.points, projection)}
-          className={`mini-route mini-${item.type.toLowerCase()} mini-${item.unit}`}
+          className={`mini-route mini-${item.type.toLowerCase()} mini-${item.unit} ${changed.has(item.id) ? "mini-diff" : changed.size ? "mini-shared" : ""}`}
         />
       ))}
       {play.players.map((player) => {
@@ -430,6 +438,7 @@ function MiniDiagram({ play }) {
 function Filmstrip({
   activeId,
   family,
+  familyBases,
   folder,
   folders,
   fullCount,
@@ -504,7 +513,7 @@ function Filmstrip({
             aria-current={play.id === activeId ? "true" : undefined}
           >
             <span className="film-index">{index + 1}</span>
-            <MiniDiagram play={play} />
+            <MiniDiagram play={play} basePlay={familyBases.get(play.family)} />
             <strong>{play.name}</strong>
           </button>
         ))}
@@ -623,7 +632,7 @@ const assignmentKeyEntries = [
   ["Fit", "fit", "Run fit responsibility"],
 ];
 
-function AssignmentKey() {
+function AssignmentKey({ showDepths, onShowDepths }) {
   const { open, toggle, containerRef } = useDismissable();
   return (
     <div className="assignment-key" ref={containerRef}>
@@ -650,13 +659,20 @@ function AssignmentKey() {
             <strong>Selected</strong>
             <small>Amber marks the selected assignment only</small>
           </div>
+          <button type="button" className="assignment-key-row key-depth-toggle" aria-pressed={showDepths} onClick={() => onShowDepths(!showDepths)}>
+            <svg viewBox="0 0 34 10" aria-hidden="true">
+              <text className="depth-tag" x="4" y="8" fontSize="9">@12</text>
+            </svg>
+            <strong>Break depths</strong>
+            <small>{showDepths ? "Shown on route breaks" : "Hidden"}</small>
+          </button>
         </div>
       ) : null}
     </div>
   );
 }
 
-function LayerBar({ layers, onChange, onView, view }) {
+function LayerBar({ layers, onChange, onView, view, showDepths, onShowDepths }) {
   const { open: mobileOpen, setOpen: setMobileOpen, toggle: toggleMobile, containerRef } = useDismissable();
   const update = (name, patch) => onChange((current) => ({
     ...current,
@@ -702,7 +718,7 @@ function LayerBar({ layers, onChange, onView, view }) {
             {layers.assignments.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
           </button>
         </div>
-        <AssignmentKey />
+        <AssignmentKey showDepths={showDepths} onShowDepths={onShowDepths} />
       </div>
     </div>
   );
@@ -999,10 +1015,56 @@ function Inspector({
   );
 }
 
-function Timeline({ assignment, playback, onRun, onRestart, speed, onSpeed }) {
+function Timeline({ assignment, playback, onRun, onRestart, onScrub, duration, getTime, speed, onSpeed }) {
   const speeds = [0.5, 1, 1.5];
   const cycleSpeed = () => onSpeed(speeds[(speeds.indexOf(speed) + 1) % speeds.length]);
   const selectedStart = assignment ? assignmentStartSeconds(assignment) : null;
+  const trackRef = useRef(null);
+  const headRef = useRef(null);
+  const readoutRef = useRef(null);
+  const snapFraction = 2 / duration;
+
+  /*
+   * The playhead is written straight to the DOM once per frame: a React state
+   * update at 60Hz would re-render the whole app to move a 10px dot. It tracks
+   * real SMIL time, replacing a decorative CSS animation whose fixed 3.2s had
+   * no relationship to the play's actual duration.
+   */
+  useEffect(() => {
+    const paint = () => {
+      const t = Math.min(getTime(), duration);
+      if (headRef.current) headRef.current.style.left = `${(t / duration) * 100}%`;
+      if (readoutRef.current) readoutRef.current.textContent = `${t >= 2 ? "+" : ""}${(t - 2).toFixed(1)}s`;
+      trackRef.current?.setAttribute("aria-valuenow", (t - 2).toFixed(1));
+    };
+    if (playback === "idle") {
+      if (headRef.current) headRef.current.style.left = "0%";
+      if (readoutRef.current) readoutRef.current.textContent = "";
+      return undefined;
+    }
+    let frame = requestAnimationFrame(function step() {
+      paint();
+      frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [playback, duration, getTime]);
+
+  const scrubToPointer = (event) => {
+    const box = trackRef.current.getBoundingClientRect();
+    const fraction = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
+    onScrub(fraction * duration);
+  };
+
+  const onTrackKeyDown = (event) => {
+    const step = event.shiftKey ? 0.5 : 0.1;
+    const current = Math.min(getTime(), duration);
+    const jump = { ArrowLeft: current - step, ArrowRight: current + step, Home: 0, End: duration }[event.key];
+    if (jump === undefined) return;
+    event.preventDefault();
+    event.stopPropagation(); // the app-level arrows nudge the selected player
+    onScrub(jump);
+  };
+
   return (
     <footer className="timeline">
       <button className="timeline-play" aria-label={playback === "running" ? "Pause animation" : playback === "paused" ? "Resume animation" : "Play animation"} onClick={onRun}>
@@ -1010,9 +1072,38 @@ function Timeline({ assignment, playback, onRun, onRestart, speed, onSpeed }) {
       </button>
       <button className="speed-control" aria-label={`Playback speed ${speed.toFixed(2)}x`} onClick={cycleSpeed}>{speed.toFixed(2)}x<CaretDown size={15} /></button>
       <div className="timeline-track" aria-label="Play timing">
-        <div className="phase-labels"><span>Pre-snap</span><strong>Snap</strong><span>Assignments{selectedStart === null ? "" : ` · selected ${selectedStart.toFixed(2)}s`}</span></div>
-        <div className="phase-bars"><span className="motion-phase" /><i className="snap-marker" /><span className="route-phase" /><b className={playback} />{selectedStart !== null ? <em className="selected-timing-marker" style={{ "--timing-position": `${Math.min(96, Math.max(4, (selectedStart / 7.5) * 100))}%` }} /> : null}</div>
-        <div className="time-labels"><span>−2.0</span><span>−1.0</span><span>0</span><span>1.0</span><span>2.0</span><span>3.0</span></div>
+        <div className="phase-labels">
+          <span>Pre-snap</span>
+          <strong>Snap</strong>
+          <span>
+            Assignments{selectedStart === null ? "" : ` · selected ${selectedStart.toFixed(2)}s`}
+            <small ref={readoutRef} className="time-readout" />
+          </span>
+        </div>
+        <div
+          ref={trackRef}
+          className="phase-bars"
+          role="slider"
+          tabIndex={0}
+          aria-label="Play position, seconds relative to the snap"
+          aria-valuemin={-2}
+          aria-valuemax={Number((duration - 2).toFixed(1))}
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture?.(event.pointerId);
+            scrubToPointer(event);
+          }}
+          onPointerMove={(event) => {
+            if (event.buttons) scrubToPointer(event);
+          }}
+          onKeyDown={onTrackKeyDown}
+          style={{ gridTemplateColumns: `${snapFraction * 100}% ${(1 - snapFraction) * 100}%` }}
+        >
+          <span className="motion-phase" />
+          <i className="snap-marker" style={{ left: `${snapFraction * 100}%` }} />
+          <span className="route-phase" />
+          <b ref={headRef} className={playback} />
+          {selectedStart !== null ? <em className="selected-timing-marker" style={{ "--timing-position": `${Math.min(96, Math.max(4, (selectedStart / duration) * 100))}%` }} /> : null}
+        </div>
       </div>
       <button className="timeline-settings" aria-label="Restart animation" onClick={onRestart}><ArrowClockwise size={21} /></button>
     </footer>
@@ -1292,6 +1383,8 @@ export function App() {
   const [dragInfo, setDragInfo] = useState(null);
   /** Camera: null at base framing, else { factor, centre: [fieldX, fieldDepth] }. */
   const [zoom, setZoom] = useState(null);
+  /** Install-sheet depth tags on route breaks, toggled from the Key popover. */
+  const [showDepths, setShowDepths] = useState(false);
   /*
    * One transient toast used to carry everything: "Undid last change" and a
    * blocking "A name and legal formation are required" got the same polite,
@@ -1314,6 +1407,16 @@ export function App() {
   const activePlaybook = playbooks.find((book) => book.id === workspace.activePlaybookId) ?? playbooks[0];
   const mainPlaybook = playbooks.find((book) => book.id === workspace.mainPlaybookId) ?? playbooks[0];
   const library = activePlaybook.plays;
+  /*
+   * Each family's base is its first play in full library order -- stable even
+   * when search or folder filters hide it, so a filtered strip still diffs
+   * against the real base rather than whichever variant happens to be visible.
+   */
+  const familyBases = useMemo(() => {
+    const bases = new Map();
+    for (const item of library) if (!bases.has(item.family)) bases.set(item.family, item);
+    return bases;
+  }, [library]);
   const folders = useMemo(() => [...new Set(library.map((item) => item.folder ?? "Unfiled"))].sort(), [library]);
   const visibleLibrary = useMemo(() => {
     const query = browserQuery.trim().toLowerCase();
@@ -2051,6 +2154,45 @@ export function App() {
     setPlayback("running");
   };
 
+  /**
+   * Scrubs the play to a moment, in SMIL seconds (0 = start of pre-snap).
+   *
+   * The whole animation is one SVG time container, so a single setCurrentTime
+   * drives every token at once. Scrubbing from idle first has to *enter* paused
+   * playback -- the animations only exist while playback is live -- which means
+   * a remount; the target time is parked in a ref and applied by the effect
+   * below once the new SVG is in the DOM. Scrubbing while running pauses, which
+   * matches what a coach means by grabbing the playhead: "stop it right there".
+   */
+  const pendingScrub = useRef(null);
+  const scrubTo = (seconds) => {
+    const duration = playDuration(play.assignments, speed);
+    const target = Math.min(Math.max(seconds, 0), duration);
+    if (playback === "idle") {
+      pendingScrub.current = target;
+      setRunKey((value) => value + 1);
+      setPlayback("paused");
+      return;
+    }
+    const svg = svgRef.current;
+    if (!svg?.setCurrentTime) return;
+    if (playback === "running") {
+      svg.pauseAnimations?.();
+      setPlayback("paused");
+    }
+    svg.setCurrentTime(target);
+  };
+
+  useEffect(() => {
+    if (pendingScrub.current === null) return;
+    const svg = svgRef.current;
+    if (svg?.setCurrentTime) {
+      svg.pauseAnimations?.();
+      svg.setCurrentTime(pendingScrub.current);
+    }
+    pendingScrub.current = null;
+  }, [runKey, playback]);
+
   /*
    * The projection is a pure function of (stage box, view), so recomputing it
    * here yields exactly the one PlayCanvas drew with -- pointer input therefore
@@ -2593,6 +2735,7 @@ export function App() {
       {!present ? (
         <Filmstrip
           family={activePlaybook.name}
+          familyBases={familyBases}
           library={visibleLibrary}
           fullCount={library.length}
           folders={folders}
@@ -2628,7 +2771,7 @@ export function App() {
           />
         ) : null}
         <div className="canvas-workspace">
-          {!present ? <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} /> : null}
+          {!present ? <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} /> : null}
           <PlayCanvas
             ref={svgRef}
             activeTool={activeTool}
@@ -2656,6 +2799,7 @@ export function App() {
             view={view}
             dragInfo={dragInfo}
             zoom={zoom}
+            showDepths={showDepths}
           />
           {zoom ? (
             <button className="zoom-reset" onClick={() => setZoom(null)}>
@@ -2703,7 +2847,19 @@ export function App() {
         }}><CaretLeft size={19} />Player inspector</button> : null}
         {present ? <button className="exit-present" onClick={() => setPresent(false)}><X size={18} />Exit presentation</button> : null}
       </section>
-      {!present ? <Timeline assignment={route} playback={playback} onRun={toggleRun} onRestart={restartRun} speed={speed} onSpeed={setSpeed} /> : null}
+      {!present ? (
+        <Timeline
+          assignment={route}
+          playback={playback}
+          onRun={toggleRun}
+          onRestart={restartRun}
+          onScrub={scrubTo}
+          duration={playDuration(play.assignments, speed)}
+          getTime={() => svgRef.current?.getCurrentTime?.() ?? 0}
+          speed={speed}
+          onSpeed={setSpeed}
+        />
+      ) : null}
       {gameDayDialog ? <GameDayDialog active={Boolean(gameDay)} play={gameDay ? playbooks.find((book) => book.id === gameDay.playbookId)?.plays.find((item) => item.id === gameDay.playId) ?? play : play} onClose={() => setGameDayDialog(false)} onStart={startGameDay} onResolve={resolveGameDay} /> : null}
       {detailsDialog ? <PlayDetailsDialog play={play} onClose={() => setDetailsDialog(false)} onSave={(details) => { updatePlay(play.id, (current) => ({ ...current, ...details })); setDetailsDialog(false); notify("Play details saved"); }} /> : null}
       {createPlayDialog ? <CreatePlayDialog currentPlay={play} formations={activePlaybook.formations} onClose={() => setCreatePlayDialog(false)} onCreate={createPlay} /> : null}

@@ -292,6 +292,13 @@ button:active { scale: 0.96; }
 .mini-route.mini-man { stroke: var(--assignment-man); }
 .mini-route.mini-zone { stroke: var(--assignment-zone); }
 .mini-route.mini-fit { stroke: var(--assignment-fit); }
+/*
+ * Family-diff emphasis: what a variant changes pops in accent, what it shares
+ * with the family base recedes. Cards for the base itself carry neither class
+ * and render normally.
+ */
+.mini-route.mini-diff { stroke: var(--accent); stroke-width: 2.6; }
+.mini-route.mini-shared { opacity: 0.42; }
 .strip-arrow {
   position: absolute;
   z-index: 3;
@@ -622,6 +629,10 @@ button:active { scale: 0.96; }
 .dim-defense .defender,
 .dim-defense .route[data-assignment-unit="defense"] { opacity: 0.3; }
 .drag-guide { stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 6 5; opacity: 0.55; vector-effect: non-scaling-stroke; }
+.depth-tag { fill: oklch(0.88 0.06 75 / 0.85); font-family: "Manrope Variable", sans-serif; font-weight: 700; pointer-events: none; }
+.key-depth-toggle { width: 100%; text-align: left; background: transparent; }
+.key-depth-toggle[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.key-depth-toggle[aria-pressed="true"] strong { color: var(--accent); }
 .drag-readout {
   position: absolute;
   z-index: 4;
@@ -913,20 +924,26 @@ button:active { scale: 0.96; }
 .phase-labels span:first-child { text-align: center; }
 .phase-labels strong { justify-self: center; color: var(--text-mid); font-weight: 600; }
 .phase-labels span:last-child { text-align: center; }
-.phase-bars { position: relative; display: grid; grid-template-columns: 42% 58%; align-items: center; gap: 4px; }
-.phase-bars > span { height: 4px; border-radius: 3px; }
+/*
+ * The track is a real slider: press or drag anywhere to scrub the play, arrow
+ * keys step a tenth of a second. Column widths and the snap marker come from
+ * the play's actual duration (inline styles), because the old fixed 42/58
+ * split and 3.2s decorative playhead had no relationship to real timing.
+ */
+.phase-bars { position: relative; display: grid; align-items: center; gap: 4px; cursor: pointer; touch-action: none; }
+.phase-bars:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 3px; }
+.phase-bars > span { height: 4px; border-radius: 3px; pointer-events: none; }
 .motion-phase { background: oklch(0.7 0.09 235); }
 .route-phase { background: var(--accent); }
-.snap-marker { position: absolute; left: 42%; top: -3px; width: 2px; height: 18px; background: var(--text); }
-.phase-bars b { position: absolute; left: 0; top: 1px; width: 10px; height: 10px; border: 2px solid var(--bg); border-radius: 50%; background: var(--accent); opacity: 0; }
+.snap-marker { position: absolute; top: -3px; width: 2px; height: 18px; background: var(--text); pointer-events: none; }
+.phase-bars b { position: absolute; left: 0; top: 1px; width: 10px; height: 10px; margin-left: -5px; border: 2px solid var(--bg); border-radius: 50%; background: var(--accent); opacity: 0; pointer-events: none; }
 .phase-bars b.running,
-.phase-bars b.paused { opacity: 1; animation: playhead 3.2s linear forwards; }
-.phase-bars b.paused { animation-play-state: paused; }
-.selected-timing-marker { position: absolute; left: var(--timing-position); top: -4px; width: 2px; height: 20px; border-radius: 2px; background: oklch(0.92 0.08 75); box-shadow: 0 0 0 2px var(--bg); translate: -50% 0; }
+.phase-bars b.paused { opacity: 1; }
+.time-readout { margin-left: 7px; color: var(--text-mid); font-size: 10px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.selected-timing-marker { position: absolute; left: var(--timing-position); top: -4px; width: 2px; height: 20px; border-radius: 2px; background: oklch(0.92 0.08 75); box-shadow: 0 0 0 2px var(--bg); translate: -50% 0; pointer-events: none; }
 .time-labels { grid-template-columns: repeat(6, 1fr); }
 .time-labels span { text-align: center; }
 .timeline-settings { justify-self: end; background: var(--chrome); box-shadow: 0 0 0 1px var(--line); }
-@keyframes playhead { from { translate: 0 0; } to { translate: calc(100cqw - 10px) 0; } }
 
 .modal-scrim { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: oklch(0.04 0.01 160 / 0.82); backdrop-filter: blur(10px); }
 .adjustment-modal { width: min(440px, 100%); max-height: calc(100dvh - 48px); overflow-y: auto; padding: 24px; border-radius: 16px; background: var(--chrome); box-shadow: 0 0 0 1px var(--line-strong), 0 28px 80px oklch(0 0 0 / 0.58); text-align: center; }
