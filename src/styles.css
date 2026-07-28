@@ -26,10 +26,59 @@
   --coral: oklch(0.69 0.17 28);
   --success: oklch(0.74 0.12 145);
   --shadow: 0 20px 48px oklch(0 0 0 / 0.3);
+  /*
+   * The motion system. Three durations and two curves cover the whole app:
+   * fast for hover/press micro-feedback, med for state changes inside a
+   * surface, slow for a surface itself arriving or leaving. --ease is the
+   * standard curve; --ease-enter is a decelerating curve for entrances, which
+   * arrive quickly and settle. Nothing user-visible should change state with
+   * no transition at all -- "smooth" is the absence of pops, not any one
+   * animation.
+   */
+  --dur-fast: 120ms;
+  --dur-med: 200ms;
+  --dur-slow: 320ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
   background: var(--bg);
   color: var(--text);
 }
+
+@keyframes surface-in {
+  from { opacity: 0; translate: 0 10px; scale: 0.97; }
+}
+@keyframes pop-in {
+  from { opacity: 0; translate: 0 -4px; scale: 0.97; }
+}
+@keyframes panel-in-right {
+  from { opacity: 0; translate: 18px 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes token-in {
+  from { opacity: 0; scale: 0.4; }
+}
+
+/*
+ * Entrances, applied by surface class. Exits stay instant for now: entrance
+ * choreography carries nearly all of the perceived smoothness, and animated
+ * exits would need unmount management in every conditional render.
+ */
+.modal-scrim { animation: fade-in var(--dur-med) var(--ease-enter) both; }
+.modal-scrim > * { animation: surface-in var(--dur-slow) var(--ease-enter) both; }
+.playbook-menu,
+.tool-menu,
+.assignment-key-panel,
+.speed-menu { transform-origin: top; animation: pop-in var(--dur-med) var(--ease-enter) both; }
+.inspector { animation: panel-in-right var(--dur-slow) var(--ease-enter) both; }
+/* Layer toggles crossfade instead of blinking; hidden layers give up the pointer. */
+.unit-layer,
+.assignments-layer,
+.route { transition: opacity var(--dur-med) var(--ease); }
+.layer-hidden { opacity: 0; pointer-events: none; }
+/* First-load entrance: the roster pops in with a slight stagger. */
+.token-enter { transform-box: fill-box; transform-origin: center; animation: token-in 300ms var(--ease-enter) both; }
 
 * { box-sizing: border-box; }
 
@@ -322,7 +371,15 @@ button:active { scale: 0.96; }
   grid-template-columns: 80px minmax(0, 1fr) 292px;
   min-height: 0;
   overflow: hidden;
+  transition: grid-template-columns var(--dur-slow) var(--ease);
 }
+/*
+ * No selection means no inspector, and an empty 300-370px column of black is
+ * not a layout -- the field reclaims the width, animated, and the reopen pill
+ * overlays the canvas edge. Browsers without grid-template-columns transitions
+ * simply snap, which is what happened before anyway.
+ */
+.editor-shell.inspector-closed { grid-template-columns: 80px minmax(0, 1fr) 0px; }
 /*
  * Past this width the canvas is height-bound with ~30 yd of sideline to spare, so
  * widening the inspector costs no field scale at all and buys the route editor
@@ -330,6 +387,7 @@ button:active { scale: 0.96; }
  */
 @media (min-width: 1360px) {
   .editor-shell { grid-template-columns: 80px minmax(0, 1fr) 372px; }
+  .editor-shell.inspector-closed { grid-template-columns: 80px minmax(0, 1fr) 0px; }
   .definition-grid,
   .break-measures { grid-template-columns: 1fr 1fr; }
 }
@@ -1271,6 +1329,8 @@ button:active { scale: 0.96; }
     padding: 4px 12px 12px;
     border: 0;
     border-radius: 18px;
+    /* The phone inspector is a bottom sheet: it rises, it does not slide in from the right. */
+    animation: surface-in var(--dur-slow) var(--ease-enter) both;
     box-shadow: 0 0 0 1px var(--line-strong), var(--shadow);
     transition-property: height;
     transition-duration: 200ms;

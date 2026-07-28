@@ -2748,7 +2748,7 @@ export function App() {
           onQuery={setBrowserQuery}
         />
       ) : null}
-      <section className="editor-shell">
+      <section className={`editor-shell ${!present && selectedPlayerId ? "" : "inspector-closed"}`}>
         {!present ? (
           <ToolRail
             activeTool={activeTool}

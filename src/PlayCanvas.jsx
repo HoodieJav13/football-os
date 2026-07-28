@@ -334,6 +334,20 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
     ? (dragInfo.unit === "defense" ? play.defenders : play.players).find((p) => p.id === dragInfo.playerId)
     : null;
 
+  /*
+   * First-mount entrance: tokens pop in with a slight stagger, once per app
+   * session. The ref (not state) matters -- the SVG remounts on every run and
+   * view change, and replaying the entrance there would fight the playback
+   * animations. Setting it in an effect with no re-render is enough: the class
+   * only needs to be absent the next time anything renders.
+   */
+  const entered = useRef(false);
+  const entering = !entered.current;
+  // Only counts once tokens have actually rendered: the first mount is a
+  // zero-size canvas with nothing on it, and flipping there would skip the show.
+  useLayoutEffect(() => { if (ready) entered.current = true; }, [ready]);
+  const enterStyle = (index) => (entering ? { animationDelay: `${index * 18}ms` } : undefined);
+
   const offenseMorph = morphKeys(play.players, "offense");
   const defenseMorph = morphKeys(play.defenders, "defense");
   const morphPositions = new Map();
@@ -385,33 +399,42 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
           route never crosses the player it belongs to.
         */}
 
-        {ready ? assignments.map((item) => assignmentVisible(item) ? (
-          <polyline
-            key={item.id}
-            data-assignment-id={item.id}
-            data-preset={item.preset}
-            data-pace={item.pace}
-            data-assignment-type={item.type}
-            data-assignment-unit={item.unit}
-            data-assignment-delay={item.delay}
-            data-assignment-phase={item.phase}
-            data-geometry-mode={item.geometryMode}
-            data-release={item.definition?.release}
-            data-stem-yards={item.definition?.stemYards}
-            data-break-count={item.definition?.breaks?.length}
-            points={polylinePoints(
-              item.id === selectedAssignmentId && draftAssignment.length > 1 ? draftAssignment : item.points,
-              projection,
-            )}
-            className={`route assignment-${item.type.toLowerCase()} ${item.id === selectedAssignmentId ? "selected" : ""}`}
-            markerEnd={item.id === selectedAssignmentId ? "url(#route-arrow-active)" : "url(#route-arrow)"}
-            onPointerDown={(event) => {
-              event.stopPropagation();
-              suppressGhostClick(event);
-              onSelectAssignment(item.id);
-            }}
-          />
-        ) : null) : null}
+        {/*
+          Layers stay mounted when hidden and crossfade via opacity, so toggling
+          a layer breathes instead of blinking. Hidden layers drop pointer
+          events in CSS and tab stops in tabIndex.
+        */}
+        {ready ? (
+          <g className={`assignments-layer ${layers.assignments.visible ? "" : "layer-hidden"}`}>
+            {assignments.map((item) => (
+              <polyline
+                key={item.id}
+                data-assignment-id={item.id}
+                data-preset={item.preset}
+                data-pace={item.pace}
+                data-assignment-type={item.type}
+                data-assignment-unit={item.unit}
+                data-assignment-delay={item.delay}
+                data-assignment-phase={item.phase}
+                data-geometry-mode={item.geometryMode}
+                data-release={item.definition?.release}
+                data-stem-yards={item.definition?.stemYards}
+                data-break-count={item.definition?.breaks?.length}
+                points={polylinePoints(
+                  item.id === selectedAssignmentId && draftAssignment.length > 1 ? draftAssignment : item.points,
+                  projection,
+                )}
+                className={`route assignment-${item.type.toLowerCase()} ${item.id === selectedAssignmentId ? "selected" : ""} ${layers[item.unit].visible ? "" : "layer-hidden"}`}
+                markerEnd={item.id === selectedAssignmentId ? "url(#route-arrow-active)" : "url(#route-arrow)"}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  suppressGhostClick(event);
+                  onSelectAssignment(item.id);
+                }}
+              />
+            ))}
+          </g>
+        ) : null}
 
         {/*
           Break depths, the way an install sheet annotates them. Route-type only:
@@ -439,7 +462,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             : []
         )) : null}
 
-        {ready && layers.offense.visible ? play.players.map((player) => {
+        {ready ? <g className={`unit-layer ${layers.offense.visible ? "" : "layer-hidden"}`}>{play.players.map((player, playerIndex) => {
           const [screenX, screenY] = projection.project([player.x, player.y]);
           const isSelected = selectedUnit === "offense" && selectedPlayerId === player.id;
           const onLine = isLineLabel(player.label);
@@ -449,8 +472,9 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               data-player={player.id}
               data-unit="offense"
               data-morph={offenseMorph.get(player.id)}
-              className={`player ${onLine ? "line-player" : ""} ${isSelected ? "focus-player" : ""}`}
-              tabIndex={layers.offense.locked ? -1 : 0}
+              className={`player ${onLine ? "line-player" : ""} ${isSelected ? "focus-player" : ""} ${entering ? "token-enter" : ""}`}
+              style={enterStyle(playerIndex)}
+              tabIndex={layers.offense.locked || !layers.offense.visible ? -1 : 0}
               role="button"
               aria-label={tokenLabel(player, "offense", assignments)}
               aria-current={isSelected}
@@ -467,20 +491,21 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               {runAnimations(player)}
             </g>
           );
-        }) : null}
+        })}</g> : null}
 
         {/*
           Labels are a separate pass so a neighbouring token can never paint over
           one. Interior linemen sit close enough that their two-character labels
           were being clipped by the next circle in document order.
         */}
-        {ready && layers.offense.visible ? play.players.map((player) => {
+        {ready ? <g className={`unit-layer ${layers.offense.visible ? "" : "layer-hidden"}`}>{play.players.map((player, playerIndex) => {
           const [screenX, screenY] = projection.project([player.x, player.y]);
           const labelSize = sizeOf(isLineLabel(player.label) ? TOKEN.lineLabel : TOKEN.skillLabel, projection);
           return (
             <text
               key={`label-${player.id}`}
-              className="player-label"
+              className={`player-label ${entering ? "token-enter" : ""}`}
+              style={enterStyle(playerIndex)}
               data-morph={offenseMorph.get(player.id)}
               x={screenX}
               y={screenY + labelSize * 0.35}
@@ -491,9 +516,9 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               {runAnimations(player)}
             </text>
           );
-        }) : null}
+        })}</g> : null}
 
-        {ready && layers.defense.visible ? play.defenders.map((player) => {
+        {ready ? <g className={`unit-layer ${layers.defense.visible ? "" : "layer-hidden"}`}>{play.defenders.map((player, playerIndex) => {
           const [screenX, screenY] = projection.project([player.x, player.y]);
           return (
             <g
@@ -501,8 +526,9 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               data-player={player.id}
               data-unit="defense"
               data-morph={defenseMorph.get(player.id)}
-              className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""}`}
-              tabIndex={layers.defense.locked ? -1 : 0}
+              className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""} ${entering ? "token-enter" : ""}`}
+              style={enterStyle(play.players.length + playerIndex)}
+              tabIndex={layers.defense.locked || !layers.defense.visible ? -1 : 0}
               role="button"
               aria-label={tokenLabel(player, "defense", assignments)}
               aria-current={selectedUnit === "defense" && selectedPlayerId === player.id}
@@ -522,7 +548,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               {runAnimations(player)}
             </g>
           );
-        }) : null}
+        })}</g> : null}
 
         {/*
           Route handles paint above both token layers because they are draggable
