@@ -2640,7 +2640,13 @@ export function App() {
             onSelectPlayer={selectPlayer}
             onSelectAssignment={selectAssignment}
             play={play}
-            playKey={`${play.id}-${view}-${runKey}`}
+            /*
+              Deliberately NOT keyed by play id: switching plays keeps the same
+              SVG so tokens can morph between formations. Every play switch
+              forces playback idle (selectPlay), so no SMIL timing survives the
+              transition; runs still remount via runKey to restart animations.
+            */
+            playKey={`${view}-${runKey}`}
             playback={playback}
             selectedPlayerId={selectedPlayerId}
             selectedAssignmentId={selectedAssignmentId}

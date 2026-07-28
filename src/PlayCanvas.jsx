@@ -85,6 +85,78 @@ function tokenRunAnimations(player, assignments, projection, speed, visible) {
     ));
 }
 
+/**
+ * Identity for morphing between plays. Player ids are unique per play, so a
+ * formation-to-formation transition matches tokens by unit, label, and
+ * occurrence index instead -- "the second defensive T" maps to the second
+ * defensive T of the next play. Duplicate labels are legal on both units,
+ * which is why the occurrence index exists.
+ */
+function morphKeys(roster, unit) {
+  const seen = new Map();
+  const keys = new Map();
+  for (const player of roster) {
+    const occurrence = seen.get(player.label) ?? 0;
+    seen.set(player.label, occurrence + 1);
+    keys.set(player.id, `${unit}|${player.label}|${occurrence}`);
+  }
+  return keys;
+}
+
+/**
+ * Morphs the board when the play changes: matched tokens glide from their old
+ * alignment to the new one and routes fade in behind them, so browsing a family
+ * reads as one living playbook instead of six flashcards. Uses FLIP over WAAPI
+ * -- positions are recorded per render, and on a play switch each element gets
+ * an inverse transform animated back to identity. CSS px inside an SVG
+ * transform equal user units, so deltas in projected coordinates apply as-is.
+ *
+ * Skipped when the window itself moved (a fitted view refits per play, and
+ * user-unit deltas would not describe the on-screen motion), during playback,
+ * and under prefers-reduced-motion.
+ */
+function useFormationMorph({ stageRef, play, projection, ready, playback, positions }) {
+  const previousRef = useRef({ playId: null, viewBox: null, positions: null });
+  useLayoutEffect(() => {
+    if (!ready) return;
+    const previous = previousRef.current;
+    previousRef.current = { playId: play.id, viewBox: projection.viewBox, positions };
+    if (previous.playId === play.id || !previous.positions) return;
+    if (previous.viewBox !== projection.viewBox) return;
+    if (playback !== "idle") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+    const svg = stageRef.current?.querySelector("svg");
+    if (!svg) return;
+
+    for (const element of svg.querySelectorAll("[data-morph]")) {
+      const from = previous.positions.get(element.dataset.morph);
+      const to = positions.get(element.dataset.morph);
+      if (!from || !to) continue;
+      const dx = from[0] - to[0];
+      const dy = from[1] - to[1];
+      if (Math.hypot(dx, dy) < 0.05) continue;
+      try {
+        element.animate(
+          [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0px, 0px)" }],
+          { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+        );
+      } catch {
+        return; // WAAPI missing or SVG transforms unsupported: hard cut, as before.
+      }
+    }
+    for (const element of svg.querySelectorAll(".route, .route-handle")) {
+      try {
+        element.animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: 200, delay: 140, fill: "backwards", easing: "ease-out" },
+        );
+      } catch {
+        return;
+      }
+    }
+  });
+}
+
 /** "12.3 L · on LOS" -- the live spot readout shown while dragging a player. */
 export function describeSpot([x, y]) {
   const lateral = x === 0 ? "middle" : `${Math.abs(x).toFixed(1)} ${x > 0 ? "R" : "L"}`;
@@ -272,6 +344,15 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
     ? (dragInfo.unit === "defense" ? play.defenders : play.players).find((p) => p.id === dragInfo.playerId)
     : null;
 
+  const offenseMorph = morphKeys(play.players, "offense");
+  const defenseMorph = morphKeys(play.defenders, "defense");
+  const morphPositions = new Map();
+  if (ready) {
+    for (const player of play.players) morphPositions.set(offenseMorph.get(player.id), projection.project([player.x, player.y]));
+    for (const player of play.defenders) morphPositions.set(defenseMorph.get(player.id), projection.project([player.x, player.y]));
+  }
+  useFormationMorph({ stageRef, play, projection, ready, playback, positions: morphPositions });
+
   return (
     <div
       ref={stageRef}
@@ -351,6 +432,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               key={player.id}
               data-player={player.id}
               data-unit="offense"
+              data-morph={offenseMorph.get(player.id)}
               className={`player ${onLine ? "line-player" : ""} ${isSelected ? "focus-player" : ""}`}
               tabIndex={layers.offense.locked ? -1 : 0}
               role="button"
@@ -383,6 +465,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             <text
               key={`label-${player.id}`}
               className="player-label"
+              data-morph={offenseMorph.get(player.id)}
               x={screenX}
               y={screenY + labelSize * 0.35}
               fontSize={labelSize}
@@ -401,6 +484,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               key={player.id}
               data-player={player.id}
               data-unit="defense"
+              data-morph={defenseMorph.get(player.id)}
               className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""}`}
               tabIndex={layers.defense.locked ? -1 : 0}
               role="button"
