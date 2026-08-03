@@ -54,7 +54,7 @@ test("legacy workspaces migrate to the current version with concept libraries", 
 
   assert.equal(migrated.version, WORKSPACE_VERSION);
   assert.ok(migrated.playbooks.every((book) => Array.isArray(book.concepts)));
-  assert.equal(migrated.playbooks.reduce((count, book) => count + book.plays.length, 0), 18);
+  assert.equal(migrated.playbooks.reduce((count, book) => count + book.plays.length, 0), 21);
 });
 
 test("every supported legacy version converts percent coordinates to yards", () => {
@@ -98,6 +98,20 @@ test("normalizing twice changes nothing", () => {
   assert.deepEqual(twice, once);
 });
 
+test("v9 upgrade preserves personal work and replaces sample catalogs additively", () => {
+  const personal = legacyWorkspace(9).playbooks[0];
+  const oldSample = { ...clonePlaybook(personal), id: "lsu-2019-sample", name: "Edited old sample" };
+  const migrated = normalizeWorkspace({
+    version: 9,
+    mainPlaybookId: "book",
+    activePlaybookId: "book",
+    playbooks: [personal, oldSample],
+  });
+  assert.equal(migrated.playbooks.find((book) => book.id === "book").plays[0].name, "Legacy Play");
+  assert.equal(migrated.playbooks.find((book) => book.id === "lsu-2019-sample").archived, true);
+  assert.deepEqual(migrated.playbooks.filter((book) => book.readOnly).map((book) => book.plays.length), [4, 7, 4]);
+});
+
 test("workspace backups make a valid, restorable round trip", () => {
   const workspace = createDefaultWorkspace();
   const backup = createWorkspaceBackup(workspace, "2026-07-24T12:00:00.000Z");
@@ -106,8 +120,8 @@ test("workspace backups make a valid, restorable round trip", () => {
   assert.equal(backup.format, BACKUP_FORMAT);
   assert.equal(backup.formatVersion, BACKUP_FORMAT_VERSION);
   assert.equal(restored.exportedAt, "2026-07-24T12:00:00.000Z");
-  assert.equal(restored.playbookCount, 3);
-  assert.equal(restored.playCount, 18);
+  assert.equal(restored.playbookCount, 4);
+  assert.equal(restored.playCount, 21);
   assert.equal(restored.workspace.version, WORKSPACE_VERSION);
   assert.equal(restored.upconvertedFrom, null);
   assert.notEqual(restored.workspace, workspace);

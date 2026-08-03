@@ -107,6 +107,40 @@ test("seeded plays carry distinct, player-owned assignment data", () => {
   ))));
 });
 
+test("Personal Active opens with truthful coach-authored concepts and useful classifications", () => {
+  assert.deepEqual(plays.map((play) => play.name), [
+    "Mesh",
+    "Mesh Sit",
+    "Mesh Wheel",
+    "Trips Right Stick",
+    "Doubles Y Cross",
+    "Inside Zone Glance",
+  ]);
+  assert.ok(plays.every((play) => play.family && play.formation && play.personnel));
+  assert.ok(plays.every((play) => play.protection && play.blockingScheme && play.folder));
+  assert.ok(new Set(plays.map((play) => play.family)).size >= 4);
+  assert.ok(new Set(plays.map((play) => play.protection)).size >= 3);
+});
+
+test("the Mesh seed contains two opposite shallow crossers", () => {
+  const mesh = plays.find((play) => play.id === "mesh");
+  const crossers = mesh.assignments.filter((item) => item.type === "Route" && item.preset === "Shallow");
+  assert.equal(crossers.length, 2);
+  assert.ok(crossers.every((item) => item.geometryMode === "structured"));
+  assert.ok(crossers.every((item) => item.evidence?.coachEdited));
+  const directions = crossers.map((item) => Math.sign(item.points.at(-1)[0] - item.points[0][0]));
+  assert.deepEqual(directions.sort(), [-1, 1]);
+});
+
+test("formation names describe the actual seeded alignments", () => {
+  const trips = defaultFormations.find((formation) => formation.name === "Trips Right Open");
+  const rightEligibleLabels = trips.players
+    .filter((player) => player.x > 6 && !["RT", "RG"].includes(player.label))
+    .map((player) => player.label)
+    .sort();
+  assert.deepEqual(rightEligibleLabels, ["F", "Y", "Z"]);
+});
+
 test("playbook cloning protects the source during temporary changes", () => {
   const clone = clonePlaybook(plays);
   clone[0].assignments[0].points[0][0] = 99;
@@ -116,17 +150,63 @@ test("playbook cloning protects the source during temporary changes", () => {
 test("source playbooks remain separate from the main personal playbook", () => {
   assert.deepEqual(seedPlaybooks.map((book) => book.name), [
     "Personal Active",
-    "Texas Tech Sample",
-    "LSU 2019 Sample",
+    "Air Raid Reference",
+    "LSU 2019 Reference",
+    "Texas Tech Reference",
   ]);
   assert.equal(seedPlaybooks[0].isMain, true);
-  assert.ok(seedPlaybooks.slice(1).every((book) => book.plays.length === 6));
-  assert.ok(seedPlaybooks.slice(1).every((book) => book.plays.every((play) => Number.isInteger(play.sourcePage))));
+  assert.deepEqual(seedPlaybooks.slice(1).map((book) => book.plays.length), [4, 7, 4]);
+  assert.ok(seedPlaybooks.slice(1).every((book) => book.readOnly));
+  assert.ok(seedPlaybooks.slice(1).every((book) => book.plays.every((play) => (
+    Number.isInteger(play.sourcePage) && play.sourceCall && play.sourceVerified && play.personnel === "10 Personnel"
+  ))));
+});
+
+test("the verified reference pack uses canonical and source labels without losing either", () => {
+  const references = seedPlaybooks.slice(1).flatMap((book) => book.plays);
+  assert.equal(references.length, 15);
+  for (const play of references) {
+    assert.equal(formationStatus(play.players).legal, true, play.name);
+    for (const label of ["X", "Y", "F", "Z", "H", "Q"]) {
+      const player = play.players.find((item) => item.label === label);
+      assert.ok(player, `${play.name} is missing canonical ${label}`);
+      assert.ok(player.sourceLabel, `${play.name}/${label} is missing its source label`);
+    }
+  }
+});
+
+test("conditional route alternatives survive normalization and change preview geometry", () => {
+  const choice = createSeedPlaybooks().find((book) => book.id === "lsu-2019-reference").plays.find((play) => play.id === "lsu-choice");
+  const lockedHitch = choice.assignments.find((item) => item.id === "lsu-choice-z");
+  assert.equal(lockedHitch.definition.alternatives[0].label, "Fade versus man");
+  const convertedDefinition = { ...lockedHitch.definition, activeAlternativeId: "fade-v-man" };
+  const convertedPoints = routeDefinitionToPoints(lockedHitch.points[0], convertedDefinition);
+  const normalized = normalizePlay({
+    ...choice,
+    assignments: choice.assignments.map((item) => item.id === lockedHitch.id
+      ? { ...item, definition: convertedDefinition, points: convertedPoints }
+      : item),
+  }).assignments.find((item) => item.id === lockedHitch.id);
+  assert.notDeepEqual(normalized.points, lockedHitch.points);
+  assert.equal(normalized.definition.activeAlternativeId, "fade-v-man");
+});
+
+test("Crack-and-Go keeps motion and the post-snap crack on the same player", () => {
+  const crack = createSeedPlaybooks().find((book) => book.id === "texas-tech-reference").plays.find((play) => play.id === "tt-crack-go");
+  const stages = crack.assignments.filter((item) => item.playerId === "o-y");
+  assert.deepEqual(stages.map((item) => [item.phase, item.type]), [["pre", "Motion"], ["post", "Block"]]);
 });
 
 test("migrated personal plays keep their content and gain pace data", () => {
   const legacy = clonePlaybook(plays);
-  legacy[0].assignments[0] = { ...legacy[0].assignments[0], pace: undefined, delay: 0.5 };
+  legacy[0].assignments[0] = {
+    ...legacy[0].assignments[0],
+    pace: undefined,
+    delay: 0.5,
+    definition: undefined,
+    geometryMode: undefined,
+    evidence: undefined,
+  };
   const books = createSeedPlaybooks(legacy);
   assert.equal(books[0].plays[0].assignments[0].pace, 1);
   assert.equal(books[0].plays[0].assignments[0].geometryMode, "detected");
@@ -246,15 +326,15 @@ test("route inference measures the stem in yards", () => {
 
 test("explicit PDF measurements override conflicting traced geometry", () => {
   const books = createSeedPlaybooks();
-  const lsu = books.find((book) => book.id === "lsu-2019-sample");
-  const sticky = lsu.plays.find((play) => play.id === "lsu-dice-jordan-sticky");
-  const yRoute = sticky.assignments.find((item) => item.id === "lsu-sticky-y");
+  const lsu = books.find((book) => book.id === "lsu-2019-reference");
+  const sticky = lsu.plays.find((play) => play.id === "lsu-stick");
+  const yRoute = sticky.assignments.find((item) => item.id === "lsu-stick-y");
 
   assert.equal(yRoute.definition.stemYards, 5);
-  assert.equal(yRoute.definition.condition, "Read man/zone");
+  assert.equal(yRoute.definition.condition, "Read man/zone; turn away from leverage.");
   assert.equal(yRoute.evidence.method, "labels-and-geometry");
-  assert.equal(yRoute.evidence.confidence, "medium-high");
-  assert.equal(yRoute.geometryMode, "detected");
+  assert.equal(yRoute.evidence.confidence, "high");
+  assert.equal(yRoute.geometryMode, "structured");
 });
 
 test("legacy plays gain editable defensive personnel and assignment timing", () => {

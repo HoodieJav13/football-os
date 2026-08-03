@@ -2,8 +2,10 @@ import {
   basePlayers,
   clonePlaybook,
   createSeedPlaybooks,
+  LEGACY_REFERENCE_PLAYBOOK_IDS,
   migrateRoster,
   normalizePlay,
+  REFERENCE_PLAYBOOK_IDS,
 } from "./playData.js";
 
 /**
@@ -12,16 +14,17 @@ import {
  * and renamed `play.routes` to `play.assignments`. Versions 5-8 are read and
  * upconverted; their keys are left in place so an upgrade is recoverable.
  */
-export const WORKSPACE_VERSION = 9;
+export const WORKSPACE_VERSION = 10;
 export const WORKSPACE_KEY = `football-os.playbooks.v${WORKSPACE_VERSION}`;
 export const RECOVERY_WORKSPACE_KEY = "football-os.recovery.v1";
 export const LEGACY_WORKSPACE_KEYS = [
+  "football-os.playbooks.v9",
   "football-os.playbooks.v8",
   "football-os.playbooks.v7",
   "football-os.playbooks.v6",
   "football-os.playbooks.v5",
 ];
-const SUPPORTED_VERSIONS = [5, 6, 7, 8, 9];
+const SUPPORTED_VERSIONS = [5, 6, 7, 8, 9, 10];
 
 export const BACKUP_FORMAT = "football-os-workspace";
 export const BACKUP_FORMAT_VERSION = 2;
@@ -128,10 +131,11 @@ export function normalizeWorkspace(value) {
 
   if (!valid) return null;
 
-  const playbooks = value.playbooks.map((book) => {
+  const migratedPlaybooks = value.playbooks.map((book) => {
     const plays = book.plays.map(normalizePlay);
     return {
       ...book,
+      archived: LEGACY_REFERENCE_PLAYBOOK_IDS.includes(book.id) ? true : book.archived === true,
       concepts: (book.concepts ?? []).map(migrateConcept),
       formations: book.formations?.length
         ? book.formations.map((formation) => ({
@@ -148,10 +152,21 @@ export function normalizeWorkspace(value) {
     };
   });
 
-  const mainPlaybookId = playbooks.some((book) => book.id === value.mainPlaybookId)
+  // Reference catalogs are governed product data. Refresh them from the
+  // verified seeds on every upgrade while preserving every personal/custom
+  // book (and archiving the two superseded sample catalogs for recovery).
+  const referenceSeeds = createSeedPlaybooks()
+    .filter((book) => REFERENCE_PLAYBOOK_IDS.includes(book.id));
+  const playbooks = [
+    ...migratedPlaybooks.filter((book) => !REFERENCE_PLAYBOOK_IDS.includes(book.id)),
+    ...referenceSeeds,
+  ];
+
+  const visiblePlaybooks = playbooks.filter((book) => !book.archived);
+  const mainPlaybookId = visiblePlaybooks.some((book) => book.id === value.mainPlaybookId)
     ? value.mainPlaybookId
-    : playbooks[0].id;
-  const activePlaybookId = playbooks.some((book) => book.id === value.activePlaybookId)
+    : visiblePlaybooks[0].id;
+  const activePlaybookId = visiblePlaybooks.some((book) => book.id === value.activePlaybookId)
     ? value.activePlaybookId
     : mainPlaybookId;
 

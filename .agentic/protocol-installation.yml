@@ -1,0 +1,4 @@
+protocol_version: "1.2"
+source: "career-os/protocol/protocol.md"
+mode: "generated"
+canonical_sha256: "f7d961fd0705f0b08c529eeb9e7e2765b15a141e7153223887a47d6dc223cf86"

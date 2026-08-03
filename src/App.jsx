@@ -59,16 +59,23 @@ import {
   SaveConceptDialog,
 } from "./WorkspaceDialogs";
 import { Modal } from "./Modal";
+import { PlaybackTimeline } from "./PlaybackTimeline";
+import { PlayBrowser } from "./PlayBrowser";
 import { describeSpot, PlayCanvas } from "./PlayCanvas";
-import { fieldProjection, pointerToField, polylinePoints, ZOOM_MAX } from "./fieldView";
+import { fieldProjection, pointerToField, ZOOM_MAX } from "./fieldView";
 import { FIELD } from "./playData";
+import {
+  createEmptyPlayFilters,
+  createFamilyBases,
+  createPlayFilterOptions,
+  filterPlays,
+} from "./playFilters";
 import { useDismissable } from "./useDismissable";
 import {
   applyConceptTemplateToPlay,
   applyFormationToPlay,
   assignmentDefinitionToPoints,
   assignmentPhaseForType,
-  assignmentStartSeconds,
   basePlayers,
   breakDirections,
   clampPoint,
@@ -94,7 +101,6 @@ import {
   sanitizeAssignmentDefinition,
   sanitizeBlockDefinition,
   sanitizeDefensiveDefinition,
-  changedAssignmentIds,
   sanitizeMotionDefinition,
   sanitizeRouteDefinition,
   snapDragTarget,
@@ -338,6 +344,7 @@ function Header({
   onView,
   temporary,
 }) {
+  const reference = activePlaybook.readOnly === true;
   const running = playback === "running";
   const runLabel = running ? "Pause" : playback === "paused" ? "Resume" : "Run";
   return (
@@ -357,12 +364,13 @@ function Header({
           <span className="family-label">{play.family} Family</span>
           <div className="title-line">
             <h1>{play.name}</h1>
-            {temporary ? <span className="temporary-chip">Temporary</span> : <NotePencil size={18} aria-hidden="true" />}
+            {temporary ? <span className="temporary-chip">Temporary</span> : reference ? <span className="reference-chip"><LockSimple size={13} />Reference</span> : <NotePencil size={18} aria-hidden="true" />}
           </div>
           <div className="play-meta"><span>{play.personnel}</span><span>{play.formation}</span></div>
         </div>
       </div>
       <div className="top-actions">
+        {reference ? <button className="reference-copy-button" onClick={onCopy}><Copy size={18} />Add to {mainPlaybook.name}</button> : null}
         <span className={`offline-state ${formationLegal ? "" : "draft-state"}`}>
           {!formationLegal ? <Warning size={18} /> : offlineStatus.ready ? <WifiHigh size={18} /> : offlineStatus.online ? <CloudCheck size={18} /> : <WifiSlash size={18} />}
           {!formationLegal
@@ -380,158 +388,6 @@ function Header({
         </button>
       </div>
     </header>
-  );
-}
-
-/**
- * Play thumbnail.
- *
- * These were drawn through the whole fixed field window, so a 112x68 card showed
- * the play at about 2.4 px/yd occupying under half the box — six variants of the
- * same family were indistinguishable smudges. Framing each thumbnail to its own
- * play makes the differences the browser exists to show actually visible, and
- * uses the same projection as the canvas so it stays a faithful miniature.
- */
-const MINI_BOX = { width: 150, height: 96 };
-
-function MiniDiagram({ play, basePlay }) {
-  const projection = useMemo(
-    () => fieldProjection({ ...MINI_BOX, view: "end", play }),
-    [play],
-  );
-  /*
-   * Variants of one family share almost everything, which made their cards
-   * read as identical. Routes that differ from the family's base play are
-   * emphasised and the shared ones recede, so a card says what its variant
-   * *changes* rather than repeating the family.
-   */
-  const changed = useMemo(() => changedAssignmentIds(play, basePlay), [play, basePlay]);
-  return (
-    <svg
-      className="mini-diagram"
-      viewBox={projection.viewBox}
-      preserveAspectRatio="xMidYMid meet"
-      aria-hidden="true"
-    >
-      <line
-        className="mini-line-of-scrimmage"
-        x1={projection.lateralRange[0]}
-        y1="0"
-        x2={projection.lateralRange[1]}
-        y2="0"
-      />
-      {play.assignments.map((item) => (
-        <polyline
-          key={item.id}
-          points={polylinePoints(item.points, projection)}
-          className={`mini-route mini-${item.type.toLowerCase()} mini-${item.unit} ${changed.has(item.id) ? "mini-diff" : changed.size ? "mini-shared" : ""}`}
-        />
-      ))}
-      {play.players.map((player) => {
-        const [cx, cy] = projection.project([player.x, player.y]);
-        return <circle key={player.id} cx={cx} cy={cy} r={projection.pixels(3)} />;
-      })}
-    </svg>
-  );
-}
-
-function Filmstrip({
-  activeId,
-  family,
-  familyBases,
-  folder,
-  folders,
-  fullCount,
-  library,
-  onChange,
-  onCreate,
-  onFolder,
-  onQuery,
-  query,
-}) {
-  const scrollRef = useRef(null);
-  const [scrollState, setScrollState] = useState({ previous: false, next: false });
-  const { open: mobileOpen, setOpen: setMobileOpen, toggle: toggleMobile, containerRef } = useDismissable();
-  const activePlay = library.find((play) => play.id === activeId);
-
-  const measure = () => {
-    const element = scrollRef.current;
-    if (!element) return;
-    setScrollState({
-      previous: element.scrollLeft > 4,
-      next: element.scrollLeft + element.clientWidth < element.scrollWidth - 4,
-    });
-  };
-
-  useEffect(() => {
-    measure();
-    const element = scrollRef.current;
-    const observer = new ResizeObserver(measure);
-    if (element) observer.observe(element);
-    return () => observer.disconnect();
-  }, [library.length]);
-
-  useEffect(() => {
-    const element = scrollRef.current?.querySelector(`[data-play-id="${activeId}"]`);
-    element?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-  }, [activeId]);
-
-  const nudge = (direction) => scrollRef.current?.scrollBy({ left: direction * 240, behavior: "smooth" });
-
-  return (
-    <section className={`filmstrip ${mobileOpen ? "mobile-open" : ""}`} aria-label={`${family} playbook plays`} ref={containerRef}>
-      <button
-        type="button"
-        className="mobile-browser-toggle"
-        aria-expanded={mobileOpen}
-        onClick={toggleMobile}
-      >
-        <span><small>Browse</small><strong>{activePlay?.name ?? "No matching play"}</strong></span>
-        <span className="mobile-browser-count">{library.length}/{fullCount}</span>
-        {mobileOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
-      </button>
-      <div className="play-browser-controls">
-        <label>
-          <MagnifyingGlass size={16} />
-          <input aria-label="Search plays" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Find a play" />
-        </label>
-        <select aria-label="Play folder" value={folder} onChange={(event) => onFolder(event.target.value)}>
-          <option value="all">All folders</option>
-          {folders.map((name) => <option key={name} value={name}>{name}</option>)}
-        </select>
-        <small>{library.length} of {fullCount} plays</small>
-      </div>
-      {scrollState.previous ? <button className="strip-arrow previous" aria-label="Previous plays" onClick={() => nudge(-1)}><CaretLeft size={22} /></button> : null}
-      <div className="filmstrip-scroll" ref={scrollRef} onScroll={measure}>
-        {library.map((play, index) => (
-          <button
-            key={play.id}
-            data-play-id={play.id}
-            className={`film-card ${play.id === activeId ? "active" : ""}`}
-            onClick={() => { setMobileOpen(false); onChange(play.id); }}
-            aria-label={`Open ${play.name}`}
-            aria-current={play.id === activeId ? "true" : undefined}
-          >
-            <span className="film-index">{index + 1}</span>
-            <MiniDiagram play={play} basePlay={familyBases.get(play.family)} />
-            <strong>{play.name}</strong>
-          </button>
-        ))}
-        {!library.length ? (
-          <div className="filmstrip-empty">
-            <MagnifyingGlass size={23} />
-            <strong>No matching plays</strong>
-            <span>Clear the search or choose another folder.</span>
-          </div>
-        ) : null}
-        <button className="film-card create-card" onClick={onCreate} aria-label="Create a new play">
-          <span className="film-index">New</span>
-          <span className="create-play-icon"><Plus size={24} /></span>
-          <strong>Create play</strong>
-        </button>
-      </div>
-      {scrollState.next ? <button className="strip-arrow next" aria-label="Next plays" onClick={() => nudge(1)}><CaretRight size={22} /></button> : null}
-    </section>
   );
 }
 
@@ -553,6 +409,7 @@ function ToolRail({
   onTool,
   onUndo,
   temporary,
+  readOnly = false,
 }) {
   const { open, close, toggle, containerRef } = useDismissable();
   const run = (action) => { close(); action(); };
@@ -564,10 +421,10 @@ function ToolRail({
         items inside an eleven-item overflow menu.
       */}
       <div className="tool-history" role="group" aria-label="History">
-        <button type="button" disabled={!canUndo} onClick={onUndo} aria-label="Undo" title="Undo (Ctrl+Z)">
+        <button type="button" disabled={readOnly || !canUndo} onClick={onUndo} aria-label="Undo" title="Undo (Ctrl+Z)">
           <ArrowCounterClockwise size={19} />
         </button>
-        <button type="button" disabled={!canRedo} onClick={onRedo} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
+        <button type="button" disabled={readOnly || !canRedo} onClick={onRedo} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
           <ArrowClockwise size={19} />
         </button>
       </div>
@@ -575,6 +432,7 @@ function ToolRail({
       {toolItems.map(([name, Icon], index) => (
         <div className="tool-slot" key={name} ref={name === "More" ? containerRef : undefined}>
           <button
+            disabled={readOnly}
             className={`tool-button ${activeTool === name ? "active" : ""}`}
             onClick={() => {
               if (name === "More") toggle();
@@ -814,6 +672,19 @@ function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
         </div>
       ) : null}
 
+      {definition.alternatives.length ? (
+        <label className="route-alternative">Preview conversion
+          <select
+            value={definition.activeAlternativeId ?? ""}
+            onChange={(event) => changeDefinition({ ...definition, activeAlternativeId: event.target.value || null })}
+          >
+            <option value="">Base route</option>
+            {definition.alternatives.map((alternative) => <option key={alternative.id} value={alternative.id}>{alternative.label}</option>)}
+          </select>
+          {definition.activeAlternativeId ? <small>{definition.alternatives.find((item) => item.id === definition.activeAlternativeId)?.when}</small> : null}
+        </label>
+      ) : null}
+
       <fieldset className="release-control">
         <legend>Release / stem leverage</legend>
         <div>
@@ -899,6 +770,7 @@ function Inspector({
   route,
   unavailableTypes,
   unit,
+  reference = false,
 }) {
   const [mobileExpanded, setMobileExpanded] = useState(false);
   /*
@@ -961,14 +833,27 @@ function Inspector({
         </div>
         <button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button>
       </div>
-      <AssignmentStagePicker
+      {!reference ? <AssignmentStagePicker
         activeId={route?.id ?? null}
         assignments={assignments}
         onAdd={onAddStage}
         onSelect={onSelectStage}
         unit={unit}
-      />
+      /> : null}
       <div className="inspector-body">
+        {reference ? (
+          <div className="reference-inspector">
+            <div className="reference-lock-note"><LockSimple size={18} /><span><strong>Verified reference</strong><small>Copy this play to Personal Active before editing.</small></span></div>
+            <dl>
+              <div><dt>Position</dt><dd>{label}{route?.evidence?.sourcePositionLabel && route.evidence.sourcePositionLabel !== label ? ` · source ${route.evidence.sourcePositionLabel}` : ""}</dd></div>
+              <div><dt>Assignment</dt><dd>{route?.preset ?? route?.type ?? "None"}</dd></div>
+              {route ? <div><dt>Timing</dt><dd>{timingSummary}</dd></div> : null}
+              {route?.type === "Route" ? <div><dt>Route</dt><dd>{routeDefinitionSummary(route.definition)}</dd></div> : null}
+              {route?.definition?.condition ? <div><dt>Rule</dt><dd>{route.definition.condition}</dd></div> : null}
+              {route?.evidence?.note ? <div><dt>Evidence</dt><dd>{route.evidence.note}</dd></div> : null}
+            </dl>
+          </div>
+        ) : <>
         {route?.inheritedFrom ? (
           <div className={`concept-source ${route.templateOverride ? "override" : ""}`}>
             <GitMerge size={16} />
@@ -1010,103 +895,9 @@ function Inspector({
             <button className="advanced-toggle remove-player" onClick={onRemovePlayer}><Trash size={18} />Remove {unit === "defense" ? "defender" : "player"}</button>
           </div>
         </details>
+        </>}
       </div>
     </aside>
-  );
-}
-
-function Timeline({ assignment, playback, onRun, onRestart, onScrub, duration, getTime, speed, onSpeed }) {
-  const speeds = [0.5, 1, 1.5];
-  const cycleSpeed = () => onSpeed(speeds[(speeds.indexOf(speed) + 1) % speeds.length]);
-  const selectedStart = assignment ? assignmentStartSeconds(assignment) : null;
-  const trackRef = useRef(null);
-  const headRef = useRef(null);
-  const readoutRef = useRef(null);
-  const snapFraction = 2 / duration;
-
-  /*
-   * The playhead is written straight to the DOM once per frame: a React state
-   * update at 60Hz would re-render the whole app to move a 10px dot. It tracks
-   * real SMIL time, replacing a decorative CSS animation whose fixed 3.2s had
-   * no relationship to the play's actual duration.
-   */
-  useEffect(() => {
-    const paint = () => {
-      const t = Math.min(getTime(), duration);
-      if (headRef.current) headRef.current.style.left = `${(t / duration) * 100}%`;
-      if (readoutRef.current) readoutRef.current.textContent = `${t >= 2 ? "+" : ""}${(t - 2).toFixed(1)}s`;
-      trackRef.current?.setAttribute("aria-valuenow", (t - 2).toFixed(1));
-    };
-    if (playback === "idle") {
-      if (headRef.current) headRef.current.style.left = "0%";
-      if (readoutRef.current) readoutRef.current.textContent = "";
-      return undefined;
-    }
-    let frame = requestAnimationFrame(function step() {
-      paint();
-      frame = requestAnimationFrame(step);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [playback, duration, getTime]);
-
-  const scrubToPointer = (event) => {
-    const box = trackRef.current.getBoundingClientRect();
-    const fraction = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
-    onScrub(fraction * duration);
-  };
-
-  const onTrackKeyDown = (event) => {
-    const step = event.shiftKey ? 0.5 : 0.1;
-    const current = Math.min(getTime(), duration);
-    const jump = { ArrowLeft: current - step, ArrowRight: current + step, Home: 0, End: duration }[event.key];
-    if (jump === undefined) return;
-    event.preventDefault();
-    event.stopPropagation(); // the app-level arrows nudge the selected player
-    onScrub(jump);
-  };
-
-  return (
-    <footer className="timeline">
-      <button className="timeline-play" aria-label={playback === "running" ? "Pause animation" : playback === "paused" ? "Resume animation" : "Play animation"} onClick={onRun}>
-        {playback === "running" ? <Pause size={22} weight="fill" /> : <Play size={22} weight="fill" />}
-      </button>
-      <button className="speed-control" aria-label={`Playback speed ${speed.toFixed(2)}x`} onClick={cycleSpeed}>{speed.toFixed(2)}x<CaretDown size={15} /></button>
-      <div className="timeline-track" aria-label="Play timing">
-        <div className="phase-labels">
-          <span>Pre-snap</span>
-          <strong>Snap</strong>
-          <span>
-            Assignments{selectedStart === null ? "" : ` · selected ${selectedStart.toFixed(2)}s`}
-            <small ref={readoutRef} className="time-readout" />
-          </span>
-        </div>
-        <div
-          ref={trackRef}
-          className="phase-bars"
-          role="slider"
-          tabIndex={0}
-          aria-label="Play position, seconds relative to the snap"
-          aria-valuemin={-2}
-          aria-valuemax={Number((duration - 2).toFixed(1))}
-          onPointerDown={(event) => {
-            event.currentTarget.setPointerCapture?.(event.pointerId);
-            scrubToPointer(event);
-          }}
-          onPointerMove={(event) => {
-            if (event.buttons) scrubToPointer(event);
-          }}
-          onKeyDown={onTrackKeyDown}
-          style={{ gridTemplateColumns: `${snapFraction * 100}% ${(1 - snapFraction) * 100}%` }}
-        >
-          <span className="motion-phase" />
-          <i className="snap-marker" style={{ left: `${snapFraction * 100}%` }} />
-          <span className="route-phase" />
-          <b ref={headRef} className={playback} />
-          {selectedStart !== null ? <em className="selected-timing-marker" style={{ "--timing-position": `${Math.min(96, Math.max(4, (selectedStart / duration) * 100))}%` }} /> : null}
-        </div>
-      </div>
-      <button className="timeline-settings" aria-label="Restart animation" onClick={onRestart}><ArrowClockwise size={21} /></button>
-    </footer>
   );
 }
 
@@ -1160,7 +951,7 @@ function PlayDetailsDialog({ play, onClose, onSave }) {
       <div className="details-grid">
         <label className="details-field">Folder<input value={folder} onChange={(event) => setFolder(event.target.value)} placeholder="Offense" /></label>
         <label className="details-field">Play family<input value={family} onChange={(event) => setFamily(event.target.value)} placeholder="Mesh" /></label>
-        <label className="details-field">Personnel<input value={personnel} onChange={(event) => setPersonnel(event.target.value)} placeholder="11 Personnel" /></label>
+        <label className="details-field">Personnel<input value={personnel} onChange={(event) => setPersonnel(event.target.value)} placeholder="10 Personnel" /></label>
         <label className="details-field">Protection<input value={protection} onChange={(event) => setProtection(event.target.value)} placeholder="Texas" /></label>
         <label className="details-field">Blocking scheme<input value={blockingScheme} onChange={(event) => setBlockingScheme(event.target.value)} placeholder="Inside zone" /></label>
       </div>
@@ -1376,8 +1167,7 @@ export function App() {
     defense: { visible: true, dimmed: false, locked: false },
     assignments: { visible: true },
   });
-  const [browserQuery, setBrowserQuery] = useState("");
-  const [browserFolder, setBrowserFolder] = useState("all");
+  const [playFilters, setPlayFilters] = useState(createEmptyPlayFilters);
   const [draftAssignment, setDraftAssignment] = useState([]);
   /** Live drag feedback: which player is in hand, and which guides it snapped to. */
   const [dragInfo, setDragInfo] = useState(null);
@@ -1403,37 +1193,19 @@ export function App() {
   const svgRef = useRef(null);
   const [, setHistoryVersion] = useState(0);
 
-  const playbooks = workspace.playbooks;
+  const playbooks = workspace.playbooks.filter((book) => !book.archived);
   const activePlaybook = playbooks.find((book) => book.id === workspace.activePlaybookId) ?? playbooks[0];
   const mainPlaybook = playbooks.find((book) => book.id === workspace.mainPlaybookId) ?? playbooks[0];
   const library = activePlaybook.plays;
+  const referenceLocked = activePlaybook.readOnly === true;
   /*
    * Each family's base is its first play in full library order -- stable even
    * when search or folder filters hide it, so a filtered strip still diffs
    * against the real base rather than whichever variant happens to be visible.
    */
-  const familyBases = useMemo(() => {
-    const bases = new Map();
-    for (const item of library) if (!bases.has(item.family)) bases.set(item.family, item);
-    return bases;
-  }, [library]);
-  const folders = useMemo(() => [...new Set(library.map((item) => item.folder ?? "Unfiled"))].sort(), [library]);
-  const visibleLibrary = useMemo(() => {
-    const query = browserQuery.trim().toLowerCase();
-    return library.filter((item) => {
-      if (browserFolder !== "all" && (item.folder ?? "Unfiled") !== browserFolder) return false;
-      if (!query) return true;
-      return [
-        item.name,
-        item.family,
-        item.formation,
-        item.personnel,
-        item.protection,
-        item.blockingScheme,
-        item.folder,
-      ].some((value) => value?.toLowerCase().includes(query));
-    });
-  }, [browserFolder, browserQuery, library]);
+  const familyBases = useMemo(() => createFamilyBases(library), [library]);
+  const playFilterOptions = useMemo(() => createPlayFilterOptions(library), [library]);
+  const visibleLibrary = useMemo(() => filterPlays(library, playFilters), [library, playFilters]);
   const playIndex = useMemo(() => Math.max(0, library.findIndex((item) => item.id === playId)), [library, playId]);
   const play = library[playIndex];
   /*
@@ -1448,7 +1220,7 @@ export function App() {
   const playerAssignments = useMemo(() => selectedPlayerId
     ? play.assignments.filter((item) => item.unit === selectedUnit && item.playerId === selectedPlayerId)
     : [], [play.assignments, selectedPlayerId, selectedUnit]);
-  const currentLayerLocked = layers[selectedUnit]?.locked ?? false;
+  const currentLayerLocked = referenceLocked || (layers[selectedUnit]?.locked ?? false);
   const copyTargets = useMemo(() => {
     if (!selectedPlayerId) return [];
     const phase = route?.phase ?? "post";
@@ -1567,6 +1339,7 @@ export function App() {
       ...current,
       playbooks: current.playbooks.map((book) => {
         if (book.id !== current.activePlaybookId) return book;
+        if (book.readOnly) return book;
         const nextPlays = typeof nextValue === "function" ? nextValue(book.plays) : nextValue;
         return { ...book, plays: nextPlays };
       }),
@@ -1578,6 +1351,7 @@ export function App() {
   };
 
   const pushHistory = (targetId, snapshot = library.find((item) => item.id === targetId)) => {
+    if (referenceLocked) return;
     if (!snapshot) return;
     const entry = historyRef.current.get(targetId) ?? { past: [], future: [] };
     historyRef.current.set(targetId, {
@@ -1695,8 +1469,7 @@ export function App() {
     setPlayId(nextPlay.id);
     if (compactViewport()) clearSelection();
     else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
-    setBrowserQuery("");
-    setBrowserFolder("all");
+    setPlayFilters(createEmptyPlayFilters());
     setDraftAssignment([]);
     setActiveTool("Select");
     setPlayback("idle");
@@ -1710,6 +1483,7 @@ export function App() {
       id: `${mainPlaybook.id}-${play.id}-${Date.now()}`,
       name: uniqueName(mainPlaybook.plays, play.name),
       variantOf: null,
+      referenceStatus: "copied-reference",
       importedFrom: {
         playbookId: activePlaybook.id,
         playbookName: activePlaybook.name,
@@ -2769,19 +2543,18 @@ export function App() {
         temporary={temporary}
       />
       {(
-        <Filmstrip
+        <PlayBrowser
+          allPlays={library}
           family={activePlaybook.name}
           familyBases={familyBases}
-          library={visibleLibrary}
-          fullCount={library.length}
-          folders={folders}
-          folder={browserFolder}
-          query={browserQuery}
+          filters={playFilters}
+          filterOptions={playFilterOptions}
+          plays={visibleLibrary}
+          canCreate={!referenceLocked}
           activeId={play.id}
           onChange={selectPlay}
           onCreate={() => setCreatePlayDialog(true)}
-          onFolder={setBrowserFolder}
-          onQuery={setBrowserQuery}
+          onFilters={setPlayFilters}
         />
       )}
       <section className={`editor-shell ${!present && selectedPlayerId ? "" : "inspector-closed"}`}>
@@ -2804,6 +2577,7 @@ export function App() {
             onTool={setActiveTool}
             onUndo={undo}
             temporary={temporary}
+            readOnly={referenceLocked}
           />
         )}
         <div className="canvas-workspace">
@@ -2851,6 +2625,7 @@ export function App() {
             unit={selectedUnit}
             label={selectedPlayerLabel}
             locked={currentLayerLocked}
+            reference={referenceLocked}
             unavailableTypes={unavailableTypes}
             copyTargets={copyTargets}
             offensePlayers={play.players}
@@ -2884,7 +2659,7 @@ export function App() {
         {present ? <button className="exit-present" onClick={() => setPresent(false)}><X size={18} />Exit presentation</button> : null}
       </section>
       {(
-        <Timeline
+        <PlaybackTimeline
           assignment={route}
           playback={playback}
           onRun={toggleRun}
