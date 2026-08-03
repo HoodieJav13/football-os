@@ -150,7 +150,15 @@ function drawRoutesIn(svg, baseDelay = 0) {
         element.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay, fill: "backwards", easing: "ease-out" });
         continue;
       }
-      const length = element.getTotalLength();
+      /*
+       * The dash pattern must be measured in the stroke's own space.
+       * `getTotalLength` returns user units (yards), but `non-scaling-stroke`
+       * makes the browser lay dashes out in screen pixels -- a yard-length
+       * dasharray on a pixel-length path renders as a marching dash pattern
+       * instead of one revealing stroke. getScreenCTM's uniform scale converts.
+       */
+      const scale = element.getScreenCTM?.()?.a ?? 1;
+      const length = element.getTotalLength() * scale;
       element.animate(
         [
           { strokeDasharray: `${length}`, strokeDashoffset: length },
