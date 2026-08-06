@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes the older run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Fast, hermetic checks first: a failure here needs no browser to explain.
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Sites worker tests
+        run: npm run test:sites
+
+      # The browser suite runs against dist/, so the build must come first --
+      # and a broken build fails here rather than as a confusing timeout.
+      - name: Build
+        run: npm run build
+
+      - name: Verify the Sites handoff artifacts exist
+        run: |
+          for artifact in dist/client/index.html dist/server/index.js dist/.openai/hosting.json; do
+            test -f "$artifact" || { echo "missing $artifact"; exit 1; }
+          done
+
+      # Only Chromium: the suite asserts on behaviour and layout, not on
+      # cross-engine rendering, so three browsers would triple the runtime for
+      # no extra signal.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: npm run test:browser
+
+      # Screenshots are the fastest way to understand a layout failure that
+      # reads as an inscrutable assertion in the log.
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

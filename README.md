@@ -62,7 +62,12 @@ npm run preview
 ## Verify
 
 ```bash
-npm run test:unit
-npm run test:sites
-npm run build
+npm run test:unit      # football model, projection, workspace migration
+npm run test:sites     # the Sites worker handoff
+npm run test:browser   # the real app in a browser (build first)
+npm test               # all of the above, in order
 ```
+
+The browser suite is the only check that can see a blank screen — see
+[`tests/browser/README.md`](tests/browser/README.md) for what it caught that
+the unit tests and the build did not.
