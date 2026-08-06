@@ -118,9 +118,13 @@ test("source playbooks remain separate from the main personal playbook", () => {
     "Personal Active",
     "Texas Tech Sample",
     "LSU 2019 Sample",
+    "Air Raid Passing Game",
   ]);
   assert.equal(seedPlaybooks[0].isMain, true);
-  assert.ok(seedPlaybooks.slice(1).every((book) => book.plays.length === 6));
+  // Exactly one main playbook, and every other one is traced from a document:
+  // it carries a source and every play in it can name the page it came from.
+  assert.ok(seedPlaybooks.slice(1).every((book) => book.isMain === false && book.source));
+  assert.ok(seedPlaybooks.slice(1).every((book) => book.plays.length > 0));
   assert.ok(seedPlaybooks.slice(1).every((book) => book.plays.every((play) => Number.isInteger(play.sourcePage))));
 });
 
