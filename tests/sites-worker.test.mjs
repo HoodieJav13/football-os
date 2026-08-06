@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { access } from "node:fs/promises";
 import test from "node:test";
 import worker from "../worker/index.js";
 
@@ -61,8 +60,13 @@ test("does not turn missing API or write requests into the app shell", async () 
   }
 });
 
-test("emits the files required by Sites packaging", async () => {
-  await access(new URL("../dist/client/index.html", import.meta.url));
-  await access(new URL("../dist/server/index.js", import.meta.url));
-  await access(new URL("../dist/.openai/hosting.json", import.meta.url));
-});
+/*
+ * The Sites packaging artifacts are deliberately NOT asserted here. This file
+ * tests the worker's routing against mocked assets and nothing else, so it can
+ * run before anything is built -- which is the order CI wants, a failure here
+ * needing no build to explain. An `access()` on dist/ made it pass only when a
+ * previous build happened to be lying around, and fail on every clean checkout.
+ *
+ * The packaging check lives where it means something: `prepare-sites-build.mjs`
+ * verifies the files it wrote, as part of every build.
+ */
