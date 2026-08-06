@@ -172,6 +172,7 @@ function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
 
 export function Inspector({
   assignments,
+  leaving,
   copyTargets,
   locked,
   offensePlayers,
@@ -222,7 +223,7 @@ export function Inspector({
           : "Assignment details";
   return (
     <aside
-      className={`inspector ${mobileExpanded ? "mobile-expanded" : "mobile-peek"} ${armed ? "" : "is-arming"}`}
+      className={`inspector ${mobileExpanded ? "mobile-expanded" : "mobile-peek"} ${armed ? "" : "is-arming"} ${leaving ? "is-leaving" : ""}`}
       aria-label="Selected player inspector"
     >
       <button
