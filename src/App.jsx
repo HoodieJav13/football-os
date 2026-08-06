@@ -1,71 +1,49 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CaretLeft, CornersOut, Play, X } from "@phosphor-icons/react";
+
+import { ApplyConceptDialog, DataToolsDialog, PrintCollectionPreview, SaveConceptDialog } from "./WorkspaceDialogs";
+import { Modal } from "./Modal";
+import { describeSpot, PlayCanvas } from "./PlayCanvas";
+import { fieldProjection, pointerToField } from "./fieldView";
+import { useCanvasCamera } from "./useCanvasCamera";
+
+import { Feedback } from "./Feedback";
+import { Filmstrip } from "./Filmstrip";
+import { Header } from "./Header";
+import { Inspector } from "./Inspector";
+import { LayerBar } from "./LayerBar";
 import {
-  ArrowClockwise,
-  ArrowCounterClockwise,
-  ArrowsOut,
-  BookOpen,
-  Books,
-  CaretDown,
-  CaretLeft,
-  CaretRight,
-  CaretUp,
-  CheckCircle,
-  CloudCheck,
-  CircleHalfTilt,
-  Copy,
-  CornersOut,
-  CursorClick,
-  DownloadSimple,
-  DotsThree,
-  Eye,
-  EyeSlash,
-  FloppyDisk,
-  GitMerge,
-  LockSimple,
-  LockSimpleOpen,
-  MagnifyingGlass,
-  Minus,
-  NotePencil,
-  Pause,
-  Play,
-  Plus,
-  PlusCircle,
-  Presentation,
-  ShareNetwork,
-  ShieldCheck,
-  SlidersHorizontal,
-  Stack,
-  Star,
-  Trash,
-  UserFocus,
-  Warning,
-  WifiHigh,
-  WifiSlash,
-  X,
-} from "@phosphor-icons/react";
+  ApplyFormationDialog,
+  CreatePlayDialog,
+  DeletePlayDialog,
+  GameDayDialog,
+  NewPlaybookDialog,
+  PlayDetailsDialog,
+  SaveFormationDialog,
+} from "./PlayDialogs";
+import { Timeline } from "./Timeline";
+import { ToolRail } from "./ToolRail";
 import {
-  AssignmentTransfer,
-  AssignmentStagePicker,
-  AssignmentTypePicker,
-  BlockEditor,
-  DefensiveEditor,
-  MotionEditor,
-  TimingControls,
-} from "./AssignmentEditors";
-import {
-  ApplyConceptDialog,
-  DataToolsDialog,
-  PrintCollectionPreview,
-  SaveConceptDialog,
-} from "./WorkspaceDialogs";
-import { PlayCanvas } from "./PlayCanvas";
+  GAME_DAY_KEY,
+  assignmentFor,
+  compactViewport,
+  createAssignment,
+  defaultAssignmentId,
+  isLinePlayer,
+  playerExists,
+  preferredAssignment,
+  readGameDay,
+  readWorkspace,
+  titleCase,
+  toolItems,
+  uniqueName,
+} from "./appHelpers";
 import {
   applyConceptTemplateToPlay,
   applyFormationToPlay,
   assignmentDefinitionToPoints,
-  assignmentStartSeconds,
-  basePlayers,
-  breakDirections,
+  assignmentPhaseForType,
+  clampPoint,
   clonePlaybook,
   createConceptTemplate,
   createPlayFromFormation,
@@ -73,1013 +51,19 @@ import {
   defensiveAssignmentTypes,
   formationStatus,
   inferRouteDefinition,
-  MAIN_PLAYBOOK_ID,
-  normalizePlay,
+  isLineLabel,
+  manCoveragePoints,
+  offensiveAssignmentTypes,
   playDuration,
-  releaseOptions,
-  routeDefinitionSummary,
-  routeDefinitionToPoints,
-  sanitizeBlockDefinition,
-  sanitizeDefensiveDefinition,
-  sanitizeMotionDefinition,
-  sanitizeRouteDefinition,
-} from "./playData";
-import {
-  downloadPlayPng,
-  downloadWorkspaceBackup,
-} from "./exportUtils";
-import {
-  refreshOfflineCopy,
-  subscribeOfflineStatus,
-} from "./offline";
-import {
-  createDefaultWorkspace,
-  LEGACY_WORKSPACE_KEYS,
-  normalizeWorkspace,
-  parseWorkspaceBackup,
-  RECOVERY_WORKSPACE_KEY,
-  validPlays,
-  WORKSPACE_KEY,
-  WORKSPACE_VERSION,
-} from "./workspaceData";
-
-const LEGACY_LIBRARY_KEY = "football-os.library.v4";
-const GAME_DAY_KEY = "football-os.game-day.v5";
-const LEGACY_GAME_DAY_KEY = "football-os.game-day.v4";
-const linePlayers = new Set(["LT", "LG", "C", "RG", "RT"]);
-const compactViewport = () => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
-const clampValue = (value, minimum = 2, maximum = 98) => Math.min(maximum, Math.max(minimum, value));
-
-const toolItems = [
-  ["Select", CursorClick],
-  ["Route", ShareNetwork],
-  ["Block", ArrowClockwise],
-  ["Motion", ArrowsOut],
-  ["Defense", ShieldCheck],
-  ["More", DotsThree],
-];
-
-function readWorkspace() {
-  try {
-    const saved = JSON.parse(window.localStorage.getItem(WORKSPACE_KEY))
-      ?? LEGACY_WORKSPACE_KEYS
-        .map((key) => JSON.parse(window.localStorage.getItem(key)))
-        .find(Boolean);
-    const normalized = normalizeWorkspace(saved);
-    if (normalized) return normalized;
-
-    const legacy = JSON.parse(window.localStorage.getItem(LEGACY_LIBRARY_KEY));
-    return createDefaultWorkspace(validPlays(legacy) ? legacy : undefined);
-  } catch {
-    return createDefaultWorkspace();
-  }
-}
-
-function readGameDay() {
-  try {
-    const saved = JSON.parse(window.localStorage.getItem(GAME_DAY_KEY))
-      ?? JSON.parse(window.localStorage.getItem(LEGACY_GAME_DAY_KEY));
-    return saved?.playId && saved?.snapshot
-      ? { ...saved, playbookId: saved.playbookId ?? MAIN_PLAYBOOK_ID, snapshot: normalizePlay(saved.snapshot) }
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function defaultRouteIndex(play) {
-  const zRoute = play.routes.findIndex((route) => route.unit !== "defense" && route.player === "Z");
-  const firstOffense = play.routes.findIndex((route) => route.unit !== "defense");
-  return zRoute >= 0 ? zRoute : firstOffense >= 0 ? firstOffense : play.routes.length ? 0 : null;
-}
-
-function assignmentPhaseForType(type) {
-  return type === "Motion" ? "pre" : "post";
-}
-
-function assignmentIndexFor(play, unit, playerId, phase) {
-  return play.routes.findIndex((assignment) => (
-    (assignment.unit ?? "offense") === unit
-    && assignment.player === playerId
-    && (!phase || (assignment.phase ?? assignmentPhaseForType(assignment.type)) === phase)
-  ));
-}
-
-function preferredAssignmentIndex(play, unit, playerId) {
-  const postSnap = assignmentIndexFor(play, unit, playerId, "post");
-  return postSnap >= 0 ? postSnap : assignmentIndexFor(play, unit, playerId, "pre");
-}
-
-function playerLabelFor(play, unit, playerId) {
-  if (unit === "defense") return play.defenders.find((player) => player.id === playerId)?.label ?? playerId;
-  return playerId;
-}
-
-function playerStartFor(play, unit, playerId) {
-  if (unit === "defense") {
-    const player = play.defenders.find((item) => item.id === playerId);
-    return player ? [player.x, player.y] : null;
-  }
-  const player = play.players.find(([label]) => label === playerId);
-  return player ? [player[1], player[2]] : null;
-}
-
-function playerExists(play, unit, playerId) {
-  return unit === "defense"
-    ? play.defenders.some((player) => player.id === playerId)
-    : play.players.some(([label]) => label === playerId);
-}
-
-function createAssignment({ playId, playerId, start, type, unit }) {
-  let definition;
-  if (type === "Route") {
-    definition = sanitizeRouteDefinition({ release: "none", stemYards: 10, breaks: [], condition: "" });
-  } else if (type === "Block") {
-    definition = sanitizeBlockDefinition({ technique: "drive", direction: start[0] < 50 ? "right" : "left", target: "", climb: false });
-  } else if (type === "Motion") {
-    definition = sanitizeMotionDefinition({ motionType: "jet", direction: start[0] < 50 ? "right" : "left", distanceYards: 18 });
-  } else {
-    definition = sanitizeDefensiveDefinition(type, {});
-  }
-  const points = type === "Route"
-    ? routeDefinitionToPoints(start, definition)
-    : assignmentDefinitionToPoints(start, type, definition);
-  return {
-    id: `${playId}-${unit}-${playerId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`,
-    player: playerId,
-    unit,
-    type,
-    preset: type === "Route" ? "Structured" : titleCase(definition.technique ?? definition.motionType ?? definition.area ?? definition.responsibility ?? type),
-    pace: 1,
-    delay: type === "Motion" ? -1.5 : 0,
-    phase: assignmentPhaseForType(type),
-    points,
-    definition,
-    ...(type === "Route" ? {
-      geometryMode: "structured",
-      evidence: {
-        method: "coach-authored",
-        confidence: "high",
-        sourceLabel: null,
-        sourcePage: null,
-        note: "",
-        coachEdited: true,
-      },
-    } : {}),
-  };
-}
-
-function uniqueName(library, baseName) {
-  const names = new Set(library.map((play) => play.name));
-  if (!names.has(baseName)) return baseName;
-  let index = 2;
-  while (names.has(`${baseName} ${index}`)) index += 1;
-  return `${baseName} ${index}`;
-}
-
-function SegmentedControl({ value, onChange }) {
-  return (
-    <div className="segmented" role="group" aria-label="Field view">
-      <button className={value === "end" ? "active" : ""} aria-pressed={value === "end"} onClick={() => onChange("end")}><CornersOut size={18} />End Zone</button>
-      <button className={value === "side" ? "active" : ""} aria-pressed={value === "side"} onClick={() => onChange("side")}><ArrowsOut size={18} />Sideline</button>
-    </div>
-  );
-}
-
-function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDataTools, onSwitch, play, playbooks }) {
-  const [open, setOpen] = useState(false);
-  const canCopy = activePlaybook.id !== mainPlaybook.id;
-  return (
-    <div className="playbook-switcher">
-      <button
-        className="playbook-trigger"
-        aria-label={`Playbook ${activePlaybook.name}`}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        onClick={() => setOpen((value) => !value)}
-      >
-        <span className="playbook-icon"><Books size={21} weight="duotone" /></span>
-        <span className="playbook-trigger-copy">
-          <small>Playbook</small>
-          <strong>{activePlaybook.name}</strong>
-        </span>
-        <CaretDown size={16} />
-      </button>
-      {open ? (
-        <div className="playbook-menu" role="menu">
-          <div className="playbook-menu-head">
-            <span>Switch playbook</span>
-            <small>{playbooks.length} saved</small>
-          </div>
-          {playbooks.map((book) => (
-            <button
-              key={book.id}
-              className={book.id === activePlaybook.id ? "active" : ""}
-              onClick={() => { onSwitch(book.id); setOpen(false); }}
-              role="menuitem"
-            >
-              <span className="book-mark"><BookOpen size={20} weight={book.id === activePlaybook.id ? "fill" : "regular"} /></span>
-              <span><strong>{book.name}</strong><small>{book.description ?? `${book.plays.length} plays`}</small></span>
-              {book.isMain ? <span className="main-book-badge"><Star size={13} weight="fill" />Main</span> : null}
-            </button>
-          ))}
-          <div className="playbook-menu-actions">
-            {canCopy ? (
-              <button onClick={() => { onCopy(); setOpen(false); }}>
-                <Copy size={19} /><span><strong>Add this play to {mainPlaybook.name}</strong><small>Creates an independent copy</small></span>
-              </button>
-            ) : null}
-            <button onClick={() => { onCreate(); setOpen(false); }}>
-              <PlusCircle size={19} /><span><strong>New playbook</strong><small>Start a separate collection</small></span>
-            </button>
-            <button onClick={() => { onDataTools(); setOpen(false); }}>
-              <DownloadSimple size={19} /><span><strong>Backup and export</strong><small>Offline copy, restore, PNG, and PDF</small></span>
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function Header({
-  activePlaybook,
-  formationLegal,
-  mainPlaybook,
-  onCopy,
-  onCreate,
-  onDataTools,
-  offlineStatus,
-  onSwitch,
-  play,
-  playbooks,
-  present,
-  playback,
-  onPresent,
-  onRun,
-  view,
-  onView,
-  temporary,
-}) {
-  const running = playback === "running";
-  const runLabel = running ? "Pause" : playback === "paused" ? "Resume" : "Run";
-  return (
-    <header className="topbar">
-      <div className="play-heading">
-        <PlaybookSwitcher
-          activePlaybook={activePlaybook}
-          mainPlaybook={mainPlaybook}
-          onCopy={onCopy}
-          onCreate={onCreate}
-          onDataTools={onDataTools}
-          onSwitch={onSwitch}
-          play={play}
-          playbooks={playbooks}
-        />
-        <span className="heading-rule" aria-hidden="true" />
-        <div>
-          <span className="family-label">{play.family} Family</span>
-          <div className="title-line">
-            <h1>{play.name}</h1>
-            {temporary ? <span className="temporary-chip">Temporary</span> : <NotePencil size={18} aria-hidden="true" />}
-          </div>
-          <div className="play-meta"><span>{play.personnel}</span><span>{play.formation}</span></div>
-        </div>
-      </div>
-      <div className="top-actions">
-        <span className={`offline-state ${formationLegal ? "" : "draft-state"}`}>
-          {!formationLegal ? <Warning size={18} /> : offlineStatus.ready ? <WifiHigh size={18} /> : offlineStatus.online ? <CloudCheck size={18} /> : <WifiSlash size={18} />}
-          {!formationLegal
-            ? "Draft · fix formation"
-            : offlineStatus.ready
-              ? offlineStatus.online ? "Offline ready" : "Offline · ready"
-              : offlineStatus.development ? "Local workspace" : "Preparing offline"}
-        </span>
-        <SegmentedControl value={view} onChange={onView} />
-        <button className="header-button" onClick={onPresent}><Presentation size={20} weight="duotone" />{present ? "Edit" : "Present"}</button>
-        <button className={`run-button ${running ? "is-running" : ""}`} onClick={onRun}>
-          {running ? <Pause size={21} weight="fill" /> : <Play size={21} weight="fill" />}
-          {runLabel}
-          <CaretDown size={16} />
-        </button>
-      </div>
-    </header>
-  );
-}
-
-function previewPoint([x, y]) {
-  return [12 + x * 1.24, 5 + (y - 18) * 0.62];
-}
-
-function MiniDiagram({ play }) {
-  const players = play.players ?? basePlayers;
-  return (
-    <svg className="mini-diagram" viewBox="0 0 148 58" aria-hidden="true">
-      {players.map(([label, x, y]) => {
-        const [cx, cy] = previewPoint([x, y]);
-        return <circle key={`${play.id}-${label}-player`} className={label === "Z" ? "focus" : undefined} cx={cx} cy={cy} r="3.25" />;
-      })}
-      {play.routes.map((route, index) => (
-        <polyline
-          key={route.id}
-          points={route.points.map((point) => previewPoint(point).join(",")).join(" ")}
-          className={`mini-route ${route.player === "Z" || index === play.routes.length - 1 ? "active" : ""}`}
-        />
-      ))}
-    </svg>
-  );
-}
-
-function Filmstrip({
-  activeId,
-  family,
-  folder,
-  folders,
-  fullCount,
-  library,
-  onChange,
-  onCreate,
-  onFolder,
-  onQuery,
-  query,
-}) {
-  const scrollRef = useRef(null);
-  const [scrollState, setScrollState] = useState({ previous: false, next: false });
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const activePlay = library.find((play) => play.id === activeId);
-
-  const measure = () => {
-    const element = scrollRef.current;
-    if (!element) return;
-    setScrollState({
-      previous: element.scrollLeft > 4,
-      next: element.scrollLeft + element.clientWidth < element.scrollWidth - 4,
-    });
-  };
-
-  useEffect(() => {
-    measure();
-    const element = scrollRef.current;
-    const observer = new ResizeObserver(measure);
-    if (element) observer.observe(element);
-    return () => observer.disconnect();
-  }, [library.length]);
-
-  useEffect(() => {
-    const element = scrollRef.current?.querySelector(`[data-play-id="${activeId}"]`);
-    element?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-  }, [activeId]);
-
-  const nudge = (direction) => scrollRef.current?.scrollBy({ left: direction * 240, behavior: "smooth" });
-
-  return (
-    <section className={`filmstrip ${mobileOpen ? "mobile-open" : ""}`} aria-label={`${family} playbook plays`}>
-      <button
-        type="button"
-        className="mobile-browser-toggle"
-        aria-expanded={mobileOpen}
-        onClick={() => setMobileOpen((value) => !value)}
-      >
-        <span><small>Browse</small><strong>{activePlay?.name ?? "No matching play"}</strong></span>
-        <span className="mobile-browser-count">{library.length}/{fullCount}</span>
-        {mobileOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
-      </button>
-      <div className="play-browser-controls">
-        <label>
-          <MagnifyingGlass size={16} />
-          <input aria-label="Search plays" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Find a play" />
-        </label>
-        <select aria-label="Play folder" value={folder} onChange={(event) => onFolder(event.target.value)}>
-          <option value="all">All folders</option>
-          {folders.map((name) => <option key={name} value={name}>{name}</option>)}
-        </select>
-        <small>{library.length} of {fullCount} plays</small>
-      </div>
-      {scrollState.previous ? <button className="strip-arrow previous" aria-label="Previous plays" onClick={() => nudge(-1)}><CaretLeft size={22} /></button> : null}
-      <div className="filmstrip-scroll" ref={scrollRef} onScroll={measure}>
-        {library.map((play, index) => (
-          <button
-            key={play.id}
-            data-play-id={play.id}
-            className={`film-card ${play.id === activeId ? "active" : ""}`}
-            onClick={() => { setMobileOpen(false); onChange(play.id); }}
-            aria-label={`Open ${play.name}`}
-            aria-current={play.id === activeId ? "true" : undefined}
-          >
-            <span className="film-index">{index + 1}</span>
-            <MiniDiagram play={play} />
-            <strong>{play.name}</strong>
-          </button>
-        ))}
-        {!library.length ? (
-          <div className="filmstrip-empty">
-            <MagnifyingGlass size={23} />
-            <strong>No matching plays</strong>
-            <span>Clear the search or choose another folder.</span>
-          </div>
-        ) : null}
-        <button className="film-card create-card" onClick={onCreate} aria-label="Create a new play">
-          <span className="film-index">New</span>
-          <span className="create-play-icon"><Plus size={24} /></span>
-          <strong>Create play</strong>
-        </button>
-      </div>
-      {scrollState.next ? <button className="strip-arrow next" aria-label="Next plays" onClick={() => nudge(1)}><CaretRight size={22} /></button> : null}
-    </section>
-  );
-}
-
-function ToolRail({
-  activeTool,
-  canAddPlayer,
-  canRedo,
-  canUndo,
-  onDelete,
-  onDetails,
-  onDuplicate,
-  onApplyConcept,
-  onApplyFormation,
-  onGameDay,
-  onAddPlayer,
-  onRedo,
-  onSaveConcept,
-  onSaveFormation,
-  onTool,
-  onUndo,
-  temporary,
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <nav className="tool-rail" aria-label="Drawing tools">
-      {toolItems.map(([name, Icon]) => (
-        <div className="tool-slot" key={name}>
-          <button
-            className={`tool-button ${activeTool === name ? "active" : ""}`}
-            onClick={() => {
-              if (name === "More") setOpen((value) => !value);
-              else { setOpen(false); onTool(name); }
-            }}
-            aria-pressed={activeTool === name}
-          >
-            <span className="tool-icon"><Icon size={23} weight={activeTool === name ? "duotone" : "regular"} /></span>
-            <span>{name}</span>
-          </button>
-          {name === "More" && open ? (
-            <div className="tool-menu authoring-menu">
-              <button disabled={!canUndo} onClick={() => { onUndo(); setOpen(false); }}><ArrowCounterClockwise size={19} />Undo</button>
-              <button disabled={!canRedo} onClick={() => { onRedo(); setOpen(false); }}><ArrowClockwise size={19} />Redo</button>
-              <span className="tool-menu-rule" />
-              <button onClick={() => { onDuplicate(); setOpen(false); }}><Copy size={19} />Duplicate as variation</button>
-              <button disabled={!canAddPlayer} onClick={() => { onAddPlayer(); setOpen(false); }}><PlusCircle size={19} />Add player</button>
-              <button onClick={() => { onApplyFormation(); setOpen(false); }}><UserFocus size={19} />Apply formation</button>
-              <button onClick={() => { onSaveFormation(); setOpen(false); }}><FloppyDisk size={19} />Save formation</button>
-              <button onClick={() => { onApplyConcept(); setOpen(false); }}><GitMerge size={19} />Apply concept</button>
-              <button onClick={() => { onSaveConcept(); setOpen(false); }}><Stack size={19} />Save concept</button>
-              <button onClick={() => { onGameDay(); setOpen(false); }}><SlidersHorizontal size={19} />{temporary ? "Resolve adjustment" : "Game Day Adjust"}</button>
-              <button onClick={() => { onDetails(); setOpen(false); }}><NotePencil size={19} />Play details</button>
-              <span className="tool-menu-rule" />
-              <button className="danger-action" onClick={() => { onDelete(); setOpen(false); }}><Trash size={19} />Delete play</button>
-            </div>
-          ) : null}
-        </div>
-      ))}
-    </nav>
-  );
-}
-
-function LayerBar({ layers, onChange, onView, view }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const update = (name, patch) => onChange((current) => ({
-    ...current,
-    [name]: { ...current[name], ...patch },
-  }));
-  return (
-    <div className={`layer-bar ${mobileOpen ? "mobile-open" : ""}`} aria-label="Canvas layers">
-      <button type="button" className="mobile-layer-toggle" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>
-        <Stack size={18} />
-        <strong>Layers</strong>
-        <span className="layer-visibility-summary" aria-hidden="true">
-          <i className={layers.offense.visible ? "on" : ""}>O</i>
-          <i className={layers.defense.visible ? "on" : ""}>D</i>
-          <i className={layers.assignments.visible ? "on" : ""}>A</i>
-        </span>
-        {mobileOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
-      </button>
-      <div className="layer-items">
-        <div className="mobile-field-view">
-          <span>Field view</span>
-          <SegmentedControl value={view} onChange={(nextView) => { onView(nextView); setMobileOpen(false); }} />
-        </div>
-        {["offense", "defense"].map((name) => {
-          const layer = layers[name];
-          return (
-            <div className={`layer-item ${layer.visible ? "visible" : "hidden"} ${layer.dimmed ? "dimmed" : ""}`} key={name}>
-              <strong>{titleCase(name)}</strong>
-              <button type="button" aria-label={`${layer.visible ? "Hide" : "Show"} ${name}`} aria-pressed={layer.visible} onClick={() => update(name, { visible: !layer.visible })}>
-                {layer.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
-              </button>
-              <button type="button" aria-label={`${layer.dimmed ? "Restore" : "Dim"} ${name}`} aria-pressed={layer.dimmed} onClick={() => update(name, { dimmed: !layer.dimmed, visible: true })}>
-                <CircleHalfTilt size={17} />
-              </button>
-              <button type="button" aria-label={`${layer.locked ? "Unlock" : "Lock"} ${name}`} aria-pressed={layer.locked} onClick={() => update(name, { locked: !layer.locked })}>
-                {layer.locked ? <LockSimple size={17} /> : <LockSimpleOpen size={17} />}
-              </button>
-            </div>
-          );
-        })}
-        <div className={`layer-item assignments ${layers.assignments.visible ? "visible" : "hidden"}`}>
-          <strong>Assignments</strong>
-          <button type="button" aria-label={`${layers.assignments.visible ? "Hide" : "Show"} assignments`} aria-pressed={layers.assignments.visible} onClick={() => update("assignments", { visible: !layers.assignments.visible })}>
-            {layers.assignments.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PositionLabelControl({ label, onSave }) {
-  const [value, setValue] = useState(label);
-
-  useEffect(() => setValue(label), [label]);
-
-  const commit = () => {
-    const next = value.trim().toUpperCase();
-    if (!next) {
-      setValue(label);
-      return;
-    }
-    if (next !== label) onSave(next);
-  };
-
-  return (
-    <label className="position-label-control">
-      <span>Position label</span>
-      <input
-        aria-label="Position label"
-        maxLength={4}
-        value={value}
-        onBlur={commit}
-        onChange={(event) => setValue(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            commit();
-            event.currentTarget.blur();
-          }
-        }}
-      />
-    </label>
-  );
-}
-
-const titleCase = (value) => value ? `${value[0].toUpperCase()}${value.slice(1)}` : "";
-
-function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
-  const definition = sanitizeRouteDefinition(route.definition ?? inferRouteDefinition(route));
-  const evidence = route.evidence;
-  const detected = route.geometryMode === "detected";
-  const manual = route.geometryMode === "manual";
-  const [conditionDraft, setConditionDraft] = useState(definition.condition);
-  const conditionDraftRef = useRef(definition.condition);
-
-  useEffect(() => {
-    setConditionDraft(definition.condition);
-    conditionDraftRef.current = definition.condition;
-  }, [definition.condition, route.id]);
-
-  const changeDefinition = (updater) => {
-    const next = typeof updater === "function" ? updater(definition) : updater;
-    onChange(sanitizeRouteDefinition(next));
-  };
-
-  const changeBreak = (index, patch) => {
-    changeDefinition((current) => ({
-      ...current,
-      breaks: current.breaks.map((segment, segmentIndex) => segmentIndex === index ? { ...segment, ...patch } : segment),
-    }));
-  };
-
-  const addBreak = () => {
-    changeDefinition((current) => ({
-      ...current,
-      breaks: [
-        ...current.breaks,
-        current.breaks.length
-          ? { direction: "vertical", angle: 0, distanceYards: 10 }
-          : { direction: "inside", angle: 45, distanceYards: 8 },
-      ],
-    }));
-  };
-
-  return (
-    <div className="route-definition">
-      <div className={`definition-status ${manual ? "manual" : detected ? "detected" : "structured"}`}>
-        <span>{manual ? "Manual landmark override" : detected ? "Detected from existing diagram" : "Structured route"}</span>
-        {manual ? <button onClick={onRegenerate}>Regenerate</button> : null}
-      </div>
-
-      {evidence?.sourcePage ? (
-        <div className="source-evidence">
-          <span>{evidence.method === "labels-and-geometry" ? "PDF labels + geometry" : "PDF geometry inferred"} · {titleCase(evidence.confidence)}</span>
-          <strong>{evidence.sourceLabel} · page {evidence.sourcePage}</strong>
-          {evidence.note ? <small>{evidence.note}</small> : null}
-          {evidence.coachEdited ? <small>Coach-edited after detection</small> : null}
-        </div>
-      ) : null}
-
-      <fieldset className="release-control">
-        <legend>Release / stem leverage</legend>
-        <div>
-          {releaseOptions.map((option) => (
-            <button
-              key={option}
-              type="button"
-              className={definition.release === option ? "active" : ""}
-              aria-pressed={definition.release === option}
-              onClick={() => changeDefinition({ ...definition, release: option })}
-            >
-              {titleCase(option)}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      <label className="route-number-field">
-        <span>Stem depth</span>
-        <span className="number-input"><input type="number" min="0" max="40" step="1" value={definition.stemYards} onChange={(event) => changeDefinition({ ...definition, stemYards: event.target.value })} /><b>yds</b></span>
-      </label>
-
-      <div className="break-list">
-        <div className="break-list-head"><span>Break sequence</span><small>{definition.breaks.length ? `${definition.breaks.length} segment${definition.breaks.length === 1 ? "" : "s"}` : "No break"}</small></div>
-        {definition.breaks.map((segment, index) => (
-          <section className="break-card" key={`${index}-${segment.direction}`}>
-            <div className="break-card-head"><strong>{index === 0 ? "Primary break" : `Move ${index + 1}`}</strong><button type="button" aria-label={`Remove break ${index + 1}`} onClick={() => changeDefinition({ ...definition, breaks: definition.breaks.filter((_, segmentIndex) => segmentIndex !== index) })}><X size={16} /></button></div>
-            <label>Direction
-              <select value={segment.direction} onChange={(event) => changeBreak(index, { direction: event.target.value, angle: event.target.value === "vertical" ? 0 : segment.angle || 45 })}>
-                {breakDirections.map((direction) => <option key={direction} value={direction}>{titleCase(direction)}</option>)}
-              </select>
-            </label>
-            <div className="break-measures">
-              <label>Angle<span className="number-input"><input type="number" min="0" max="135" step="5" disabled={segment.direction === "vertical"} value={segment.angle} onChange={(event) => changeBreak(index, { angle: event.target.value })} /><b>°</b></span></label>
-              <label>Distance<span className="number-input"><input type="number" min="0" max="40" step="1" value={segment.distanceYards} onChange={(event) => changeBreak(index, { distanceYards: event.target.value })} /><b>yds</b></span></label>
-            </div>
-          </section>
-        ))}
-        <button type="button" className="add-break" onClick={addBreak}><Plus size={17} />{definition.breaks.length ? "Add double-move segment" : "Add break"}</button>
-      </div>
-
-      <label className="route-condition">Condition / conversion
-        <textarea
-          value={conditionDraft}
-          placeholder="e.g. Convert to bender vs MFO"
-          onChange={(event) => {
-            conditionDraftRef.current = event.target.value;
-            setConditionDraft(event.target.value);
-          }}
-          onBlur={() => {
-            if (conditionDraftRef.current !== definition.condition) changeDefinition({ ...definition, condition: conditionDraftRef.current });
-          }}
-        />
-      </label>
-      {conditionDraft !== definition.condition ? (
-        <button type="button" className="apply-condition" onClick={() => changeDefinition({ ...definition, condition: conditionDraftRef.current })}>
-          Apply conversion note
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-function Inspector({
-  assignments,
-  copyTargets,
-  locked,
-  offensePlayers,
-  onAddStage,
-  onAssignmentDefinition,
-  onClose,
-  onCopyAssignment,
-  onDefinition,
-  onDeleteAssignment,
-  onMirrorAssignment,
-  onRegenerate,
-  onRemovePlayer,
-  onRenamePlayer,
-  onSetAssignmentType,
-  onSelectStage,
-  onTiming,
   playerLabel,
-  route,
-  unit,
-}) {
-  const [mobileExpanded, setMobileExpanded] = useState(false);
-  if (!playerLabel) return null;
-  const timingSummary = route
-    ? `${route.delay > 0 ? "+" : ""}${(route.delay ?? 0).toFixed(2)}s · ${(route.pace ?? 1).toFixed(2)}×`
-    : "No assignment";
-  const detailLabel = route?.type === "Route"
-    ? "Route definition"
-    : route?.type === "Block"
-      ? "Block details"
-      : route?.type === "Motion"
-        ? "Motion details"
-        : unit === "defense" && route
-          ? `${route.type} details`
-          : "Assignment details";
-  return (
-    <aside className={`inspector ${mobileExpanded ? "mobile-expanded" : "mobile-peek"}`} aria-label="Selected player inspector">
-      <button
-        type="button"
-        className="mobile-sheet-handle"
-        aria-label={mobileExpanded ? "Collapse player inspector" : "Expand player inspector"}
-        aria-expanded={mobileExpanded}
-        onClick={() => setMobileExpanded((value) => !value)}
-      >
-        <span aria-hidden="true" />
-        {mobileExpanded ? <CaretDown size={17} /> : <CaretUp size={17} />}
-      </button>
-      <div className="inspector-head"><div><small>{titleCase(unit)}</small><h2>{route ? route.type : "Player"}</h2></div><button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button></div>
-      <div className="selected-assignment">
-        <span className={`assignment-badge ${unit}`}>{playerLabel}</span>
-        <div><strong>{playerLabel}{route ? ` ${route.type}` : " selected"}</strong><span title={route?.type === "Route" ? routeDefinitionSummary(route.definition) : undefined}><i aria-hidden="true" />{route?.type === "Route" ? `${route.definition.stemYards} yd stem · ${route.definition.breaks.length} break${route.definition.breaks.length === 1 ? "" : "s"}` : route?.preset ?? "Drag to reposition"}</span></div>
-      </div>
-      <AssignmentStagePicker
-        activeId={route?.id ?? null}
-        assignments={assignments}
-        onAdd={onAddStage}
-        onSelect={onSelectStage}
-        unit={unit}
-      />
-      <div className="inspector-body">
-        {route?.inheritedFrom ? (
-          <div className={`concept-source ${route.templateOverride ? "override" : ""}`}>
-            <GitMerge size={16} />
-            <span>{route.templateOverride ? "Play-level override" : `Inherited from ${route.inheritedFrom.conceptName}`}</span>
-          </div>
-        ) : null}
-        <PositionLabelControl label={playerLabel} onSave={onRenamePlayer} />
-        <div className="control-group">
-          <span>Assignment</span>
-          <AssignmentTypePicker unit={unit} value={route?.type ?? ""} onChange={onSetAssignmentType} />
-        </div>
-        {locked ? <div className="locked-layer-note"><LockSimple size={17} />Unlock the {unit} layer to edit assignments.</div> : null}
-        {route ? (
-          <details className="inspector-section">
-            <summary><span>Timing</span><small>{timingSummary}</small><CaretRight size={16} /></summary>
-            <TimingControls assignment={route} onChange={onTiming} />
-          </details>
-        ) : null}
-        {route ? (
-          <details className="inspector-section" open>
-            <summary><span>{detailLabel}</span><small>{route.preset ?? route.type}</small><CaretRight size={16} /></summary>
-            {route.type === "Route" ? <RouteDefinitionEditor route={route} onChange={onDefinition} onRegenerate={onRegenerate} /> : null}
-            {route.type === "Block" ? <BlockEditor definition={route.definition} onChange={onAssignmentDefinition} /> : null}
-            {route.type === "Motion" ? <MotionEditor definition={route.definition} onChange={onAssignmentDefinition} /> : null}
-            {unit === "defense" ? <DefensiveEditor assignment={route} offensePlayers={offensePlayers} onChange={onAssignmentDefinition} /> : null}
-          </details>
-        ) : null}
-        <details className="inspector-section inspector-actions">
-          <summary><span>Player actions</span><small>Copy, mirror, or remove</small><CaretRight size={16} /></summary>
-          {route ? <AssignmentTransfer targets={copyTargets} onCopy={onCopyAssignment} onMirror={onMirrorAssignment} /> : null}
-          {route ? <button className="inspector-secondary danger-text" onClick={onDeleteAssignment}><Trash size={17} />Delete assignment</button> : (
-            <p className="inspector-hint">Choose an assignment type above. The path appears immediately and can be drawn or refined with its handles.</p>
-          )}
-          <button className="advanced-toggle remove-player" onClick={onRemovePlayer}><Trash size={18} />Remove {unit === "defense" ? "defender" : "player"}</button>
-        </details>
-      </div>
-    </aside>
-  );
-}
-
-function Timeline({ assignment, playback, onRun, onRestart, speed, onSpeed }) {
-  const speeds = [0.5, 1, 1.5];
-  const cycleSpeed = () => onSpeed(speeds[(speeds.indexOf(speed) + 1) % speeds.length]);
-  const selectedStart = assignment ? assignmentStartSeconds(assignment) : null;
-  return (
-    <footer className="timeline">
-      <button className="timeline-play" aria-label={playback === "running" ? "Pause animation" : playback === "paused" ? "Resume animation" : "Play animation"} onClick={onRun}>
-        {playback === "running" ? <Pause size={22} weight="fill" /> : <Play size={22} weight="fill" />}
-      </button>
-      <button className="speed-control" aria-label={`Playback speed ${speed.toFixed(2)}x`} onClick={cycleSpeed}>{speed.toFixed(2)}x<CaretDown size={15} /></button>
-      <div className="timeline-track" aria-label="Play timing">
-        <div className="phase-labels"><span>Pre-snap</span><strong>Snap</strong><span>Assignments{selectedStart === null ? "" : ` · selected ${selectedStart.toFixed(2)}s`}</span></div>
-        <div className="phase-bars"><span className="motion-phase" /><i className="snap-marker" /><span className="route-phase" /><b className={playback} />{selectedStart !== null ? <em className="selected-timing-marker" style={{ "--timing-position": `${Math.min(96, Math.max(4, (selectedStart / 7.5) * 100))}%` }} /> : null}</div>
-        <div className="time-labels"><span>−2.0</span><span>−1.0</span><span>0</span><span>1.0</span><span>2.0</span><span>3.0</span></div>
-      </div>
-      <button className="timeline-settings" aria-label="Restart animation" onClick={onRestart}><ArrowClockwise size={21} /></button>
-    </footer>
-  );
-}
-
-function GameDayDialog({ active, play, onClose, onStart, onResolve }) {
-  return (
-    <div className="modal-scrim" role="dialog" aria-modal="true" aria-label="Game day adjustment">
-      <section className="adjustment-modal">
-        <div className="adjustment-icon"><SlidersHorizontal size={25} /></div>
-        <span className="modal-label">Temporary variation</span>
-        <h2>{active ? "Resolve Game Day Adjustment" : "Game Day Adjustment"}</h2>
-        <p>{active ? `Choose what to do with the temporary changes to ${play.name}.` : `Start a temporary variation of ${play.name}. The original stays protected until you decide what to keep.`}</p>
-        {active ? (
-          <div className="resolution-grid">
-            {[
-              ["discard", "Discard"],
-              ["replace", "Replace Original"],
-              ["variation", "Save as Variation"],
-              ["new", "Save as New Play"],
-            ].map(([value, label]) => <button key={value} data-resolution={value} onClick={() => onResolve(value)}>{label}</button>)}
-          </div>
-        ) : <button className="modal-primary" onClick={onStart}>Start adjusting</button>}
-        <button className="modal-close" onClick={onClose}><X size={18} />Close</button>
-      </section>
-    </div>
-  );
-}
-
-function PlayDetailsDialog({ play, onClose, onSave }) {
-  const [name, setName] = useState(play.name);
-  const [family, setFamily] = useState(play.family ?? "");
-  const [folder, setFolder] = useState(play.folder ?? "Offense");
-  const [personnel, setPersonnel] = useState(play.personnel ?? "");
-  const [protection, setProtection] = useState(play.protection ?? "");
-  const [blockingScheme, setBlockingScheme] = useState(play.blockingScheme ?? "");
-  const status = formationStatus(play.players ?? basePlayers);
-  const canSave = name.trim().length > 0 && status.legal;
-  return (
-    <div className="modal-scrim" role="dialog" aria-modal="true" aria-label="Play details">
-      <form className="adjustment-modal details-modal" onSubmit={(event) => {
-        event.preventDefault();
-        if (canSave) onSave({
-          name: name.trim(),
-          family: family.trim() || "Unsorted",
-          folder: folder.trim() || "Unfiled",
-          personnel: personnel.trim() || play.personnel,
-          protection: protection.trim(),
-          blockingScheme: blockingScheme.trim(),
-        });
-      }}>
-        <span className="modal-label">Play details</span>
-        <h2>Keep the call clear</h2>
-        {play.sourcePage ? <p className="source-reference">{play.sourceLabel} · PDF page {play.sourcePage}</p> : null}
-        <label className="details-field">Play name<input value={name} onChange={(event) => setName(event.target.value)} aria-invalid={!name.trim()} required autoFocus /></label>
-        <div className="details-grid">
-          <label className="details-field">Folder<input value={folder} onChange={(event) => setFolder(event.target.value)} placeholder="Offense" /></label>
-          <label className="details-field">Play family<input value={family} onChange={(event) => setFamily(event.target.value)} placeholder="Mesh" /></label>
-          <label className="details-field">Personnel<input value={personnel} onChange={(event) => setPersonnel(event.target.value)} placeholder="11 Personnel" /></label>
-          <label className="details-field">Protection<input value={protection} onChange={(event) => setProtection(event.target.value)} placeholder="Texas" /></label>
-          <label className="details-field">Blocking scheme<input value={blockingScheme} onChange={(event) => setBlockingScheme(event.target.value)} placeholder="Inside zone" /></label>
-        </div>
-        <div className={`formation-check ${status.legal ? "legal" : "illegal"}`}>
-          <CheckCircle size={22} weight="fill" />
-          <div><strong>{status.legal ? "Legal formation" : "Formation needs attention"}</strong><span>{status.onLine} on the line · {status.inBackfield} in the backfield · {status.playerCount} players</span></div>
-        </div>
-        {!name.trim() ? <p className="form-error">A play name is required.</p> : null}
-        <button className="modal-primary" type="submit" disabled={!canSave}>Save details</button>
-        <button className="modal-close" type="button" onClick={onClose}><X size={18} />Cancel</button>
-      </form>
-    </div>
-  );
-}
-
-function CreatePlayDialog({ currentPlay, formations, onClose, onCreate }) {
-  const [name, setName] = useState("");
-  const [mode, setMode] = useState("formation");
-  const [formationId, setFormationId] = useState(formations[0]?.id ?? "");
-  const formation = formations.find((item) => item.id === formationId) ?? formations[0];
-  const candidatePlayers = mode === "duplicate"
-    ? currentPlay.players
-    : mode === "blank"
-      ? defaultFormations[0].players
-      : formation?.players;
-  const status = formationStatus(candidatePlayers ?? []);
-  const canCreate = name.trim().length > 0 && status.legal;
-
-  return (
-    <div className="modal-scrim" role="dialog" aria-modal="true" aria-label="Create a play">
-      <form className="adjustment-modal details-modal create-play-modal" onSubmit={(event) => {
-        event.preventDefault();
-        if (canCreate) onCreate({ formationId, mode, name: name.trim() });
-      }}>
-        <div className="adjustment-icon"><PlusCircle size={25} /></div>
-        <span className="modal-label">New play</span>
-        <h2>Choose a starting point</h2>
-        <label className="details-field">Play name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Trips Right Texas" required autoFocus /></label>
-        <div className="creation-modes" role="group" aria-label="Play starting point">
-          <button type="button" className={mode === "formation" ? "active" : ""} aria-pressed={mode === "formation"} onClick={() => setMode("formation")}><UserFocus size={19} /><span><strong>Formation</strong><small>Use a saved alignment</small></span></button>
-          <button type="button" className={mode === "blank" ? "active" : ""} aria-pressed={mode === "blank"} onClick={() => setMode("blank")}><Plus size={19} /><span><strong>Blank play</strong><small>Start from your base 11</small></span></button>
-          <button type="button" className={mode === "duplicate" ? "active" : ""} aria-pressed={mode === "duplicate"} onClick={() => setMode("duplicate")}><Copy size={19} /><span><strong>Duplicate</strong><small>Copy {currentPlay.name}</small></span></button>
-        </div>
-        {mode === "formation" ? (
-          <label className="details-field">Saved formation
-            <select aria-label="Saved formation" value={formationId} onChange={(event) => setFormationId(event.target.value)}>
-              {formations.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.personnel}</option>)}
-            </select>
-          </label>
-        ) : null}
-        <div className={`formation-check ${status.legal ? "legal" : "illegal"}`}>
-          {status.legal ? <CheckCircle size={22} weight="fill" /> : <Warning size={22} weight="fill" />}
-          <div><strong>{status.legal ? "Legal starting formation" : "Formation needs attention"}</strong><span>{status.onLine} on the line · {status.inBackfield} in the backfield · {status.playerCount} players</span></div>
-        </div>
-        <button className="modal-primary" type="submit" disabled={!canCreate}>Create play</button>
-        <button className="modal-close" type="button" onClick={onClose}><X size={18} />Cancel</button>
-      </form>
-    </div>
-  );
-}
-
-function SaveFormationDialog({ play, onClose, onSave }) {
-  const [name, setName] = useState(play.formation || "");
-  const status = formationStatus(play.players);
-  const canSave = name.trim().length > 0 && status.legal;
-  return (
-    <div className="modal-scrim" role="dialog" aria-modal="true" aria-label="Save formation">
-      <form className="adjustment-modal details-modal" onSubmit={(event) => {
-        event.preventDefault();
-        if (canSave) onSave(name.trim());
-      }}>
-        <div className="adjustment-icon"><FloppyDisk size={25} /></div>
-        <span className="modal-label">Reusable formation</span>
-        <h2>Save this alignment</h2>
-        <p>The player positions and labels become a reusable starting point. Assignments are not included.</p>
-        <label className="details-field">Formation name<input value={name} onChange={(event) => setName(event.target.value)} required autoFocus /></label>
-        <div className={`formation-check ${status.legal ? "legal" : "illegal"}`}>
-          {status.legal ? <CheckCircle size={22} weight="fill" /> : <Warning size={22} weight="fill" />}
-          <div><strong>{status.legal ? "Legal formation" : "Cannot save this formation"}</strong><span>{status.onLine} on the line · {status.inBackfield} in the backfield · {status.playerCount} players</span></div>
-        </div>
-        <button className="modal-primary" type="submit" disabled={!canSave}>Save formation</button>
-        <button className="modal-close" type="button" onClick={onClose}><X size={18} />Cancel</button>
-      </form>
-    </div>
-  );
-}
-
-function ApplyFormationDialog({ currentFormation, formations, onApply, onClose }) {
-  const [formationId, setFormationId] = useState(
-    formations.find((formation) => formation.name === currentFormation)?.id ?? formations[0]?.id ?? "",
-  );
-  const formation = formations.find((item) => item.id === formationId);
-  const status = formationStatus(formation?.players ?? []);
-  return (
-    <div className="modal-scrim" role="dialog" aria-modal="true" aria-label="Apply formation">
-      <form className="adjustment-modal details-modal" onSubmit={(event) => {
-        event.preventDefault();
-        if (formation && status.legal) onApply(formation.id);
-      }}>
-        <div className="adjustment-icon"><UserFocus size={25} /></div>
-        <span className="modal-label">Change alignment</span>
-        <h2>Apply a saved formation</h2>
-        <p>Matching players keep their assignments, translated to the new alignment. Assignments without a matching position are removed.</p>
-        <label className="details-field">Saved formation
-          <select aria-label="Formation to apply" value={formationId} onChange={(event) => setFormationId(event.target.value)}>
-            {formations.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.personnel}</option>)}
-          </select>
-        </label>
-        <div className={`formation-check ${status.legal ? "legal" : "illegal"}`}>
-          {status.legal ? <CheckCircle size={22} weight="fill" /> : <Warning size={22} weight="fill" />}
-          <div><strong>{status.legal ? "Legal saved formation" : "Formation needs attention"}</strong><span>{status.onLine} on the line · {status.inBackfield} in the backfield · {status.playerCount} players</span></div>
-        </div>
-        <button className="modal-primary" type="submit" disabled={!formation || !status.legal || formation.name === currentFormation}>Apply formation</button>
-        <button className="modal-close" type="button" onClick={onClose}><X size={18} />Cancel</button>
-      </form>
-    </div>
-  );
-}
-
-function DeletePlayDialog({ canDelete, onClose, onDelete, play }) {
-  return (
-    <div className="modal-scrim" role="dialog" aria-modal="true" aria-label="Delete play">
-      <section className="adjustment-modal destructive-modal">
-        <div className="adjustment-icon danger-icon"><Trash size={25} /></div>
-        <span className="modal-label">Delete play</span>
-        <h2>{canDelete ? `Delete ${play.name}?` : "Keep at least one play"}</h2>
-        <p>{canDelete ? "This removes the play from this playbook. This action is not part of undo history." : "Create another play before deleting this one."}</p>
-        <button className="modal-danger" disabled={!canDelete} onClick={onDelete}>Delete play</button>
-        <button className="modal-close" onClick={onClose}><X size={18} />Cancel</button>
-      </section>
-    </div>
-  );
-}
-
-function NewPlaybookDialog({ onClose, onCreate }) {
-  const [name, setName] = useState("");
-  const canCreate = name.trim().length > 0;
-  return (
-    <div className="modal-scrim" role="dialog" aria-modal="true" aria-label="Create a playbook">
-      <form className="adjustment-modal details-modal" onSubmit={(event) => {
-        event.preventDefault();
-        if (canCreate) onCreate(name.trim());
-      }}>
-        <div className="adjustment-icon"><BookOpen size={25} /></div>
-        <span className="modal-label">Separate playbook</span>
-        <h2>Start another playbook</h2>
-        <p>Your new book stays separate. You can switch between books or copy individual plays into Personal Active.</p>
-        <label className="details-field">Playbook name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. 2026 Varsity Offense" required autoFocus /></label>
-        <button className="modal-primary" type="submit" disabled={!canCreate}>Create playbook</button>
-        <button className="modal-close" type="button" onClick={onClose}><X size={18} />Cancel</button>
-      </form>
-    </div>
-  );
-}
+  playerLocation,
+  routeDefinitionToPoints,
+  sanitizeAssignmentDefinition,
+  snapDragTarget,
+} from "./playData";
+import { downloadPlayPng, downloadWorkspaceBackup } from "./exportUtils";
+import { refreshOfflineCopy, subscribeOfflineStatus } from "./offline";
+import { parseWorkspaceBackup, RECOVERY_WORKSPACE_KEY, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
 
 function starterPlay(playbookId) {
   return createPlayFromFormation({
@@ -1118,8 +102,8 @@ export function App() {
     supported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
     development: true,
   });
-  const [selectedRoute, setSelectedRoute] = useState(() => compactViewport() ? null : 3);
-  const [selectedPlayer, setSelectedPlayer] = useState(() => compactViewport() ? null : "Z");
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState("offense");
   const [layers, setLayers] = useState({
     offense: { visible: true, dimmed: false, locked: false },
@@ -1128,8 +112,19 @@ export function App() {
   });
   const [browserQuery, setBrowserQuery] = useState("");
   const [browserFolder, setBrowserFolder] = useState("all");
-  const [draftRoute, setDraftRoute] = useState([]);
-  const [toast, setToast] = useState("");
+  const [draftAssignment, setDraftAssignment] = useState([]);
+  /** Live drag feedback: which player is in hand, and which guides it snapped to. */
+  const [dragInfo, setDragInfo] = useState(null);
+  /** Install-sheet depth tags on route breaks, toggled from the Key popover. */
+  const [showDepths, setShowDepths] = useState(false);
+  /*
+   * One transient toast used to carry everything: "Undid last change" and a
+   * blocking "A name and legal formation are required" got the same polite,
+   * 2.6-second treatment, and each new message destroyed the previous one.
+   * Feedback now has a tone, so a problem is announced assertively and stays put,
+   * and a reversible action can offer undo in place.
+   */
+  const [feedback, setFeedback] = useState(null);
   const drawing = useRef(false);
   const historyRef = useRef(new Map());
   const playerDrag = useRef(null);
@@ -1142,6 +137,16 @@ export function App() {
   const activePlaybook = playbooks.find((book) => book.id === workspace.activePlaybookId) ?? playbooks[0];
   const mainPlaybook = playbooks.find((book) => book.id === workspace.mainPlaybookId) ?? playbooks[0];
   const library = activePlaybook.plays;
+  /*
+   * Each family's base is its first play in full library order -- stable even
+   * when search or folder filters hide it, so a filtered strip still diffs
+   * against the real base rather than whichever variant happens to be visible.
+   */
+  const familyBases = useMemo(() => {
+    const bases = new Map();
+    for (const item of library) if (!bases.has(item.family)) bases.set(item.family, item);
+    return bases;
+  }, [library]);
   const folders = useMemo(() => [...new Set(library.map((item) => item.folder ?? "Unfiled"))].sort(), [library]);
   const visibleLibrary = useMemo(() => {
     const query = browserQuery.trim().toLowerCase();
@@ -1161,38 +166,94 @@ export function App() {
   }, [browserFolder, browserQuery, library]);
   const playIndex = useMemo(() => Math.max(0, library.findIndex((item) => item.id === playId)), [library, playId]);
   const play = library[playIndex];
-  const route = selectedRoute === null ? null : play.routes[selectedRoute] ?? null;
-  const selectedPlayerLabel = selectedPlayer ? playerLabelFor(play, selectedUnit, selectedPlayer) : null;
-  const playerAssignments = useMemo(() => selectedPlayer
-    ? play.routes.filter((assignment) => (assignment.unit ?? "offense") === selectedUnit && assignment.player === selectedPlayer)
-    : [], [play.routes, selectedPlayer, selectedUnit]);
+  /*
+   * The camera reads the current play and view, so it is created after both
+   * exist; a state hook could sit at the top of the component, this cannot.
+   */
+  const stageFor = useCallback(() => svgRef.current?.parentElement ?? null, []);
+  const { zoom, beginPan, panning, movePan, endPan, resetZoom } = useCanvasCamera({ stageFor, view, play });
+  /*
+   * Selection is held as a stable assignment id rather than an index into
+   * play.assignments, so deleting, reordering, applying a concept, or undoing
+   * cannot silently move the selection onto a different player's assignment.
+   */
+  const route = selectedAssignmentId
+    ? play.assignments.find((item) => item.id === selectedAssignmentId) ?? null
+    : null;
+  const selectedPlayerLabel = selectedPlayerId ? playerLabel(play, selectedUnit, selectedPlayerId) : null;
+  const playerAssignments = useMemo(() => selectedPlayerId
+    ? play.assignments.filter((item) => item.unit === selectedUnit && item.playerId === selectedPlayerId)
+    : [], [play.assignments, selectedPlayerId, selectedUnit]);
   const currentLayerLocked = layers[selectedUnit]?.locked ?? false;
   const copyTargets = useMemo(() => {
-    if (!selectedPlayer) return [];
-    const phase = route?.phase ?? assignmentPhaseForType(route?.type);
-    const assigned = new Set(play.routes
-      .filter((assignment) => (
-        (assignment.unit ?? "offense") === selectedUnit
-        && (assignment.phase ?? assignmentPhaseForType(assignment.type)) === phase
-      ))
-      .map((assignment) => assignment.player));
-    if (selectedUnit === "defense") {
-      return play.defenders
-        .filter((player) => player.id !== selectedPlayer && !assigned.has(player.id))
-        .map((player) => ({ id: player.id, label: player.label }));
+    if (!selectedPlayerId) return [];
+    const phase = route?.phase ?? "post";
+    const assigned = new Set(play.assignments
+      .filter((item) => item.unit === selectedUnit && item.phase === phase)
+      .map((item) => item.playerId));
+    const roster = selectedUnit === "defense" ? play.defenders : play.players;
+    return roster
+      .filter((player) => player.id !== selectedPlayerId && !assigned.has(player.id))
+      .map((player) => ({ id: player.id, label: player.label }));
+  }, [play.assignments, play.defenders, play.players, route?.phase, selectedPlayerId, selectedUnit]);
+  /*
+   * Why an assignment type is not available for this player, so the inspector can
+   * disable it with an explanation instead of accepting the click and answering
+   * with a rejection message.
+   */
+  const unavailableTypes = useMemo(() => {
+    if (!selectedPlayerId) return {};
+    const reasons = {};
+    if (currentLayerLocked) {
+      const locked = `Unlock the ${selectedUnit} layer to change assignments`;
+      for (const type of selectedUnit === "defense" ? defensiveAssignmentTypes : offensiveAssignmentTypes) {
+        reasons[type] = locked;
+      }
+      return reasons;
     }
-    return play.players
-      .filter(([label]) => label !== selectedPlayer && !assigned.has(label))
-      .map(([label]) => ({ id: label, label }));
-  }, [play.defenders, play.players, play.routes, route?.phase, route?.type, selectedPlayer, selectedUnit]);
+    if (isLinePlayer(play, selectedUnit, selectedPlayerId)) {
+      const label = playerLabel(play, selectedUnit, selectedPlayerId);
+      reasons.Route = `${label} is an interior lineman and uses blocking assignments`;
+      reasons.Motion = `${label} is an interior lineman and uses blocking assignments`;
+    }
+    return reasons;
+  }, [currentLayerLocked, play, selectedPlayerId, selectedUnit]);
   const temporary = gameDay?.playbookId === activePlaybook.id && gameDay?.playId === play.id;
   const currentFormationStatus = formationStatus(play.players);
   const historyEntry = historyRef.current.get(play.id) ?? { past: [], future: [] };
   const canUndo = historyEntry.past.length > 0;
   const canRedo = historyEntry.future.length > 0;
 
+  const notify = (message, options = {}) => setFeedback({ message, tone: "info", ...options, at: Date.now() });
+  /** A problem the coach must resolve: announced assertively and left on screen. */
+  const notifyProblem = (message) => notify(message, { tone: "error" });
+
+  /*
+   * Persistence is debounced. Dragging a player updates the play on every
+   * pointermove, and writing straight through meant a single 25-frame drag
+   * serialised the entire workspace 25 times -- about 1.4 MB of JSON.stringify on
+   * the main thread. A trailing write plus a flush when the page is hidden keeps
+   * the same durability without the per-frame cost.
+   */
+  const workspaceRef = useRef(workspace);
+  workspaceRef.current = workspace;
+
   useEffect(() => {
-    window.localStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspace));
+    const flush = () => {
+      window.localStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspaceRef.current));
+    };
+    const timer = window.setTimeout(flush, 400);
+    const onHide = () => {
+      window.clearTimeout(timer);
+      flush();
+    };
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onHide);
+    };
   }, [workspace]);
 
   useEffect(() => subscribeOfflineStatus(setOfflineStatus), []);
@@ -1202,18 +263,40 @@ export function App() {
     else window.localStorage.removeItem(GAME_DAY_KEY);
   }, [gameDay]);
 
+  /*
+   * Feedback is scoped to the play it was raised on -- an "Undo" offered for a
+   * deleted assignment must not still be sitting there after switching plays.
+   */
+  useEffect(() => { setFeedback(null); }, [play.id]);
+
+  // Confirmations fade; problems stay until acknowledged or superseded.
   useEffect(() => {
-    if (!toast) return undefined;
-    const timer = window.setTimeout(() => setToast(""), 2600);
+    if (!feedback || feedback.tone === "error") return undefined;
+    const timer = window.setTimeout(() => setFeedback(null), feedback.actionLabel ? 6000 : 2600);
     return () => window.clearTimeout(timer);
-  }, [toast]);
+  }, [feedback]);
 
   useEffect(() => {
     if (playback !== "running") return undefined;
-    const duration = playDuration(play.routes, speed);
+    const duration = playDuration(play.assignments, speed);
     const timer = window.setTimeout(() => setPlayback("idle"), duration * 1000 + 150);
     return () => window.clearTimeout(timer);
-  }, [play.routes, playback, runKey, speed]);
+  }, [play.assignments, playback, runKey, speed]);
+
+  // Open on a useful selection, but leave phones on a clean, view-first canvas.
+  useEffect(() => {
+    if (compactViewport()) return;
+    const firstPlay = library[0];
+    if (!firstPlay) return;
+    const id = defaultAssignmentId(firstPlay);
+    const item = firstPlay.assignments.find((entry) => entry.id === id);
+    if (!item) return;
+    setSelectedAssignmentId(item.id);
+    setSelectedPlayerId(item.playerId);
+    setSelectedUnit(item.unit);
+    // Mount only: later selection is driven by interaction.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setLibrary = (nextValue) => {
     setWorkspace((current) => ({
@@ -1245,17 +328,52 @@ export function App() {
     setLibrary((current) => current.map((item) => item.id === targetId ? updater(item) : item));
   };
 
-  const updateRoute = (updater, options = {}) => {
-    if (selectedRoute === null) return;
+  const updateSelectedAssignment = (updater, options = {}) => {
+    if (!selectedAssignmentId) return;
     const { markOverride = true, ...historyOptions } = options;
     updatePlay(play.id, (current) => ({
       ...current,
-      routes: current.routes.map((item, index) => {
-        if (index !== selectedRoute) return item;
+      assignments: current.assignments.map((item) => {
+        if (item.id !== selectedAssignmentId) return item;
         const updated = updater(item);
         return markOverride && item.inheritedFrom ? { ...updated, templateOverride: true } : updated;
       }),
     }), historyOptions);
+  };
+
+  const clearSelection = () => {
+    setSelectedAssignmentId(null);
+    setSelectedPlayerId(null);
+  };
+
+  /** Selects an assignment and brings its player and unit along with it. */
+  const focusAssignment = (targetPlay, assignmentId) => {
+    const item = targetPlay.assignments.find((entry) => entry.id === assignmentId);
+    if (!item) {
+      setSelectedAssignmentId(null);
+      return;
+    }
+    setSelectedAssignmentId(item.id);
+    setSelectedPlayerId(item.playerId);
+    setSelectedUnit(item.unit);
+  };
+
+  /*
+   * After a history jump the selected player may be gone, or may no longer own
+   * an assignment in the same phase. Both are resolved by id, so neither can
+   * land on an unrelated assignment.
+   */
+  const restoreSelection = (nextPlay) => {
+    if (selectedPlayerId && !playerExists(nextPlay, selectedUnit, selectedPlayerId)) {
+      clearSelection();
+      return;
+    }
+    if (nextPlay.assignments.some((item) => item.id === selectedAssignmentId)) return;
+    const replacement = selectedPlayerId
+      ? assignmentFor(nextPlay, selectedUnit, selectedPlayerId, route?.phase)
+        ?? preferredAssignment(nextPlay, selectedUnit, selectedPlayerId)
+      : null;
+    setSelectedAssignmentId(replacement?.id ?? null);
   };
 
   const undo = () => {
@@ -1267,11 +385,9 @@ export function App() {
       future: [clonePlaybook([play])[0], ...entry.future].slice(0, 40),
     });
     replacePlay(play.id, previous);
-    const nextRoute = selectedPlayer ? assignmentIndexFor(previous, selectedUnit, selectedPlayer, route?.phase) : -1;
-    setSelectedRoute(nextRoute >= 0 ? nextRoute : null);
-    if (selectedPlayer && !playerExists(previous, selectedUnit, selectedPlayer)) setSelectedPlayer(null);
+    restoreSelection(previous);
     setHistoryVersion((value) => value + 1);
-    setToast("Undid last change");
+    notify("Undid last change");
   };
 
   const redo = () => {
@@ -1283,22 +399,18 @@ export function App() {
       future: entry.future.slice(1),
     });
     replacePlay(play.id, next);
-    const nextRoute = selectedPlayer ? assignmentIndexFor(next, selectedUnit, selectedPlayer, route?.phase) : -1;
-    setSelectedRoute(nextRoute >= 0 ? nextRoute : null);
-    if (selectedPlayer && !playerExists(next, selectedUnit, selectedPlayer)) setSelectedPlayer(null);
+    restoreSelection(next);
     setHistoryVersion((value) => value + 1);
-    setToast("Redid change");
+    notify("Redid change");
   };
 
   const selectPlay = (nextId) => {
     const nextPlay = library.find((item) => item.id === nextId);
     if (!nextPlay) return;
-    const nextRouteIndex = compactViewport() ? null : defaultRouteIndex(nextPlay);
     setPlayId(nextId);
-    setSelectedRoute(nextRouteIndex);
-    setSelectedPlayer(nextRouteIndex === null ? null : nextPlay.routes[nextRouteIndex]?.player ?? null);
-    setSelectedUnit(nextRouteIndex === null ? "offense" : nextPlay.routes[nextRouteIndex]?.unit ?? "offense");
-    setDraftRoute([]);
+    if (compactViewport()) clearSelection();
+    else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
+    setDraftAssignment([]);
     setActiveTool("Select");
     setPlayback("idle");
   };
@@ -1315,15 +427,13 @@ export function App() {
     const nextBook = playbooks.find((book) => book.id === nextBookId);
     if (!nextBook || nextBook.id === activePlaybook.id) return;
     const nextPlay = nextBook.plays[0];
-    const nextRouteIndex = compactViewport() ? null : defaultRouteIndex(nextPlay);
     setWorkspace((current) => ({ ...current, activePlaybookId: nextBookId }));
     setPlayId(nextPlay.id);
-    setSelectedRoute(nextRouteIndex);
-    setSelectedPlayer(nextRouteIndex === null ? null : nextPlay.routes[nextRouteIndex]?.player ?? null);
-    setSelectedUnit(nextRouteIndex === null ? "offense" : nextPlay.routes[nextRouteIndex]?.unit ?? "offense");
+    if (compactViewport()) clearSelection();
+    else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
     setBrowserQuery("");
     setBrowserFolder("all");
-    setDraftRoute([]);
+    setDraftAssignment([]);
     setActiveTool("Select");
     setPlayback("idle");
     setPresent(false);
@@ -1349,7 +459,7 @@ export function App() {
         ? { ...book, plays: [...book.plays, copy] }
         : book),
     }));
-    setToast(`${play.name} added to ${mainPlaybook.name}`);
+    notify(`${play.name} added to ${mainPlaybook.name}`);
   };
 
   const createPlaybook = (name) => {
@@ -1378,11 +488,10 @@ export function App() {
       playbooks: [...current.playbooks, newBook],
     }));
     setPlayId(firstPlay.id);
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setNewPlaybookDialog(false);
-    setToast(`${name} created`);
+    notify(`${name} created`);
   };
 
   const createPlay = ({ formationId, mode, name }) => {
@@ -1395,7 +504,10 @@ export function App() {
         id,
         name: uniqueName(library, name),
         variantOf: play.id,
-        routes: play.routes.map((item, index) => ({ ...clonePlaybook([item])[0], id: `${id}-assignment-${index + 1}` })),
+        assignments: play.assignments.map((item, index) => ({
+          ...clonePlaybook([item])[0],
+          id: `${id}-assignment-${index + 1}`,
+        })),
       };
     } else {
       const formation = mode === "blank"
@@ -1410,18 +522,17 @@ export function App() {
 
     const status = formationStatus(created.players);
     if (!created.name.trim() || !status.legal) {
-      setToast("A name and legal formation are required");
+      notifyProblem("A name and legal formation are required");
       return;
     }
 
     setLibrary((current) => [...current, created]);
     setPlayId(created.id);
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setCreatePlayDialog(false);
     setActiveTool("Select");
-    setToast(`${created.name} created`);
+    notify(`${created.name} created`);
   };
 
   const duplicatePlay = () => {
@@ -1440,12 +551,10 @@ export function App() {
     historyRef.current.delete(play.id);
     setHistoryVersion((value) => value + 1);
     setPlayId(nextPlay.id);
-    const nextRouteIndex = compactViewport() ? null : defaultRouteIndex(nextPlay);
-    setSelectedRoute(nextRouteIndex);
-    setSelectedPlayer(nextRouteIndex === null ? null : nextPlay.routes[nextRouteIndex]?.player ?? null);
-    setSelectedUnit(nextRouteIndex === null ? "offense" : nextPlay.routes[nextRouteIndex]?.unit ?? "offense");
+    if (compactViewport()) clearSelection();
+    else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
     setDeletePlayDialog(false);
-    setToast(`${play.name} deleted`);
+    notify(`${play.name} deleted`);
   };
 
   const saveFormation = (name) => {
@@ -1468,23 +577,24 @@ export function App() {
     }));
     updatePlay(play.id, (current) => ({ ...current, formation: name }));
     setSaveFormationDialog(false);
-    setToast(`${name} saved for reuse`);
+    notify(`${name} saved for reuse`);
   };
 
   const applyFormation = (formationId) => {
     const formation = activePlaybook.formations.find((item) => item.id === formationId);
     if (!formation || !formationStatus(formation.players).legal) {
-      setToast("Choose a legal saved formation");
+      notifyProblem("Choose a legal saved formation");
       return;
     }
-    const nextLabels = new Set(formation.players.map(([label]) => label));
-    const removed = play.routes.filter((assignment) => (assignment.unit ?? "offense") === "offense" && !nextLabels.has(assignment.player)).length;
+    const nextLabels = new Set(formation.players.map((player) => player.label));
+    const removed = play.assignments.filter((item) => (
+      item.unit === "offense" && !nextLabels.has(playerLabel(play, "offense", item.playerId))
+    )).length;
     updatePlay(play.id, (current) => applyFormationToPlay(current, formation));
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setApplyFormationDialog(false);
-    setToast(`${formation.name} applied${removed ? ` · ${removed} unmatched assignment${removed === 1 ? "" : "s"} removed` : " · matching assignments preserved"}`);
+    notify(`${formation.name} applied${removed ? ` · ${removed} unmatched assignment${removed === 1 ? "" : "s"} removed` : " · matching assignments preserved"}`);
   };
 
   const saveConcept = (name) => {
@@ -1507,18 +617,17 @@ export function App() {
       }),
     }));
     setSaveConceptDialog(false);
-    setToast(`${name} concept ${existing ? "updated" : "saved"}`);
+    notify(`${name} concept ${existing ? "updated" : "saved"}`);
   };
 
   const applyConcept = (conceptId) => {
     const concept = activePlaybook.concepts.find((item) => item.id === conceptId);
     if (!concept) return;
     updatePlay(play.id, (current) => applyConceptTemplateToPlay(current, concept));
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setApplyConceptDialog(false);
-    setToast(`${concept.name} applied · play-level overrides preserved`);
+    notify(`${concept.name} applied · play-level overrides preserved`);
   };
 
   const chooseRestoreFile = async (event) => {
@@ -1545,168 +654,150 @@ export function App() {
     const restoredBook = restored.playbooks.find((book) => book.id === restored.activePlaybookId) ?? restored.playbooks[0];
     setWorkspace(restored);
     setPlayId(restoredBook.plays[0].id);
-    setSelectedRoute(null);
-    setSelectedPlayer(null);
+    clearSelection();
     setSelectedUnit("offense");
     setGameDay(null);
     setRestoreCandidate(null);
     setDataToolsDialog(false);
-    setToast(`Backup restored · previous workspace kept as a recovery copy`);
+    notify(`Backup restored · previous workspace kept as a recovery copy`);
   };
 
   const exportCurrentPng = async () => {
     try {
       await downloadPlayPng(svgRef.current, play.name);
-      setToast(`${play.name} PNG downloaded`);
+      notify(`${play.name} PNG downloaded`);
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "PNG export failed");
+      notifyProblem(error instanceof Error ? error.message : "PNG export failed");
     }
   };
 
   const refreshOffline = async () => {
     const ready = await refreshOfflineCopy();
-    setToast(ready ? "Offline game-day copy refreshed" : "Offline copy could not be refreshed yet");
+    if (ready) notify("Offline game-day copy refreshed");
+    else notifyProblem("Offline copy could not be refreshed yet");
   };
 
+  /*
+   * Relabelling only touches the label. Identity lives on the player's id, so
+   * assignments stay attached and duplicate labels are allowed on both units --
+   * a defense can carry two `C` and two `T`, and so can an offense.
+   */
   const renamePlayer = (nextLabel) => {
-    if (!selectedPlayer || nextLabel === selectedPlayerLabel) return;
+    if (!selectedPlayerId || nextLabel === selectedPlayerLabel) return;
     if (currentLayerLocked) {
-      setToast(`Unlock the ${selectedUnit} layer to relabel players`);
+      notifyProblem(`Unlock the ${selectedUnit} layer to relabel players`);
       return;
     }
-    if (selectedUnit === "defense") {
-      updatePlay(play.id, (current) => ({
-        ...current,
-        defenders: current.defenders.map((player) => player.id === selectedPlayer ? { ...player, label: nextLabel } : player),
-      }));
-      setToast(`${selectedPlayerLabel} relabeled as ${nextLabel}`);
-      return;
-    }
-    if (play.players.some(([label]) => label === nextLabel)) {
-      setToast(`${nextLabel} is already used in this formation`);
-      return;
-    }
-    const previousLabel = selectedPlayer;
+    const previousLabel = selectedPlayerLabel;
+    const rosterKey = selectedUnit === "defense" ? "defenders" : "players";
     updatePlay(play.id, (current) => ({
       ...current,
-      players: current.players.map(([label, x, y]) => label === previousLabel ? [nextLabel, x, y] : [label, x, y]),
-      routes: current.routes.map((item) => item.player === previousLabel ? { ...item, player: nextLabel } : item),
+      [rosterKey]: current[rosterKey].map((player) => (
+        player.id === selectedPlayerId ? { ...player, label: nextLabel } : player
+      )),
     }));
-    setSelectedPlayer(nextLabel);
-    setToast(`${previousLabel} relabeled as ${nextLabel}`);
+    notify(`${previousLabel} relabeled as ${nextLabel}`);
   };
 
   const deleteAssignment = () => {
-    if (selectedRoute === null || !route) return;
+    if (!route) return;
     if (currentLayerLocked) {
-      setToast(`Unlock the ${selectedUnit} layer to delete assignments`);
+      notifyProblem(`Unlock the ${selectedUnit} layer to delete assignments`);
       return;
     }
-    const fallbackIndex = play.routes.findIndex((item, index) => (
-      index !== selectedRoute
-      && (item.unit ?? "offense") === selectedUnit
-      && item.player === selectedPlayer
+    const removedId = route.id;
+    const label = selectedPlayerLabel;
+    const type = route.type.toLowerCase();
+    // The player's other stage, if they have one, becomes the selection.
+    const fallback = play.assignments.find((item) => (
+      item.id !== removedId && item.unit === selectedUnit && item.playerId === selectedPlayerId
     ));
     updatePlay(play.id, (current) => ({
       ...current,
-      routes: current.routes.filter((_, index) => index !== selectedRoute),
+      assignments: current.assignments.filter((item) => item.id !== removedId),
     }));
-    setSelectedRoute(fallbackIndex < 0 ? null : fallbackIndex > selectedRoute ? fallbackIndex - 1 : fallbackIndex);
-    setToast(`${route.player} ${route.type.toLowerCase()} deleted`);
+    setSelectedAssignmentId(fallback?.id ?? null);
+    notify(`${label} ${type} deleted`, { actionLabel: "Undo", onAction: undo });
   };
 
   const removePlayer = () => {
-    if (!selectedPlayer) return;
+    if (!selectedPlayerId) return;
     if (currentLayerLocked) {
-      setToast(`Unlock the ${selectedUnit} layer to remove players`);
+      notifyProblem(`Unlock the ${selectedUnit} layer to remove players`);
       return;
     }
-    const removed = selectedPlayer;
-    updatePlay(play.id, (current) => selectedUnit === "defense"
-      ? {
-          ...current,
-          defenders: current.defenders.filter((player) => player.id !== removed),
-          routes: current.routes.filter((item) => !((item.unit ?? "offense") === "defense" && item.player === removed)),
-        }
-      : {
-          ...current,
-          players: current.players.filter(([label]) => label !== removed),
-          routes: current.routes.filter((item) => !((item.unit ?? "offense") === "offense" && item.player === removed)),
-        });
-    setSelectedPlayer(null);
-    setSelectedRoute(null);
+    const removedId = selectedPlayerId;
+    const removedLabel = selectedPlayerLabel;
+    const rosterKey = selectedUnit === "defense" ? "defenders" : "players";
+    updatePlay(play.id, (current) => ({
+      ...current,
+      [rosterKey]: current[rosterKey].filter((player) => player.id !== removedId),
+      assignments: current.assignments.filter((item) => item.playerId !== removedId),
+    }));
+    clearSelection();
     setSelectedUnit("offense");
-    setToast(`${selectedPlayerLabel} removed — undo to restore`);
+    notify(`${removedLabel} removed`, { actionLabel: "Undo", onAction: undo });
   };
 
   const addPlayer = () => {
     if (play.players.length >= 11) return;
-    const labels = new Set(play.players.map(([label]) => label));
+    const labels = new Set(play.players.map((player) => player.label));
     let nextLabel = "P";
     let suffix = 2;
     while (labels.has(nextLabel)) {
       nextLabel = `P${suffix}`;
       suffix += 1;
     }
+    const id = `o-added-${Date.now()}`;
+    // Drop the new player in the backfield, behind the quarterback.
     updatePlay(play.id, (current) => ({
       ...current,
-      players: [...current.players, [nextLabel, 50, 88]],
+      players: [...current.players, { id, label: nextLabel, x: 0, y: -7.5 }],
     }));
     setSelectedUnit("offense");
-    setSelectedPlayer(nextLabel);
-    setSelectedRoute(null);
-    setToast(`${nextLabel} added — drag and relabel the player`);
+    setSelectedPlayerId(id);
+    setSelectedAssignmentId(null);
+    notify(`${nextLabel} added — drag and relabel the player`);
   };
 
   const setAssignmentType = (type) => {
-    if (!selectedPlayer) return;
+    if (!selectedPlayerId) return;
     if (currentLayerLocked) {
-      setToast(`Unlock the ${selectedUnit} layer to edit assignments`);
+      notifyProblem(`Unlock the ${selectedUnit} layer to edit assignments`);
       return;
     }
-    const allowed = selectedUnit === "defense" ? defensiveAssignmentTypes : ["Route", "Block", "Motion"];
+    const allowed = selectedUnit === "defense" ? defensiveAssignmentTypes : offensiveAssignmentTypes;
     if (!allowed.includes(type)) return;
-    if (selectedUnit === "offense" && linePlayers.has(selectedPlayer) && type !== "Block") {
-      setToast(`${selectedPlayer} uses blocking assignments`);
+    if (isLinePlayer(play, selectedUnit, selectedPlayerId) && type !== "Block") {
+      notifyProblem(`${selectedPlayerLabel} uses blocking assignments`);
       return;
     }
     const targetPhase = selectedUnit === "defense" ? "post" : assignmentPhaseForType(type);
-    const targetIndex = assignmentIndexFor(play, selectedUnit, selectedPlayer, targetPhase);
-    if (targetIndex >= 0 && play.routes[targetIndex]?.type === type) {
-      setSelectedRoute(targetIndex);
+    const existing = assignmentFor(play, selectedUnit, selectedPlayerId, targetPhase);
+    if (existing?.type === type) {
+      setSelectedAssignmentId(existing.id);
       return;
     }
-    const start = playerStartFor(play, selectedUnit, selectedPlayer);
+    const start = playerLocation(play, selectedUnit, selectedPlayerId);
     if (!start) return;
-    const previousAssignment = targetIndex >= 0 ? play.routes[targetIndex] : null;
     const nextAssignment = {
-      ...createAssignment({
-      playId: play.id,
-      playerId: selectedPlayer,
-      start,
-      type,
-      unit: selectedUnit,
-      }),
+      ...createAssignment({ play, playerId: selectedPlayerId, start, type, unit: selectedUnit }),
       ...(play.conceptTemplateId ? { templateOverride: true } : {}),
-      ...(previousAssignment?.inheritedFrom ? { inheritedFrom: previousAssignment.inheritedFrom } : {}),
+      ...(existing?.inheritedFrom ? { inheritedFrom: existing.inheritedFrom } : {}),
     };
-    if (targetIndex < 0) {
-      updatePlay(play.id, (current) => ({ ...current, routes: [...current.routes, nextAssignment] }));
-      setSelectedRoute(play.routes.length);
-    } else {
-      updatePlay(play.id, (current) => ({
-        ...current,
-        routes: current.routes.map((item, index) => index === targetIndex ? nextAssignment : item),
-      }));
-      setSelectedRoute(targetIndex);
-    }
+    updatePlay(play.id, (current) => ({
+      ...current,
+      assignments: existing
+        ? current.assignments.map((item) => item.id === existing.id ? nextAssignment : item)
+        : [...current.assignments, nextAssignment],
+    }));
+    setSelectedAssignmentId(nextAssignment.id);
     setActiveTool(selectedUnit === "defense" ? "Defense" : type);
-    setToast(`${selectedPlayerLabel} ${type.toLowerCase()} assignment ready`);
+    notify(`${selectedPlayerLabel} ${type.toLowerCase()} assignment ready`);
   };
 
   const selectAssignmentStage = (assignmentId) => {
-    const index = play.routes.findIndex((assignment) => assignment.id === assignmentId);
-    if (index >= 0) setSelectedRoute(index);
+    if (play.assignments.some((item) => item.id === assignmentId)) setSelectedAssignmentId(assignmentId);
   };
 
   const addAssignmentStage = (phase) => {
@@ -1718,75 +809,65 @@ export function App() {
       setAssignmentType("Rush");
       return;
     }
-    setAssignmentType(linePlayers.has(selectedPlayer) ? "Block" : "Route");
+    setAssignmentType(isLinePlayer(play, selectedUnit, selectedPlayerId) ? "Block" : "Route");
   };
 
   const changeAssignmentDefinition = (nextDefinition) => {
     if (!route || currentLayerLocked) return;
-    const start = playerStartFor(play, selectedUnit, selectedPlayer);
+    const start = playerLocation(play, selectedUnit, selectedPlayerId);
     if (!start) return;
-    const definition = route.type === "Block"
-      ? sanitizeBlockDefinition(nextDefinition)
-      : route.type === "Motion"
-        ? sanitizeMotionDefinition(nextDefinition)
-        : sanitizeDefensiveDefinition(route.type, nextDefinition);
-    let points = assignmentDefinitionToPoints(start, route.type, definition);
-    if (route.type === "Man") {
-      const target = play.players.find(([label]) => label === definition.target);
-      if (target) {
-        const leverageOffset = definition.leverage === "inside" ? (target[1] < 50 ? 3 : -3) : definition.leverage === "outside" ? (target[1] < 50 ? -3 : 3) : 0;
-        points = [start, [clampValue(target[1] + leverageOffset), clampValue(target[2] - 5, 4, 96)]];
-      }
-    }
-    updateRoute((current) => ({
+    const definition = sanitizeAssignmentDefinition(route.type, nextDefinition);
+    const points = route.type === "Man"
+      ? manCoveragePoints(play, start, definition)
+      : assignmentDefinitionToPoints(start, route.type, definition);
+    updateSelectedAssignment((current) => ({
       ...current,
       definition,
       preset: titleCase(definition.technique ?? definition.motionType ?? definition.area ?? definition.responsibility ?? current.type),
       points,
       geometryMode: "structured",
     }));
-    setToast(`${selectedPlayerLabel} ${route.type.toLowerCase()} updated`);
+    notify(`${selectedPlayerLabel} ${route.type.toLowerCase()} updated`);
   };
 
   const changeAssignmentTiming = (patch) => {
     if (!route || currentLayerLocked) return;
-    updateRoute((current) => ({ ...current, ...patch }));
+    updateSelectedAssignment((current) => ({ ...current, ...patch }));
   };
 
   const copyAssignment = (targetId) => {
     if (!route || currentLayerLocked) return;
-    const sourceStart = playerStartFor(play, selectedUnit, selectedPlayer);
-    const targetStart = playerStartFor(play, selectedUnit, targetId);
-    const phase = route.phase ?? assignmentPhaseForType(route.type);
-    if (!sourceStart || !targetStart || assignmentIndexFor(play, selectedUnit, targetId, phase) >= 0) return;
+    const sourceStart = playerLocation(play, selectedUnit, selectedPlayerId);
+    const targetStart = playerLocation(play, selectedUnit, targetId);
+    if (!sourceStart || !targetStart || assignmentFor(play, selectedUnit, targetId, route.phase)) return;
     const dx = targetStart[0] - sourceStart[0];
     const dy = targetStart[1] - sourceStart[1];
     const copy = {
       ...clonePlaybook([route])[0],
-      id: `${play.id}-${selectedUnit}-${targetId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${phase}-${Date.now()}`,
-      player: targetId,
-      points: route.points.map(([x, y]) => [clampValue(x + dx), clampValue(y + dy, 4, 96)]),
+      id: `${play.id}-${selectedUnit}-${targetId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${route.phase}-${Date.now()}`,
+      playerId: targetId,
+      points: route.points.map(([x, y]) => clampPoint([x + dx, y + dy])),
       evidence: route.evidence ? { ...route.evidence, coachEdited: true, method: "coach-copied" } : route.evidence,
       templateOverride: route.inheritedFrom ? true : route.templateOverride,
     };
-    updatePlay(play.id, (current) => ({ ...current, routes: [...current.routes, copy] }));
-    setSelectedPlayer(targetId);
-    setSelectedRoute(play.routes.length);
-    setToast(`Assignment copied to ${playerLabelFor(play, selectedUnit, targetId)}`);
+    updatePlay(play.id, (current) => ({ ...current, assignments: [...current.assignments, copy] }));
+    setSelectedPlayerId(targetId);
+    setSelectedAssignmentId(copy.id);
+    notify(`Assignment copied to ${playerLabel(play, selectedUnit, targetId)}`);
   };
 
   const mirrorAssignment = () => {
     if (!route || currentLayerLocked) return;
-    const start = playerStartFor(play, selectedUnit, selectedPlayer);
+    const start = playerLocation(play, selectedUnit, selectedPlayerId);
     if (!start) return;
-    updateRoute((current) => ({
+    updateSelectedAssignment((current) => ({
       ...current,
       preset: `${current.preset ?? current.type} Mirror`,
       geometryMode: "manual",
-      points: current.points.map(([x, y]) => [clampValue(start[0] - (x - start[0])), y]),
+      points: current.points.map(([x, y]) => clampPoint([start[0] - (x - start[0]), y])),
       evidence: current.evidence ? { ...current.evidence, coachEdited: true } : current.evidence,
     }));
-    setToast(`${selectedPlayerLabel} assignment mirrored`);
+    notify(`${selectedPlayerLabel} assignment mirrored`);
   };
 
   const toggleRun = () => {
@@ -1809,86 +890,191 @@ export function App() {
     setPlayback("running");
   };
 
+  /**
+   * Scrubs the play to a moment, in SMIL seconds (0 = start of pre-snap).
+   *
+   * The whole animation is one SVG time container, so a single setCurrentTime
+   * drives every token at once. Scrubbing from idle first has to *enter* paused
+   * playback -- the animations only exist while playback is live -- which means
+   * a remount; the target time is parked in a ref and applied by the effect
+   * below once the new SVG is in the DOM. Scrubbing while running pauses, which
+   * matches what a coach means by grabbing the playhead: "stop it right there".
+   */
+  const pendingScrub = useRef(null);
+  const scrubTo = (seconds) => {
+    const duration = playDuration(play.assignments, speed);
+    const target = Math.min(Math.max(seconds, 0), duration);
+    if (playback === "idle") {
+      pendingScrub.current = target;
+      setRunKey((value) => value + 1);
+      setPlayback("paused");
+      return;
+    }
+    const svg = svgRef.current;
+    if (!svg?.setCurrentTime) return;
+    if (playback === "running") {
+      svg.pauseAnimations?.();
+      setPlayback("paused");
+    }
+    svg.setCurrentTime(target);
+  };
+
+  useEffect(() => {
+    if (pendingScrub.current === null) return;
+    const svg = svgRef.current;
+    if (svg?.setCurrentTime) {
+      svg.pauseAnimations?.();
+      svg.setCurrentTime(pendingScrub.current);
+    }
+    pendingScrub.current = null;
+  }, [runKey, playback]);
+
+  /*
+   * Playback theater: while the play runs, each route brightens for exactly
+   * the window its player is running it and dims otherwise, and the LOS glow
+   * flashes at the snap. Driven per-frame from the SVG clock rather than CSS
+   * animation delays, so it stays truthful through pause and scrubbing -- a
+   * CSS timeline would keep counting while SMIL stood still. The rAF writes
+   * inline opacity; the .route transition turns those discrete flips into
+   * eased light changes.
+   */
+  useEffect(() => {
+    if (playback === "idle") return undefined;
+    const svg = svgRef.current;
+    if (!svg?.getCurrentTime) return undefined;
+    let lastTime = svg.getCurrentTime();
+    let frame = requestAnimationFrame(function step() {
+      const t = svg.getCurrentTime();
+      for (const element of svg.querySelectorAll(".route[data-run-start]")) {
+        if (element.classList.contains("layer-hidden")) continue;
+        const start = Number(element.dataset.runStart);
+        const end = start + Number(element.dataset.runDur);
+        element.style.opacity = t >= start && t <= end ? "1" : t < start ? "0.38" : "0.55";
+      }
+      const glow = svg.querySelector(".los-glow");
+      if (glow && lastTime < 2 && t >= 2) {
+        glow.classList.add("snap-flash");
+        window.setTimeout(() => glow.classList.remove("snap-flash"), 500);
+      }
+      lastTime = t;
+      frame = requestAnimationFrame(step);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      for (const element of svg.querySelectorAll(".route[data-run-start]")) element.style.opacity = "";
+    };
+  }, [playback, runKey]);
+
+  /*
+   * The projection is a pure function of (stage box, view), so recomputing it
+   * here yields exactly the one PlayCanvas drew with -- pointer input therefore
+   * lands on the field yard under the finger, at any viewport size.
+   */
   const pointerPoint = (event) => {
     const box = svgRef.current?.parentElement?.getBoundingClientRect();
-    if (!box) return [50, 50];
-    const x = Math.min(98, Math.max(2, ((event.clientX - box.left) / box.width) * 100));
-    const y = Math.min(96, Math.max(4, ((event.clientY - box.top) / box.height) * 100));
-    return view === "end" ? [x, y] : [y, 100 - x];
+    if (!box) return [0, 0];
+    const projection = fieldProjection({ width: box.width, height: box.height, view, play, zoom, framePlay: present });
+    return clampPoint(pointerToField(event, box, projection));
   };
+
+
+  /** Drawing needs a minimum travel in yards before it registers a new vertex. */
+  const DRAW_STEP_YARDS = 0.8;
 
   const startDraw = (event) => {
     if (activeTool === "Select") {
+      // Zoomed in, an empty-field drag pans the camera; at base framing the
+      // same gesture keeps its old meaning, a swipe between plays.
+      if (beginPan(event)) {
+        capturePointer(event.currentTarget, event.pointerId);
+        return;
+      }
       canvasSwipe.current = { x: event.clientX, y: event.clientY };
       return;
     }
-    const drawingTool = ["Route", "Block", "Motion"].includes(activeTool)
+    const drawingTool = offensiveAssignmentTypes.includes(activeTool)
       || (activeTool === "Defense" && route?.unit === "defense");
     if (!drawingTool) return;
-    if (selectedRoute === null) {
-      setToast(`Select a ${activeTool === "Defense" ? "defender" : "player"} before drawing`);
+    if (!route) {
+      notifyProblem(`Select a ${activeTool === "Defense" ? "defender" : "player"} before drawing`);
       return;
     }
     if (currentLayerLocked || !layers.assignments.visible) {
-      setToast(currentLayerLocked ? `Unlock the ${selectedUnit} layer to draw` : "Show the assignments layer to draw");
+      notifyProblem(currentLayerLocked ? `Unlock the ${selectedUnit} layer to draw` : "Show the assignments layer to draw");
       return;
     }
-    if (activeTool !== "Defense" && route?.type !== activeTool) {
-      setToast(`${route?.player ?? "This player"} already has a ${route?.type.toLowerCase() ?? "different assignment"}`);
+    if (activeTool !== "Defense" && route.type !== activeTool) {
+      notifyProblem(`${selectedPlayerLabel ?? "This player"} already has a ${route.type.toLowerCase()}`);
       return;
     }
     drawing.current = true;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    capturePointer(event.currentTarget, event.pointerId);
     const start = route.points[0];
     const next = pointerPoint(event);
-    setDraftRoute(Math.hypot(next[0] - start[0], next[1] - start[1]) > 1.5 ? [start, next] : [start]);
+    setDraftAssignment(Math.hypot(next[0] - start[0], next[1] - start[1]) > DRAW_STEP_YARDS ? [start, next] : [start]);
+  };
+
+  /**
+   * Moves a player to a field point, carrying their assignments so each path
+   * keeps its shape. Shared by dragging and by keyboard nudging.
+   */
+  const movePlayerTo = (unit, playerId, target, options = {}) => {
+    const rosterKey = unit === "defense" ? "defenders" : "players";
+    const next = clampPoint(target);
+    updatePlay(play.id, (current) => {
+      const from = playerLocation(current, unit, playerId);
+      if (!from) return current;
+      const dx = next[0] - from[0];
+      const dy = next[1] - from[1];
+      return {
+        ...current,
+        [rosterKey]: current[rosterKey].map((player) => (
+          player.id === playerId ? { ...player, x: next[0], y: next[1] } : player
+        )),
+        assignments: current.assignments.map((item) => item.playerId === playerId
+          ? {
+              ...item,
+              points: item.points.map(([x, y]) => clampPoint([x + dx, y + dy])),
+              templateOverride: item.inheritedFrom ? true : item.templateOverride,
+            }
+          : item),
+      };
+    }, options);
   };
 
   const movePointer = (event) => {
+    if (panning()) {
+      movePan(event);
+      return;
+    }
     if (playerDrag.current) {
       const next = pointerPoint(event);
-      const snapped = playerDrag.current.unit === "offense"
-        ? [next[0], Math.abs(next[1] - 73) <= 3.5 ? 73 : next[1]]
-        : next;
+      // Magnetic placement: rows, columns and the LOS pull the player in; Alt
+      // drags free for the rare deliberate near-miss alignment.
+      const { point, guides } = snapDragTarget(
+        play,
+        playerDrag.current.unit,
+        playerDrag.current.id,
+        next,
+        { free: event.altKey },
+      );
       if (!playerDrag.current.moved) {
         pushHistory(play.id, playerDrag.current.snapshot);
         playerDrag.current.moved = true;
       }
-      const draggedId = playerDrag.current.id;
-      const draggedUnit = playerDrag.current.unit;
-      updatePlay(play.id, (current) => {
-        const currentStart = playerStartFor(current, draggedUnit, draggedId);
-        if (!currentStart) return current;
-        const dx = snapped[0] - currentStart[0];
-        const dy = snapped[1] - currentStart[1];
-        return {
-          ...current,
-          players: draggedUnit === "offense"
-            ? current.players.map(([label, x, y]) => label === draggedId ? [label, snapped[0], snapped[1]] : [label, x, y])
-            : current.players,
-          defenders: draggedUnit === "defense"
-            ? current.defenders.map((player) => player.id === draggedId ? { ...player, x: snapped[0], y: snapped[1] } : player)
-            : current.defenders,
-          routes: current.routes.map((item) => (item.unit ?? "offense") === draggedUnit && item.player === draggedId
-            ? {
-                ...item,
-                points: item.points.map(([x, y]) => [clampValue(x + dx), clampValue(y + dy, 4, 96)]),
-                templateOverride: item.inheritedFrom ? true : item.templateOverride,
-              }
-            : item),
-        };
-      }, { record: false });
+      movePlayerTo(playerDrag.current.unit, playerDrag.current.id, point, { record: false });
+      setDragInfo({ unit: playerDrag.current.unit, playerId: playerDrag.current.id, guides });
       return;
     }
 
-    if (routePointDrag.current && selectedRoute !== null) {
+    if (routePointDrag.current && route) {
       if (!routePointDrag.current.moved) {
         pushHistory(play.id, routePointDrag.current.snapshot);
         routePointDrag.current.moved = true;
       }
       const next = pointerPoint(event);
       const pointIndex = routePointDrag.current.pointIndex;
-      updateRoute((current) => ({
+      updateSelectedAssignment((current) => ({
         ...current,
         preset: "Custom",
         geometryMode: "manual",
@@ -1898,31 +1084,43 @@ export function App() {
       return;
     }
 
-    const drawingTool = ["Route", "Block", "Motion"].includes(activeTool) || activeTool === "Defense";
+    const drawingTool = offensiveAssignmentTypes.includes(activeTool) || activeTool === "Defense";
     if (!drawing.current || !drawingTool) return;
     const next = pointerPoint(event);
-    setDraftRoute((current) => current.length && Math.hypot(next[0] - current.at(-1)[0], next[1] - current.at(-1)[1]) < 1.5 ? current : [...current, next]);
+    setDraftAssignment((current) => (
+      current.length && Math.hypot(next[0] - current.at(-1)[0], next[1] - current.at(-1)[1]) < DRAW_STEP_YARDS
+        ? current
+        : [...current, next]
+    ));
   };
 
   const finishPointer = (event) => {
+    if (panning()) {
+      endPan();
+      return;
+    }
     if (playerDrag.current) {
-      const movedLabel = playerLabelFor(play, playerDrag.current.unit, playerDrag.current.id);
+      const movedLabel = playerLabel(play, playerDrag.current.unit, playerDrag.current.id);
+      const landedAt = playerLocation(play, playerDrag.current.unit, playerDrag.current.id);
       const moved = playerDrag.current.moved;
       playerDrag.current = null;
-      if (moved) setToast(`${movedLabel} repositioned`);
+      setDragInfo(null);
+      if (moved) notify(`${movedLabel} placed ${landedAt ? describeSpot(landedAt) : ""}`.trim());
       return;
     }
     if (routePointDrag.current) {
       const moved = routePointDrag.current.moved;
       routePointDrag.current = null;
-      if (moved) setToast("Assignment landmark updated");
+      if (moved) notify("Assignment landmark updated");
       return;
     }
     if (drawing.current) {
       drawing.current = false;
-      if (draftRoute.length > 1) {
-        updateRoute((current) => {
-          const sketched = { ...current, points: draftRoute, preset: "Custom" };
+      if (draftAssignment.length > 1) {
+        const label = selectedPlayerLabel ?? "Player";
+        const type = route?.type.toLowerCase() ?? "assignment";
+        updateSelectedAssignment((current) => {
+          const sketched = { ...current, points: draftAssignment, preset: "Custom" };
           return {
             ...sketched,
             definition: current.type === "Route" ? inferRouteDefinition(sketched) : current.definition,
@@ -1930,10 +1128,9 @@ export function App() {
             evidence: current.evidence ? { ...current.evidence, coachEdited: true } : current.evidence,
           };
         });
-        setToast(`${route?.player ?? "Player"} ${route?.type.toLowerCase() ?? "assignment"} updated`);
+        notify(`${label} ${type} updated`);
       }
-      setDraftRoute([]);
-      setActiveTool("Select");
+      setDraftAssignment([]);
     }
     if (canvasSwipe.current && event) {
       const dx = event.clientX - canvasSwipe.current.x;
@@ -1953,15 +1150,15 @@ export function App() {
         : ["Route", "Block"].includes(activeTool)
           ? "post"
           : null;
-    const existingIndex = toolPhase
-      ? assignmentIndexFor(play, unit, playerId, toolPhase)
-      : preferredAssignmentIndex(play, unit, playerId);
+    const existing = toolPhase
+      ? assignmentFor(play, unit, playerId, toolPhase)
+      : preferredAssignment(play, unit, playerId);
 
     setSelectedUnit(unit);
-    setSelectedPlayer(playerId);
+    setSelectedPlayerId(playerId);
 
     if (activeTool === "Select") {
-      setSelectedRoute(existingIndex >= 0 ? existingIndex : null);
+      setSelectedAssignmentId(existing?.id ?? null);
       if (!layers[unit].locked) {
         playerDrag.current = {
           id: playerId,
@@ -1969,58 +1166,56 @@ export function App() {
           moved: false,
           snapshot: clonePlaybook([play])[0],
         };
-        event.currentTarget.ownerSVGElement?.parentElement?.setPointerCapture?.(event.pointerId);
+        capturePointer(event.currentTarget.ownerSVGElement?.parentElement, event.pointerId);
       }
       return;
     }
 
     const unitToolMatches = unit === "defense"
       ? activeTool === "Defense"
-      : ["Route", "Block", "Motion"].includes(activeTool);
+      : offensiveAssignmentTypes.includes(activeTool);
     if (!unitToolMatches) {
-      setSelectedRoute(existingIndex >= 0 ? existingIndex : null);
-      setToast(unit === "defense" ? "Use the Defense tool for defensive assignments" : "Choose Route, Block, or Motion for offensive players");
+      setSelectedAssignmentId(existing?.id ?? null);
+      notifyProblem(unit === "defense" ? "Use the Defense tool for defensive assignments" : "Choose Route, Block, or Motion for offensive players");
       return;
     }
 
-    if (existingIndex >= 0) {
-      setSelectedRoute(existingIndex);
-      const existing = play.routes[existingIndex];
+    if (existing) {
+      setSelectedAssignmentId(existing.id);
       return;
     }
 
     if (layers[unit].locked) {
-      setToast(`Unlock the ${unit} layer to add assignments`);
+      notifyProblem(`Unlock the ${unit} layer to add assignments`);
       return;
     }
 
-    if (unit === "offense" && linePlayers.has(playerId) && activeTool !== "Block") {
-      setToast(`${playerId} uses blocking assignments`);
+    const label = playerLabel(play, unit, playerId);
+    if (isLinePlayer(play, unit, playerId) && activeTool !== "Block") {
+      notifyProblem(`${label} uses blocking assignments`);
       return;
     }
 
-    const start = playerStartFor(play, unit, playerId);
+    const start = playerLocation(play, unit, playerId);
     if (!start) return;
     const type = unit === "defense" ? "Rush" : activeTool;
-    const newRoute = {
-      ...createAssignment({ playId: play.id, playerId, start, type, unit }),
+    const created = {
+      ...createAssignment({ play, playerId, start, type, unit }),
       ...(play.conceptTemplateId ? { templateOverride: true } : {}),
     };
-    updatePlay(play.id, (current) => ({ ...current, routes: [...current.routes, newRoute] }));
-    setSelectedRoute(play.routes.length);
-    setToast(`${playerLabelFor(play, unit, playerId)} ${type.toLowerCase()} added — draw or refine its handles`);
+    updatePlay(play.id, (current) => ({ ...current, assignments: [...current.assignments, created] }));
+    setSelectedAssignmentId(created.id);
+    notify(`${label} ${type.toLowerCase()} added — draw or refine its handles`);
   };
 
-  const selectAssignment = (index) => {
-    setSelectedRoute(index);
-    setSelectedPlayer(play.routes[index]?.player ?? null);
-    setSelectedUnit(play.routes[index]?.unit ?? "offense");
+  const selectAssignment = (assignmentId) => {
+    focusAssignment(play, assignmentId);
   };
 
   const startPointDrag = (pointIndex, event) => {
-    if (selectedRoute === null) return;
+    if (!route) return;
     if (currentLayerLocked || !layers.assignments.visible) {
-      setToast(currentLayerLocked ? `Unlock the ${selectedUnit} layer to edit paths` : "Show the assignments layer to edit paths");
+      notifyProblem(currentLayerLocked ? `Unlock the ${selectedUnit} layer to edit paths` : "Show the assignments layer to edit paths");
       return;
     }
     routePointDrag.current = {
@@ -2028,12 +1223,12 @@ export function App() {
       pointIndex,
       snapshot: clonePlaybook([play])[0],
     };
-    event.currentTarget.ownerSVGElement?.parentElement?.setPointerCapture?.(event.pointerId);
+    capturePointer(event.currentTarget.ownerSVGElement?.parentElement, event.pointerId);
   };
 
   const changeRouteDefinition = (definition) => {
-    if (currentLayerLocked) return;
-    updateRoute((current) => ({
+    if (!route || currentLayerLocked) return;
+    updateSelectedAssignment((current) => ({
       ...current,
       definition,
       geometryMode: "structured",
@@ -2041,19 +1236,40 @@ export function App() {
       points: routeDefinitionToPoints(current.points[0], definition),
       evidence: current.evidence ? { ...current.evidence, coachEdited: true } : current.evidence,
     }));
-    setDraftRoute([]);
-    setToast(`${route.player} route definition updated`);
+    setDraftAssignment([]);
+    notify(`${selectedPlayerLabel} route definition updated`);
   };
 
   const regenerateRoute = () => {
     if (!route?.definition || currentLayerLocked) return;
-    updateRoute((current) => ({
+    updateSelectedAssignment((current) => ({
       ...current,
       geometryMode: "structured",
       preset: "Structured",
       points: routeDefinitionToPoints(current.points[0], current.definition),
     }));
-    setToast(`${route.player} regenerated from its route definition`);
+    notify(`${selectedPlayerLabel} regenerated from its route definition`);
+  };
+
+  /** Nudges the selected player, or the selected path landmark if one is grabbed. */
+  const nudgeSelection = (dx, dy) => {
+    if (!selectedPlayerId || currentLayerLocked) return false;
+    const from = playerLocation(play, selectedUnit, selectedPlayerId);
+    if (!from) return false;
+    movePlayerTo(selectedUnit, selectedPlayerId, [from[0] + dx, from[1] + dy]);
+    return true;
+  };
+
+  /*
+   * Pointer capture is best-effort: the pointer can already be released (or be a
+   * synthetic event), and a throw here would break selection entirely.
+   */
+  const capturePointer = (element, pointerId) => {
+    try {
+      element?.setPointerCapture?.(pointerId);
+    } catch {
+      // no active pointer; dragging simply will not capture
+    }
   };
 
   const openGameDay = () => {
@@ -2070,13 +1286,13 @@ export function App() {
   const startGameDay = () => {
     setGameDay({ playbookId: activePlaybook.id, playId: play.id, snapshot: clonePlaybook([play])[0], startedAt: new Date().toISOString() });
     setGameDayDialog(false);
-    setToast("Temporary game-day variation started");
+    notify("Temporary game-day variation started");
   };
 
   const resolveGameDay = (resolution) => {
     if (!gameDay) return;
     if (gameDay.playbookId !== activePlaybook.id) {
-      setToast("Open the adjusted playbook before resolving this change");
+      notifyProblem("Open the adjusted playbook before resolving this change");
       return;
     }
     const sourceIndex = library.findIndex((item) => item.id === gameDay.playId);
@@ -2087,9 +1303,9 @@ export function App() {
 
     if (resolution === "discard") {
       nextLibrary[sourceIndex] = snapshot;
-      setToast("Temporary changes discarded");
+      notify("Temporary changes discarded");
     } else if (resolution === "replace") {
-      setToast("Original play updated");
+      notify("Original play updated");
     } else {
       const isVariation = resolution === "variation";
       const baseName = isVariation ? `${snapshot.name} Variation` : `${snapshot.name} New`;
@@ -2102,22 +1318,115 @@ export function App() {
       nextLibrary[sourceIndex] = snapshot;
       nextLibrary.push(saved);
       nextId = saved.id;
-      setToast(isVariation ? "Saved as a linked variation" : "Saved as a new play");
+      notify(isVariation ? "Saved as a linked variation" : "Saved as a new play");
     }
 
     setLibrary(nextLibrary);
     setPlayId(nextId);
     const nextPlay = nextLibrary.find((item) => item.id === nextId);
-    const nextRouteIndex = compactViewport() ? null : defaultRouteIndex(nextPlay);
-    setSelectedRoute(nextRouteIndex);
-    setSelectedPlayer(nextRouteIndex === null ? null : nextPlay.routes[nextRouteIndex]?.player ?? null);
-    setSelectedUnit(nextRouteIndex === null ? "offense" : nextPlay.routes[nextRouteIndex]?.unit ?? "offense");
+    if (compactViewport()) clearSelection();
+    else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
     setGameDay(null);
     setGameDayDialog(false);
   };
 
+  const anyDialogOpen = gameDayDialog || detailsDialog || createPlayDialog || deletePlayDialog
+    || newPlaybookDialog || saveFormationDialog || applyFormationDialog || saveConceptDialog
+    || applyConceptDialog || dataToolsDialog || printPreview;
+
+  /*
+   * Keyboard shortcuts. The app previously had none at all -- no undo, no Escape,
+   * no delete, no way to nudge a player -- which for an editor is a significant
+   * gap for keyboard and iPad-with-keyboard use alike.
+   *
+   * Dialogs own their own keys (Modal handles Escape and the focus trap), and
+   * typing in a field is never intercepted.
+   */
+  useEffect(() => {
+    const isTyping = (target) => (
+      target instanceof HTMLElement
+      && (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable)
+    );
+
+    const onKeyDown = (event) => {
+      if (anyDialogOpen || isTyping(event.target)) return;
+      const accel = event.metaKey || event.ctrlKey;
+
+      if (accel && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (accel && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redo();
+        return;
+      }
+      if (accel) return;
+
+      switch (event.key) {
+        case "Escape":
+          event.preventDefault();
+          // Step back out: drop a drawing tool first, then the selection.
+          if (activeTool !== "Select") setActiveTool("Select");
+          else if (present) setPresent(false);
+          else clearSelection();
+          return;
+        case "Delete":
+        case "Backspace":
+          if (!route) return;
+          event.preventDefault();
+          deleteAssignment();
+          return;
+        case " ":
+          event.preventDefault();
+          toggleRun();
+          return;
+        case "ArrowLeft":
+        case "ArrowRight":
+        case "ArrowUp":
+        case "ArrowDown": {
+          // Shift is a coarse yard step; otherwise a fine tenth-of-a-yard step.
+          const step = event.shiftKey ? 1 : 0.25;
+          const [dx, dy] = {
+            ArrowLeft: [-step, 0],
+            ArrowRight: [step, 0],
+            ArrowUp: [0, step],
+            ArrowDown: [0, -step],
+          }[event.key];
+          if (nudgeSelection(dx, dy)) event.preventDefault();
+          return;
+        }
+        case "[":
+          event.preventDefault();
+          selectAdjacentPlay(-1);
+          return;
+        case "]":
+          event.preventDefault();
+          selectAdjacentPlay(1);
+          return;
+        default:
+          break;
+      }
+
+      // Number keys pick a tool, matching the order of the rail.
+      const toolIndex = Number(event.key) - 1;
+      if (Number.isInteger(toolIndex) && toolIndex >= 0 && toolIndex < toolItems.length - 1) {
+        event.preventDefault();
+        setActiveTool(toolItems[toolIndex][0]);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // Deliberately no dependency list: the handler closes over the current
+    // selection, tool and history, and re-binding each render keeps it correct
+    // rather than acting on a stale snapshot.
+  });
+
   return (
-    <main className={`app-shell ${present ? "is-presenting" : ""}`}>
+    <main className={`app-shell ${present ? "is-presenting" : ""} ${playback === "running" ? "is-running" : ""}`} tabIndex={-1}>
       <Header
         activePlaybook={activePlaybook}
         formationLegal={currentFormationStatus.legal}
@@ -2141,9 +1450,10 @@ export function App() {
         onView={(nextView) => { setView(nextView); setPlayback("idle"); }}
         temporary={temporary}
       />
-      {!present ? (
+      {(
         <Filmstrip
           family={activePlaybook.name}
+          familyBases={familyBases}
           library={visibleLibrary}
           fullCount={library.length}
           folders={folders}
@@ -2155,9 +1465,9 @@ export function App() {
           onFolder={setBrowserFolder}
           onQuery={setBrowserQuery}
         />
-      ) : null}
-      <section className="editor-shell">
-        {!present ? (
+      )}
+      <section className={`editor-shell ${!present && selectedPlayerId ? "" : "inspector-closed"}`}>
+        {(
           <ToolRail
             activeTool={activeTool}
             canAddPlayer={play.players.length < 11}
@@ -2177,42 +1487,58 @@ export function App() {
             onUndo={undo}
             temporary={temporary}
           />
-        ) : null}
+        )}
         <div className="canvas-workspace">
-          {!present ? <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} /> : null}
+          <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} />
           <PlayCanvas
             ref={svgRef}
             activeTool={activeTool}
-            draftRoute={draftRoute}
+            draftAssignment={draftAssignment}
             onPointerDown={startDraw}
             onPointerMove={movePointer}
             onPointerUp={finishPointer}
             onStartPointDrag={startPointDrag}
             onSelectPlayer={selectPlayer}
-            onSelectRoute={selectAssignment}
-            paths={play.routes}
+            onSelectAssignment={selectAssignment}
             play={play}
-            playKey={`${play.id}-${view}-${runKey}`}
+            /*
+              Deliberately NOT keyed by play id: switching plays keeps the same
+              SVG so tokens can morph between formations. Every play switch
+              forces playback idle (selectPlay), so no SMIL timing survives the
+              transition; runs still remount via runKey to restart animations.
+            */
+            playKey={`${view}-${runKey}`}
             playback={playback}
-            selectedPlayer={selectedPlayer}
-            selectedRoute={selectedRoute}
+            selectedPlayerId={selectedPlayerId}
+            selectedAssignmentId={selectedAssignmentId}
             selectedUnit={selectedUnit}
             layers={layers}
             speed={speed}
             view={view}
+            dragInfo={dragInfo}
+            zoom={zoom}
+            showDepths={showDepths}
+            present={present}
           />
+          {zoom ? (
+            <button className="zoom-reset" onClick={resetZoom}>
+              <CornersOut size={16} />
+              {`Fit · ${zoom.factor.toFixed(1)}×`}
+            </button>
+          ) : null}
         </div>
-        {!present && selectedPlayer ? (
+        {!present && selectedPlayerId ? (
           <Inspector
             assignments={playerAssignments}
             route={route}
             unit={selectedUnit}
-            playerLabel={selectedPlayerLabel}
+            label={selectedPlayerLabel}
             locked={currentLayerLocked}
+            unavailableTypes={unavailableTypes}
             copyTargets={copyTargets}
             offensePlayers={play.players}
             onAddStage={addAssignmentStage}
-            onClose={() => { setSelectedRoute(null); setSelectedPlayer(null); }}
+            onClose={clearSelection}
             onAssignmentDefinition={changeAssignmentDefinition}
             onCopyAssignment={copyAssignment}
             onDefinition={changeRouteDefinition}
@@ -2226,17 +1552,35 @@ export function App() {
             onTiming={changeAssignmentTiming}
           />
         ) : null}
-        {!present && !selectedPlayer ? <button className="open-inspector" onClick={() => {
-          const nextRouteIndex = defaultRouteIndex(play);
-          setSelectedRoute(nextRouteIndex);
-          setSelectedPlayer(nextRouteIndex === null ? play.players.find(([label]) => !linePlayers.has(label))?.[0] ?? null : play.routes[nextRouteIndex]?.player ?? null);
-          setSelectedUnit(nextRouteIndex === null ? "offense" : play.routes[nextRouteIndex]?.unit ?? "offense");
+        {!present && !selectedPlayerId ? <button className="open-inspector" onClick={() => {
+          const fallbackId = defaultAssignmentId(play);
+          if (fallbackId) {
+            focusAssignment(play, fallbackId);
+            return;
+          }
+          // No assignments yet: open on the first skill player instead.
+          const player = play.players.find((item) => !isLineLabel(item.label)) ?? play.players[0];
+          setSelectedUnit("offense");
+          setSelectedPlayerId(player?.id ?? null);
+          setSelectedAssignmentId(null);
         }}><CaretLeft size={19} />Player inspector</button> : null}
         {present ? <button className="exit-present" onClick={() => setPresent(false)}><X size={18} />Exit presentation</button> : null}
       </section>
-      {!present ? <Timeline assignment={route} playback={playback} onRun={toggleRun} onRestart={restartRun} speed={speed} onSpeed={setSpeed} /> : null}
+      {(
+        <Timeline
+          assignment={route}
+          playback={playback}
+          onRun={toggleRun}
+          onRestart={restartRun}
+          onScrub={scrubTo}
+          duration={playDuration(play.assignments, speed)}
+          getTime={() => svgRef.current?.getCurrentTime?.() ?? 0}
+          speed={speed}
+          onSpeed={setSpeed}
+        />
+      )}
       {gameDayDialog ? <GameDayDialog active={Boolean(gameDay)} play={gameDay ? playbooks.find((book) => book.id === gameDay.playbookId)?.plays.find((item) => item.id === gameDay.playId) ?? play : play} onClose={() => setGameDayDialog(false)} onStart={startGameDay} onResolve={resolveGameDay} /> : null}
-      {detailsDialog ? <PlayDetailsDialog play={play} onClose={() => setDetailsDialog(false)} onSave={(details) => { updatePlay(play.id, (current) => ({ ...current, ...details })); setDetailsDialog(false); setToast("Play details saved"); }} /> : null}
+      {detailsDialog ? <PlayDetailsDialog play={play} onClose={() => setDetailsDialog(false)} onSave={(details) => { updatePlay(play.id, (current) => ({ ...current, ...details })); setDetailsDialog(false); notify("Play details saved"); }} /> : null}
       {createPlayDialog ? <CreatePlayDialog currentPlay={play} formations={activePlaybook.formations} onClose={() => setCreatePlayDialog(false)} onCreate={createPlay} /> : null}
       {deletePlayDialog ? <DeletePlayDialog canDelete={library.length > 1} play={play} onClose={() => setDeletePlayDialog(false)} onDelete={deletePlay} /> : null}
       {newPlaybookDialog ? <NewPlaybookDialog onClose={() => setNewPlaybookDialog(false)} onCreate={createPlaybook} /> : null}
@@ -2250,7 +1594,7 @@ export function App() {
           offlineStatus={offlineStatus}
           onBackup={() => {
             downloadWorkspaceBackup(workspace);
-            setToast("Football OS backup downloaded");
+            notify("Football OS backup downloaded");
           }}
           onClose={() => setDataToolsDialog(false)}
           onConfirmRestore={confirmRestore}
@@ -2267,7 +1611,14 @@ export function App() {
         />
       ) : null}
       {printPreview ? <PrintCollectionPreview playbook={activePlaybook} plays={visibleLibrary.length ? visibleLibrary : library} onClose={() => setPrintPreview(false)} /> : null}
-      <div className={`toast ${toast ? "show" : ""}`} role="status" aria-live="polite">{toast}</div>
+      <Feedback
+        feedback={feedback}
+        onAction={() => {
+          feedback?.onAction?.();
+          setFeedback(null);
+        }}
+        onDismiss={() => setFeedback(null)}
+      />
     </main>
   );
 }

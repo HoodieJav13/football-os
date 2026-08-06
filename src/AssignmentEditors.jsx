@@ -3,6 +3,7 @@ import { ArrowsLeftRight, Copy, Minus, Plus } from "@phosphor-icons/react";
 import {
   blockTechniques,
   defensiveAssignmentTypes,
+  offensiveAssignmentTypes,
   defensiveTechniques,
   fitResponsibilities,
   motionTypes,
@@ -14,21 +15,31 @@ const titleCase = (value) => value
   .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
   .join(" ");
 
-export function AssignmentTypePicker({ unit, value, onChange }) {
-  const options = unit === "defense" ? defensiveAssignmentTypes : ["Route", "Block", "Motion"];
+/**
+ * `unavailable` maps a type to the reason it cannot be used for this player, so
+ * the option is visibly disabled with an explanation rather than accepting the
+ * click and answering with a transient rejection message.
+ */
+export function AssignmentTypePicker({ unit, value, onChange, unavailable = {} }) {
+  const options = unit === "defense" ? defensiveAssignmentTypes : offensiveAssignmentTypes;
   return (
     <div className="assignment-type-picker" role="group" aria-label={`${unit} assignment type`}>
-      {options.map((option) => (
-        <button
-          key={option}
-          type="button"
-          className={value === option ? "active" : ""}
-          aria-pressed={value === option}
-          onClick={() => onChange(option)}
-        >
-          {option}
-        </button>
-      ))}
+      {options.map((option) => {
+        const reason = unavailable[option];
+        return (
+          <button
+            key={option}
+            type="button"
+            className={value === option ? "active" : ""}
+            aria-pressed={value === option}
+            disabled={Boolean(reason)}
+            title={reason}
+            onClick={() => onChange(option)}
+          >
+            {option}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -46,7 +57,8 @@ export function AssignmentStagePicker({
   return (
     <div className="assignment-stage-picker" role="group" aria-label="Assignment stages">
       {stages.map(([phase, label]) => {
-        const assignment = assignments.find((item) => (item.phase ?? (item.type === "Motion" ? "pre" : "post")) === phase);
+        // `phase` is guaranteed by normalization, so no fallback is needed here.
+        const assignment = assignments.find((item) => item.phase === phase);
         return (
           <button
             key={phase}
@@ -153,8 +165,10 @@ export function DefensiveEditor({ assignment, offensePlayers, onChange }) {
       <div className="football-definition">
         <div className="definition-grid">
           <label>Match
-            <select value={definition.target} onChange={(event) => onChange({ ...definition, target: event.target.value })}>
-              {offensePlayers.map(([label]) => <option key={label} value={label}>{label}</option>)}
+            {/* Coverage tracks a player id, so it survives that receiver being relabelled. */}
+            <select value={definition.targetId} onChange={(event) => onChange({ ...definition, targetId: event.target.value })}>
+              {definition.targetId ? null : <option value="">Choose a receiver</option>}
+              {offensePlayers.map((player) => <option key={player.id} value={player.id}>{player.label}</option>)}
             </select>
           </label>
           <label>Leverage
