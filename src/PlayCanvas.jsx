@@ -368,6 +368,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   dragInfo,
   zoom,
   showDepths,
+  present,
 }, ref) {
   const [stageRef, size] = useElementSize();
   const rememberFocusedToken = useRestoreTokenFocus(playKey);
@@ -376,7 +377,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
    * recomputes an identical one from the same stage box when handling pointer
    * input. Nothing needs to be shared through a ref.
    */
-  const projection = fieldProjection({ width: size.width, height: size.height, view, play, zoom });
+  const projection = fieldProjection({ width: size.width, height: size.height, view, play, zoom, framePlay: present });
 
   const showMotion = playback !== "idle";
   const assignments = play.assignments;

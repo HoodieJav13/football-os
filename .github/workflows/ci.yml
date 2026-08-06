@@ -13,7 +13,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Generous, because this counts from when the job is created, not from when
+    # a runner picks it up: the first run was killed at 15 minutes having never
+    # been allocated one, which looks like a test failure and is not.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

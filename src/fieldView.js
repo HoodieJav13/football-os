@@ -53,7 +53,7 @@ export function playBounds(play) {
 }
 
 /** The window to cover, in field yards, as { centre, width, depth }. */
-function windowFor(play, canvasWidth, view) {
+function windowFor(play, canvasWidth, view, framePlay) {
   /*
    * The sideline view frames the play at any width, not just narrow canvases.
    * It maps depth to the wide screen axis, so the fixed window's 46 yd of depth
@@ -64,7 +64,7 @@ function windowFor(play, canvasWidth, view) {
    * once the play itself outgrows them.
    */
   const fit = play && canvasWidth > 0
-    && (view === "side" || canvasWidth < FIT_TO_PLAY_MAX_WIDTH);
+    && (framePlay || view === "side" || canvasWidth < FIT_TO_PLAY_MAX_WIDTH);
   const bounds = fit ? playBounds(play) : null;
 
   if (!bounds) {
@@ -115,13 +115,20 @@ export const ZOOM_MAX = 6;
 
 /**
  * @param {{width: number, height: number, view?: "end"|"side"}} viewport pixel size of the canvas
+ * @param framePlay frame this play rather than the fixed window, whatever the
+ *   canvas size. Presentation sets it: showing one play to a room wants it as
+ *   large as it will go, and cross-play comparability -- the reason the fixed
+ *   window exists -- is what editing needs, not what an audience does. It also
+ *   fixes a real inversion, where entering presentation on a phone in landscape
+ *   widened the canvas past the width threshold and drew the play *smaller*
+ *   (9.77 -> 8.48 px/yd) in the mode meant for showing it.
  * @param zoom optional camera: `{ factor, centre: [fieldX, fieldDepth] }`.
  *   Factor multiplies the base scale; the centre is in field yards so it means
  *   the same spot in either view. Panning is expressed by moving the centre.
  * @returns projection describing the viewBox, the scale, and a point mapper
  */
-export function fieldProjection({ width, height, view = "end", play = null, zoom = null }) {
-  const { toScreen, windowWidth, windowHeight, centre } = orient(view, windowFor(play, width, view));
+export function fieldProjection({ width, height, view = "end", play = null, zoom = null, framePlay = false }) {
+  const { toScreen, windowWidth, windowHeight, centre } = orient(view, windowFor(play, width, view, framePlay));
   const safeWidth = width > 0 ? width : windowWidth;
   const safeHeight = height > 0 ? height : windowHeight;
 

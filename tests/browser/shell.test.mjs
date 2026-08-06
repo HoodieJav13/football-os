@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { SMALL_LAPTOP, token, useBrowser } from "./harness.mjs";
+import { PHONE_LANDSCAPE, SMALL_LAPTOP, token, useBrowser } from "./harness.mjs";
 
 const open = useBrowser();
 
@@ -110,6 +110,43 @@ test("Present hands the whole viewport to the field, and Escape gives it back", 
     "visible", "exiting restores the chrome");
   app.assertNoErrors();
   await app.close();
+});
+
+/*
+ * Presenting on a phone in landscape once drew the play SMALLER than editing
+ * did: entering presentation widens the canvas past the fit-to-play width
+ * threshold, which flipped it back to the fixed window. Height binds this
+ * orientation, so the mode meant for showing a play was the worst place to see
+ * it. Scale is the assertion, not box size -- the box grew while the play shrank.
+ */
+test("presenting never draws the play smaller than editing does", async () => {
+  for (const [name, viewport] of [
+    ["phone landscape", PHONE_LANDSCAPE],
+    ["desktop", { width: 1440, height: 900 }],
+  ]) {
+    const app = await open({ viewport, touch: name.startsWith("phone"), settle: 1300 });
+    const { page } = app;
+    const scale = () => page.evaluate(() => {
+      const svg = document.querySelector(".play-canvas");
+      const box = svg.getBoundingClientRect();
+      return +(box.width / Number(svg.getAttribute("viewBox").split(" ")[2])).toFixed(2);
+    });
+
+    const editing = await scale();
+    const present = page.locator("button", { hasText: /present/i }).first();
+    assert.ok(await present.isVisible(), `${name}: Present is reachable`);
+    await present.click();
+    await page.waitForTimeout(900);
+    const presenting = await scale();
+
+    assert.ok(presenting >= editing,
+      `${name}: ${editing} -> ${presenting} px/yd`);
+    assert.ok(
+      (await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)) <= 1,
+      `${name}: presenting does not overflow the page`);
+    app.assertNoErrors();
+    await app.close();
+  }
 });
 
 test("thumbnails carry assignment colour and mark what each variant changes", async () => {

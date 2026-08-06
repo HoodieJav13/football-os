@@ -1553,8 +1553,15 @@ button:active { scale: 0.96; }
   .family-label,
   .play-meta,
   .offline-state,
-  .topbar .segmented,
-  .header-button { display: none; }
+  .topbar .segmented { display: none; }
+  /*
+    Present survives the landscape trim as an icon. This block used to drop it
+    with the rest of the header buttons to save width -- which removed the one
+    feature this orientation exists for: a phone turned sideways and handed to
+    someone is a play being shown, not edited. It costs 44px of a 232px bar
+    that was only using 210, and the title gives up the difference.
+  */
+  .header-button { width: 44px; padding: 0; font-size: 0; }
   .playbook-trigger { padding: 0; }
   .playbook-trigger-copy,
   .playbook-trigger > svg:last-child { display: none; }
@@ -1586,9 +1593,37 @@ button:active { scale: 0.96; }
   .open-inspector { top: 8px; right: 0; }
   .exit-present { right: 12px; bottom: 12px; }
 
-  /* Presenting hides the side columns entirely, so the field takes the screen. */
-  .is-presenting { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
-  .is-presenting .field-stage { grid-column: 1; grid-row: 1; }
+  /*
+    Presenting hands the screen to the field, keeping only the title bar -- it
+    carries the play name and the way back out, and 48px of 390 is cheap.
+    Every other surface is parked in the field's own cell: the chrome stays
+    mounted so it can slide away, and a leftover placement in a row or column
+    this grid no longer has would mint implicit tracks and quietly squeeze the
+    field (measured: 253px of width and 52px of height lost that way).
+  */
+  .is-presenting {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  /*
+    The title bar goes too. This orientation is height-bound, so 48px of chrome
+    is not a rounding error: keeping it cost 9.77 -> 7.43 px/yd, drawing the
+    play *smaller* in the mode meant for showing it, even while the field gained
+    35% more area. `.exit-present` is the way back out.
+  */
+  .is-presenting .topbar {
+    translate: 0 -110%;
+    opacity: 0;
+    visibility: hidden;
+    transition: translate var(--dur-slow) var(--ease), opacity var(--dur-slow) var(--ease), visibility 0s var(--dur-slow);
+  }
+  .is-presenting .topbar,
+  .is-presenting .field-stage,
+  .is-presenting .tool-rail,
+  .is-presenting .layer-bar,
+  .is-presenting .filmstrip,
+  .is-presenting .inspector,
+  .is-presenting .timeline { grid-column: 1; grid-row: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

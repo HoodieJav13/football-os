@@ -268,3 +268,29 @@ test("pointer input stays accurate through a zoom", () => {
   const back = pointerToField({ clientX, clientY }, box, projection);
   assert.ok(Math.hypot(back[0] - target[0], back[1] - target[1]) < 1e-9);
 });
+
+test("presentation frames the play, and never shrinks it", () => {
+  const play = createSeedPlaybooks()[0].plays[0];
+  // A phone in landscape: editing fits (narrow canvas), presenting widens it
+  // past the width threshold, which used to flip it back to the fixed window.
+  const editing = fieldProjection({ width: 548, height: 390, play });
+  const presenting = fieldProjection({ width: 844, height: 390, play, framePlay: true });
+  assert.ok(presenting.pxPerYard >= editing.pxPerYard,
+    `presenting must not shrink the play: ${editing.pxPerYard.toFixed(2)} -> ${presenting.pxPerYard.toFixed(2)} px/yd`);
+  const bounds = playBounds(play);
+  const [near, far] = presenting.depthRange;
+  const [left, right] = presenting.lateralRange;
+  assert.ok(bounds.minY >= near && bounds.maxY <= far, "the play stays in frame");
+  assert.ok(bounds.minX >= left && bounds.maxX <= right, "the play stays in frame");
+});
+
+test("editing keeps the fixed, comparable window wherever it fits", () => {
+  const play = createSeedPlaybooks()[0].plays[0];
+  for (const canvas of [{ width: 1440, height: 900 }, { width: 908, height: 426 }, { width: 808, height: 526 }]) {
+    assert.equal(
+      fieldProjection({ ...canvas, play }).viewBox,
+      fieldProjection(canvas).viewBox,
+      `${canvas.width}x${canvas.height}: a play must not change editing framing`,
+    );
+  }
+});

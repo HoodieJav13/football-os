@@ -973,7 +973,7 @@ export function App() {
   const pointerPoint = (event) => {
     const box = svgRef.current?.parentElement?.getBoundingClientRect();
     if (!box) return [0, 0];
-    const projection = fieldProjection({ width: box.width, height: box.height, view, play, zoom });
+    const projection = fieldProjection({ width: box.width, height: box.height, view, play, zoom, framePlay: present });
     return clampPoint(pointerToField(event, box, projection));
   };
 
@@ -1518,6 +1518,7 @@ export function App() {
             dragInfo={dragInfo}
             zoom={zoom}
             showDepths={showDepths}
+            present={present}
           />
           {zoom ? (
             <button className="zoom-reset" onClick={resetZoom}>

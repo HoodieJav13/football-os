@@ -132,6 +132,24 @@ test("the timeline is a slider the keyboard can drive", async () => {
  * the caret went away that rule hid the play icon instead, and since the same
  * breakpoint zeroes the label, the button rendered completely blank.
  */
+/*
+ * A phone turned sideways and handed to someone is a play being shown, not
+ * edited -- so Present is the one control this orientation exists for. A
+ * width-saving trim once dropped it entirely, which is easy to do again and
+ * invisible in any test that only checks the DOM.
+ */
+test("Present is reachable on a phone, in both orientations", async () => {
+  for (const [name, viewport] of [["landscape", PHONE_LANDSCAPE], ["portrait", { width: 390, height: 844 }]]) {
+    const app = await open({ viewport, touch: true, settle: 1200 });
+    const present = app.page.locator("button", { hasText: /present/i }).first();
+    assert.ok(await present.count() > 0, `${name}: a Present control exists`);
+    assert.ok(await present.isVisible(), `${name}: it is actually reachable, not display:none`);
+    const box = await present.boundingBox();
+    assert.ok(box.width >= 40 && box.height >= 40, `${name}: it is a real touch target (${Math.round(box.width)}x${Math.round(box.height)})`);
+    await app.close();
+  }
+});
+
 test("every icon-only control still shows its icon", async () => {
   const app = await open({ viewport: PHONE_LANDSCAPE, touch: true, settle: 1200 });
   const blank = await app.page.evaluate(() =>
