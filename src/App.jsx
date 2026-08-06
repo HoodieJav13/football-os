@@ -171,7 +171,7 @@ export function App() {
    * exist; a state hook could sit at the top of the component, this cannot.
    */
   const stageFor = useCallback(() => svgRef.current?.parentElement ?? null, []);
-  const { zoom, beginPan, panning, movePan, endPan, resetZoom } = useCanvasCamera({ stageFor, view, play });
+  const { zoom, beginPan, panning, movePan, endPan, resetZoom, pinching } = useCanvasCamera({ stageFor, view, play });
   /*
    * Selection is held as a stable assignment id rather than an index into
    * play.assignments, so deleting, reordering, applying a concept, or undoing
@@ -982,6 +982,8 @@ export function App() {
   const DRAW_STEP_YARDS = 0.8;
 
   const startDraw = (event) => {
+    // Two fingers are a camera gesture, never a stroke or a player drag.
+    if (pinching()) return;
     if (activeTool === "Select") {
       // Zoomed in, an empty-field drag pans the camera; at base framing the
       // same gesture keeps its old meaning, a swipe between plays.
@@ -1043,6 +1045,14 @@ export function App() {
   };
 
   const movePointer = (event) => {
+    if (pinching()) {
+      // A drag that turns into a pinch must not keep moving whatever it grabbed.
+      playerDrag.current = null;
+      routePointDrag.current = null;
+      drawing.current = false;
+      setDragInfo(null);
+      return;
+    }
     if (panning()) {
       movePan(event);
       return;
@@ -1159,7 +1169,7 @@ export function App() {
 
     if (activeTool === "Select") {
       setSelectedAssignmentId(existing?.id ?? null);
-      if (!layers[unit].locked) {
+      if (!layers[unit].locked && !pinching()) {
         playerDrag.current = {
           id: playerId,
           unit,

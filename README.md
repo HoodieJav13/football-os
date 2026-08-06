@@ -40,6 +40,7 @@ playbook renders at the same scale and is directly comparable.
 | Timeline arrows | With the track focused, step the playhead 0.1s (`Shift` for 0.5s); `Home`/`End` jump |
 | `[` / `]` | Previous or next play in the current filter |
 | `Alt` + drag | Place a player freely, ignoring the alignment magnets |
+| Wheel / pinch | Zoom the field about the cursor or the fingers; drag empty grass to pan |
 | `Escape` | Drop the drawing tool, leave presentation, then clear the selection |
 
 Dialogs close on `Escape` or a click outside, and keep keyboard focus inside

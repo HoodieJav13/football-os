@@ -176,3 +176,61 @@ test("stepping plays with [ and ] moves through the family and back", async () =
   app.assertNoErrors();
   await app.close();
 });
+
+/*
+ * Portrait shows the play at ~8.3 px/yd -- 39 yd of play against a 390px screen
+ * -- and no layout change fixes that without cropping someone off the field.
+ * Pinch adds reach without taking anything away by default, so the assertions
+ * that matter are that it magnifies AND that two fingers never edit the play.
+ */
+test("pinch magnifies on a phone, and never drags a player", async () => {
+  const app = await open({ viewport: { width: 390, height: 844 }, touch: true, settle: 1800 });
+  const { page } = app;
+
+  const scale = () => page.evaluate(() => {
+    const svg = document.querySelector(".play-canvas");
+    return +(svg.getBoundingClientRect().width / Number(svg.getAttribute("viewBox").split(" ")[2])).toFixed(2);
+  });
+  const columns = () => page.evaluate(() =>
+    [...document.querySelectorAll("g.player circle:not(.token-hit)")].map((c) => c.getAttribute("cx")).join(","));
+
+  const session = await page.context().newCDPSession(page);
+  const stage = await page.locator(".field-stage").boundingBox();
+  const cx = stage.x + stage.width / 2;
+  const cy = stage.y + stage.height / 2;
+  const touch = (type, gap) => session.send("Input.dispatchTouchEvent", {
+    type,
+    touchPoints: type === "touchEnd" ? [] : [
+      { x: cx - gap / 2, y: cy, id: 1 },
+      { x: cx + gap / 2, y: cy, id: 2 },
+    ],
+  });
+  const pinchBetween = async (from, to) => {
+    await touch("touchStart", from);
+    for (let step = 1; step <= 8; step += 1) await touch("touchMove", from + (to - from) * (step / 8));
+    await touch("touchEnd", to);
+  };
+
+  const before = await scale();
+  const alignment = await columns();
+
+  await pinchBetween(80, 260);
+  await page.waitForTimeout(400);
+  const magnified = await scale();
+  assert.ok(magnified > before * 1.5, `pinch out magnifies: ${before} -> ${magnified} px/yd`);
+  assert.equal(await page.locator(".zoom-reset").count(), 1, "and offers a way back to the base framing");
+
+  await pinchBetween(260, 90);
+  await page.waitForTimeout(400);
+  assert.ok(await scale() < magnified, "pinch in shrinks again");
+  assert.equal(await columns(), alignment, "no player moved: a pinch is a camera gesture, not an edit");
+
+  // The gesture must not have cost the app its ordinary single-touch behaviour.
+  await page.locator("g.player").nth(0).tap();
+  await page.waitForTimeout(500);
+  assert.ok(await page.evaluate(() => document.querySelector(".inspector-head h2")?.textContent?.trim()),
+    "a single tap still selects a player");
+
+  app.assertNoErrors();
+  await app.close();
+});
