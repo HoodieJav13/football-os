@@ -58,6 +58,9 @@ export function PlayBrowser({
   const mobile = useDismissable();
   const filterPanel = useDismissable();
   const activePlay = allPlays.find((play) => play.id === activeId);
+  const activePlayName = activePlay?.referenceStatus === "verified-reference" && activePlay.sourceCall
+    ? activePlay.sourceCall
+    : activePlay?.name;
   const activeCount = activePlayFilterCount(filters);
 
   const measure = () => {
@@ -92,7 +95,7 @@ export function PlayBrowser({
   return (
     <section className={`filmstrip ${mobile.open ? "mobile-open" : ""}`} aria-label={`${family} playbook plays`} ref={mobile.containerRef}>
       <button type="button" className="mobile-browser-toggle" aria-expanded={mobile.open} onClick={mobile.toggle}>
-        <span><small>Browse</small><strong>{activePlay?.name ?? "No play selected"}</strong></span>
+        <span><small>Browse</small><strong>{activePlayName ?? "No play selected"}</strong></span>
         <span className="mobile-browser-count">{plays.length}/{allPlays.length}</span>
         {mobile.open ? <CaretUp size={18} /> : <CaretDown size={18} />}
       </button>
@@ -144,20 +147,27 @@ export function PlayBrowser({
       </div>
       {scrollState.previous ? <button className="strip-arrow previous" aria-label="Previous plays" onClick={() => nudge(-1)}><CaretLeft size={22} /></button> : null}
       <div className="filmstrip-scroll" ref={scrollRef} onScroll={measure}>
-        {plays.map((play, index) => (
+        {plays.map((play, index) => {
+          const reference = play.referenceStatus === "verified-reference" && play.sourceCall;
+          const primaryName = reference ? play.sourceCall : play.name;
+          return (
           <button
             key={play.id}
             data-play-id={play.id}
             className={`film-card ${play.id === activeId ? "active" : ""}`}
             onClick={() => { mobile.setOpen(false); onChange(play.id); }}
-            aria-label={`Open ${play.name}`}
+            aria-label={`Open ${primaryName}`}
             aria-current={play.id === activeId ? "true" : undefined}
           >
             <span className="film-index">{index + 1}</span>
             <MiniDiagram play={play} basePlay={familyBases.get(play.family)} />
-            <strong>{play.name}</strong>
+            <span className="film-card-label">
+              <strong>{primaryName}</strong>
+              {reference && play.name !== primaryName ? <small>{play.name}</small> : null}
+            </span>
           </button>
-        ))}
+          );
+        })}
         {!plays.length ? (
           <div className="filmstrip-empty">
             <MagnifyingGlass size={23} />

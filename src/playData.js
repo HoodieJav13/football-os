@@ -120,6 +120,29 @@ const emptyPlayers = [
   offensivePlayer("Q", 0, -SHOTGUN_DEPTH_YARDS),
 ];
 
+// LSU's Tiger/Troop calls flex the H into the left slot. Keeping that
+// ownership in the formation is what makes Panther H and Choice originate
+// from the source player instead of from a generic backfield alignment.
+const lsuTigerPlayers = [
+  offensivePlayer("X", -22, 0, "X"),
+  ...interiorLine(),
+  offensivePlayer("Z", 22, 0, "Z"),
+  offensivePlayer("H", -16, -1.5, "H"),
+  offensivePlayer("Y", 8.5, -1.5, "Y"),
+  offensivePlayer("F", 15, -1.5, "F"),
+  offensivePlayer("Q", 0, -SHOTGUN_DEPTH_YARDS, "Q"),
+];
+
+const lsuTroopPlayers = [
+  offensivePlayer("X", -22, 0, "X"),
+  ...interiorLine(),
+  offensivePlayer("Y", 22, 0, "Y"),
+  offensivePlayer("H", -16, -1.5, "H"),
+  offensivePlayer("F", 8.5, -1.5, "F"),
+  offensivePlayer("Z", 15, -1.5, "Z"),
+  offensivePlayer("Q", 0, -SHOTGUN_DEPTH_YARDS, "Q"),
+];
+
 const tripsLeftPlayers = [
   offensivePlayer("X", -21, 0),
   ...interiorLine(),
@@ -147,7 +170,7 @@ const lsuPlayers = [
   offensivePlayer("Y", -10.5, -1.5, "Y"),
   offensivePlayer("F", 10.5, -1.5, "F"),
   offensivePlayer("Q", 0, -SHOTGUN_DEPTH_YARDS, "Q"),
-  offensivePlayer("H", 3, -SHOTGUN_DEPTH_YARDS, "H"),
+  offensivePlayer("H", -3, -SHOTGUN_DEPTH_YARDS, "H"),
 ];
 
 const airRaidPlayers = [
@@ -158,6 +181,20 @@ const airRaidPlayers = [
   offensivePlayer("F", 10.5, -1.5, "Y"),
   offensivePlayer("Q", 0, -SHOTGUN_DEPTH_YARDS, "QB"),
   offensivePlayer("H", 3, -SHOTGUN_DEPTH_YARDS, "T"),
+];
+
+const airRaidBackLeftPlayers = airRaidPlayers.map((player) => (
+  player.label === "H" ? { ...player, x: -3 } : player
+));
+
+const texasTechTripsLeftPlayers = [
+  offensivePlayer("X", -22, 0, "X"),
+  ...interiorLine(),
+  offensivePlayer("Z", 22, 0, "Z"),
+  offensivePlayer("Y", -15, -1.5, "S"),
+  offensivePlayer("F", -9, -1.5, "Y"),
+  offensivePlayer("Q", 0, -SHOTGUN_DEPTH_YARDS, "QB"),
+  offensivePlayer("H", -6, -SHOTGUN_DEPTH_YARDS, "T"),
 ];
 
 export const baseDefenders = [
@@ -172,6 +209,23 @@ export const baseDefenders = [
   defensivePlayer("d-cb-l", "C", -19, 8),
   defensivePlayer("d-cb-r", "C", 19, 8),
   defensivePlayer("d-fs", "FS", 0, 15),
+];
+
+// Texas Tech's selected diagrams include a clear, relevant opponent shell.
+// These labels and landmarks are traced from the source pages; the Air Raid
+// and LSU references intentionally carry no defense because none is shown.
+const texasTechReferenceDefenders = [
+  defensivePlayer("tt-c-l", "C", -22, 8),
+  defensivePlayer("tt-b-l", "B", -15, 5.5),
+  defensivePlayer("tt-ss", "SS", -10, 15),
+  defensivePlayer("tt-e-l", "E", -6, 2.5),
+  defensivePlayer("tt-t-l", "T", -3, 2.5),
+  defensivePlayer("tt-t-r", "T", 3, 2.5),
+  defensivePlayer("tt-e-r", "E", 6, 2.5),
+  defensivePlayer("tt-b-m", "B", 0, 7),
+  defensivePlayer("tt-b-r", "B", 15, 5.5),
+  defensivePlayer("tt-c-r", "C", 22, 8),
+  defensivePlayer("tt-fs", "FS", 10, 15),
 ];
 
 export const releaseOptions = ["none", "inside", "outside", "best"];
@@ -602,7 +656,8 @@ const sourceRoute = (id, playerRef, preset, definition, evidence = {}, pace = 1,
   definition: sanitizeRouteDefinition(definition),
   geometryMode: "structured",
   evidence: {
-    method: evidence.method ?? "labels-and-geometry",
+    method: evidence.method ?? "source-explicit",
+    geometryBasis: evidence.geometryBasis ?? "source-explicit",
     confidence: evidence.confidence ?? "high",
     note: evidence.note ?? "",
     sourcePositionLabel: evidence.sourcePositionLabel ?? playerRef,
@@ -628,7 +683,7 @@ const insideZoneAssignments = (prefix) => [
 ];
 
 /** Non-route assignments derive their geometry from their definition. */
-const assignment = (id, unit, playerRef, type, preset, definition) => ({
+const assignment = (id, unit, playerRef, type, preset, definition, metadata = {}) => ({
   id,
   playerRef,
   unit,
@@ -638,6 +693,7 @@ const assignment = (id, unit, playerRef, type, preset, definition) => ({
   delay: type === "Motion" ? -1.5 : 0,
   phase: assignmentPhaseForType(type),
   definition,
+  ...metadata,
 });
 
 /**
@@ -672,6 +728,7 @@ const play = (id, name, specs, options = {}) => {
   return {
     id,
     name,
+    conceptName: options.conceptName ?? name,
     family: options.family ?? "Mesh",
     personnel: options.personnel ?? "10 Personnel",
     formation: options.formation ?? "Trips Right Open",
@@ -747,11 +804,28 @@ export const plays = [
 
 const evidence = (sourcePositionLabel, note, confidence = "high") => ({ sourcePositionLabel, note, confidence });
 
-const referenceOptions = ({ documentId, documentTitle, call, page, family, formation = "Doubles", players, folder, protection = "", blockingScheme = "Pass Set", variantOf = null }) => ({
+const tracedEvidence = (sourcePositionLabel, note, confidence = "medium-high") => ({
+  sourcePositionLabel,
+  note,
+  confidence,
+  method: "diagram-traced",
+  geometryBasis: "diagram-traced",
+});
+
+const neutralEvidence = (sourcePositionLabel, note, confidence = "medium") => ({
+  sourcePositionLabel,
+  note,
+  confidence,
+  method: "source-explicit",
+  geometryBasis: "neutral-animation",
+});
+
+const referenceOptions = ({ documentId, documentTitle, call, page, family, formation = "Doubles", players, defenders = [], folder, protection = "", blockingScheme = "Pass Set", variantOf = null }) => ({
   family,
   formation,
   personnel: "10 Personnel",
   players,
+  defenders,
   folder,
   protection,
   blockingScheme,
@@ -778,37 +852,33 @@ const airRaidOptions = (call, page, family, folder, extra = {}) => referenceOpti
 
 const airRaidPlays = [
   play("air-60-hitch", "All Hitch", [
-    sourceRoute("air-hitch-x", "X", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Settle versus zone." }, evidence("X", "Hitch explicitly labeled; six-yard depth is a neutral installation standard.", "medium-high"), 0.96),
-    sourceRoute("air-hitch-y", "Y", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Settle versus zone." }, evidence("H", "Hitch explicitly labeled; canonical Y is source H.", "medium-high"), 0.96),
-    sourceRoute("air-hitch-f", "F", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Settle versus zone." }, evidence("Y", "Hitch explicitly labeled; canonical F is source Y.", "medium-high"), 0.96),
-    sourceRoute("air-hitch-z", "Z", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Settle versus zone." }, evidence("Z", "Hitch explicitly labeled; six-yard depth is a neutral installation standard.", "medium-high"), 0.96),
-    assignment("air-hitch-h", "offense", "H", "Block", "Protect", { technique: "pass-set", direction: "right", target: "Inside-out", climb: false }),
-    ...passSetAssignments("air-hitch-pro"),
-  ], airRaidOptions("60 Hitch", 2, "Hitch", "Quick Game", { protection: "60", blockingScheme: "Quick Pass Set" })),
+    sourceRoute("air-hitch-x", "X", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "" }, neutralEvidence("X", "Hitch is explicit; depth and curl are neutral animation geometry."), 0.96),
+    sourceRoute("air-hitch-y", "Y", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "" }, neutralEvidence("H", "Hitch is explicit; canonical Y is source H. Depth is neutral for animation."), 0.96),
+    sourceRoute("air-hitch-f", "F", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "" }, neutralEvidence("Y", "Hitch is explicit; canonical F is source Y. Depth is neutral for animation."), 0.96),
+    sourceRoute("air-hitch-z", "Z", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "" }, neutralEvidence("Z", "Hitch is explicit; depth and curl are neutral animation geometry."), 0.96),
+    assignment("air-hitch-h", "offense", "H", "Block", "Protect", { technique: "pass-set", direction: "right", target: "Inside-out", climb: false }, { evidence: { method: "source-explicit", geometryBasis: "neutral-animation", note: "T Protect is explicit; the short protection track is neutral animation geometry." } }),
+  ], airRaidOptions("60 Hitch", 2, "Hitch", "Quick Game", { protection: "60", blockingScheme: "Unspecified" })),
   play("air-y-cross", "Y Cross", [
-    sourceRoute("air-cross-x", "X", "Go", { release: "outside", stemYards: 34, breaks: [], condition: "Mandatory outside release." }, evidence("X", "Go explicitly labeled."), 1.08),
-    sourceRoute("air-cross-y", "Y", "Post", { release: "inside", stemYards: 12, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "Hold the post safety." }, evidence("H", "Post explicitly labeled; canonical Y is source H."), 1.03),
-    sourceRoute("air-cross-f", "F", "Cross", { release: "inside", stemYards: 8, breaks: [{ direction: "inside", angle: 35, distanceYards: 28 }], condition: "Climb across the linebackers." }, evidence("Y", "Cross explicitly labeled; canonical F is source Y."), 1.01),
-    sourceRoute("air-cross-z", "Z", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Settle in space." }, evidence("Z", "Hitch explicitly labeled.", "medium-high"), 0.96),
-    sourceRoute("air-cross-h", "H", "Shoot", { release: "outside", stemYards: 1, breaks: [{ direction: "outside", angle: 90, distanceYards: 12 }], condition: "Immediate outlet." }, evidence("T", "Shoot explicitly labeled; canonical H is source T."), 0.92),
-    ...passSetAssignments("air-cross-pro"),
-  ], airRaidOptions("Y-Cross", 5, "Y Cross", "Dropback", { protection: "Dropback", blockingScheme: "Half Slide" })),
+    sourceRoute("air-cross-x", "X", "Go", { release: "none", stemYards: 34, breaks: [], condition: "" }, tracedEvidence("X", "Go label and path are shown; depth is traced from the diagram."), 1.08),
+    sourceRoute("air-cross-y", "Y", "Post", { release: "none", stemYards: 12, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "" }, tracedEvidence("H", "Post path is shown; canonical Y is source H."), 1.03),
+    sourceRoute("air-cross-f", "F", "Cross", { release: "none", stemYards: 8, breaks: [{ direction: "inside", angle: 55, distanceYards: 28 }], condition: "" }, tracedEvidence("Y", "Cross path is shown; canonical F is source Y."), 1.01),
+    sourceRoute("air-cross-z", "Z", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "" }, neutralEvidence("Z", "Hitch is explicit; depth is neutral for animation."), 0.96),
+    sourceRoute("air-cross-h", "H", "Shoot", { release: "none", stemYards: 0, breaks: [{ direction: "outside", angle: 90, distanceYards: 12 }], condition: "" }, tracedEvidence("T", "Shoot path is shown to the left; canonical H is source T."), 0.92),
+  ], airRaidOptions("Y-Cross", 5, "Y Cross", "Dropback", { players: airRaidBackLeftPlayers, protection: "Unspecified", blockingScheme: "Unspecified" })),
   play("air-91-y-smash", "Smash", [
-    sourceRoute("air-smash-x", "X", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Settle versus zone." }, evidence("X", "Hitch explicitly labeled.", "medium-high"), 0.96),
+    sourceRoute("air-smash-x", "X", "Hitch", { release: "none", stemYards: 6, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "" }, neutralEvidence("X", "Hitch is explicit; depth is neutral for animation."), 0.96),
     sourceRoute("air-smash-y", "Y", "Post", { release: "inside", stemYards: 12, breaks: [{ direction: "inside", angle: 45, distanceYards: 18 }], condition: "Hold the middle safety." }, evidence("H", "Post explicitly labeled; canonical Y is source H."), 1.03),
     sourceRoute("air-smash-f", "F", "Corner", { release: "outside", stemYards: 10, breaks: [{ direction: "outside", angle: 45, distanceYards: 18 }], condition: "Stay over the flat defender." }, evidence("Y", "Corner explicitly labeled; canonical F is source Y."), 1.02),
     sourceRoute("air-smash-z", "Z", "Quick Hitch", { release: "none", stemYards: 3, breaks: [{ direction: "inside", angle: 135, distanceYards: 1 }], condition: "Two-to-three-yard access throw." }, evidence("Z", "2-3 Yd. Hitch explicitly labeled."), 0.94),
-    assignment("air-smash-h", "offense", "H", "Block", "Protect", { technique: "pass-set", direction: "right", target: "Inside-out", climb: false }),
-    ...passSetAssignments("air-smash-pro"),
-  ], airRaidOptions("91 Y", 7, "Smash", "Quick Game", { protection: "Quick", blockingScheme: "Quick Pass Set" })),
+    assignment("air-smash-h", "offense", "H", "Block", "Protect / middle curl", { technique: "pass-set", direction: "right", target: "Inside-out", climb: false }, { evidence: { method: "source-explicit", geometryBasis: "neutral-animation", note: "T Protect or Middle Curl is explicit; the preview shows the protection branch." } }),
+  ], airRaidOptions("91 Y", 7, "Smash", "Quick Game", { protection: "91", blockingScheme: "Unspecified" })),
   play("air-94-y-sail", "Sail", [
     sourceRoute("air-sail-x", "X", "Dig", { release: "inside", stemYards: 12, breaks: [{ direction: "inside", angle: 90, distanceYards: 16 }], condition: "Find the backside window." }, evidence("X", "Dig explicitly labeled."), 0.99),
     sourceRoute("air-sail-y", "Y", "Shoot", { release: "outside", stemYards: 1, breaks: [{ direction: "outside", angle: 90, distanceYards: 12 }], condition: "Fast to the flat." }, evidence("H", "Shoot explicitly labeled; canonical Y is source H."), 0.94),
     sourceRoute("air-sail-f", "F", "Sail", { release: "outside", stemYards: 10, breaks: [{ direction: "outside", angle: 55, distanceYards: 18 }], condition: "Stay between the corner and flat defender." }, evidence("Y", "Sail explicitly labeled; canonical F is source Y.", "medium-high"), 1.02),
     sourceRoute("air-sail-z", "Z", "Go", { release: "outside", stemYards: 34, breaks: [], condition: "Clear the corner." }, evidence("Z", "Go explicitly labeled."), 1.08),
     sourceRoute("air-sail-h", "H", "Swing", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 90, distanceYards: 12 }], condition: "Outlet under the sail." }, evidence("T", "Swing explicitly labeled; canonical H is source T."), 0.9),
-    ...passSetAssignments("air-sail-pro"),
-  ], airRaidOptions("94 Y", 10, "Sail", "Movement Pass", { protection: "Rollout", blockingScheme: "Move Pocket" })),
+  ], airRaidOptions("94 Y", 10, "Sail", "Dropback", { protection: "94", blockingScheme: "Unspecified" })),
 ];
 
 const lsuOptions = (call, page, family, formation, folder, extra = {}) => referenceOptions({
@@ -819,7 +889,11 @@ const lsuOptions = (call, page, family, formation, folder, extra = {}) => refere
   family,
   folder,
   formation,
-  players: formation === "Empty" ? emptyPlayers : lsuPlayers,
+  players: formation.startsWith("Tiger") || formation === "Empty"
+    ? lsuTigerPlayers
+    : formation === "Troop"
+      ? lsuTroopPlayers
+      : lsuPlayers,
   ...extra,
 });
 
@@ -830,56 +904,49 @@ const lsuPlays = [
     sourceRoute("lsu-stick-f", "F", "Stick", { release: "none", stemYards: 5, breaks: [{ direction: "outside", angle: 90, distanceYards: 3 }], condition: "Read man/zone; turn away from leverage.", alternatives: [{ id: "man-out", label: "Out versus man", when: "Man with inside leverage", release: "none", stemYards: 5, breaks: [{ direction: "outside", angle: 90, distanceYards: 6 }] }] }, evidence("F", "5 YDS and READ MAN/ZONE are explicit."), 0.95),
     sourceRoute("lsu-stick-z", "Z", "Access Out", { release: "none", stemYards: 3, breaks: [{ direction: "outside", angle: 90, distanceYards: 4 }], condition: "Take access with width over depth." }, evidence("Z", "2-3 YDS and width-over-depth labels are explicit."), 0.96),
     sourceRoute("lsu-stick-h", "H", "Check Arrow", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 90, distanceYards: 10 }], condition: "Check eyes, then arrow." }, evidence("H", "CHECK EYES and ARROW are explicit."), 0.88),
-    ...passSetAssignments("lsu-stick-pro"),
-  ], lsuOptions("L DICE JORDAN STICKY", 37, "Stick", "Doubles", "Quick Game", { protection: "Jordan", blockingScheme: "Quick Pass Set" })),
+  ], lsuOptions("L DICE JORDAN STICKY", 37, "Stick", "Dice", "Quick Game", { protection: "Jordan", blockingScheme: "Unspecified" })),
   play("lsu-choice", "Choice", [
     sourceRoute("lsu-choice-x", "X", "Choice Corner", { release: "none", stemYards: 12, breaks: [{ direction: "outside", angle: 45, distanceYards: 14 }], condition: "Corner/choice by man-zone and leverage.", alternatives: [{ id: "zone-settle", label: "Settle versus zone", when: "Zone", release: "none", stemYards: 5, breaks: [{ direction: "inside", angle: 90, distanceYards: 4 }] }] }, evidence("X", "12 YDS, leverage conversions, and alert are explicit."), 1.02),
     sourceRoute("lsu-choice-y", "Y", "Hitch", { release: "none", stemYards: 5, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Access versus soft leverage." }, evidence("Y", "Hitch/choice relationship visible.", "medium-high"), 0.95),
     sourceRoute("lsu-choice-f", "F", "Stick", { release: "none", stemYards: 5, breaks: [{ direction: "outside", angle: 90, distanceYards: 4 }], condition: "Read man/zone; force outside release." }, evidence("F", "5 YDS and READ MAN/ZONE are explicit."), 0.95),
     sourceRoute("lsu-choice-z", "Z", "Locked Hitch / Fade", { release: "outside", stemYards: 5, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Locked hitch; alert fade versus man.", alternatives: [{ id: "fade-v-man", label: "Fade versus man", when: "Alert versus man", release: "outside", stemYards: 34, breaks: [] }] }, evidence("Z", "LOCKED HITCH and ALERT VS. MAN are explicit."), 1.02),
     sourceRoute("lsu-choice-h", "H", "Choice", { release: "outside", stemYards: 2, breaks: [{ direction: "outside", angle: 65, distanceYards: 12 }], condition: "Choice away from leverage." }, evidence("H", "CHOICE explicitly labeled.", "medium-high"), 0.9),
-    ...passSetAssignments("lsu-choice-pro"),
-  ], lsuOptions("R TROOP PACER SHOCK CHOICE", 39, "Choice", "Troop", "Dropback", { protection: "Pacer", blockingScheme: "Half Slide" })),
+  ], lsuOptions("R TROOP PACER SHOCK CHOICE", 39, "Choice", "Troop", "Dropback", { protection: "Pacer", blockingScheme: "Unspecified" })),
   play("lsu-hank", "Hank / Spacing", [
     sourceRoute("lsu-hank-x", "X", "Hook", { release: "none", stemYards: 10, breaks: [{ direction: "outside", angle: 135, distanceYards: 3 }], condition: "Hook and find outside void." }, evidence("X", "10 YDS and HOOK are explicit."), 0.96),
     sourceRoute("lsu-hank-y", "Y", "Middle Hook", { release: "none", stemYards: 5, breaks: [], condition: "Find the void." }, evidence("Y", "5 YDS FIND THE VOID is explicit."), 0.92),
     sourceRoute("lsu-hank-f", "F", "Flat Hook", { release: "outside", stemYards: 4, breaks: [{ direction: "outside", angle: 90, distanceYards: 7 }], condition: "Expand 4-6 yards, then settle." }, evidence("F", "FLAT/HOOK and 4-6 YDS are explicit."), 0.94),
-    sourceRoute("lsu-hank-z", "Z", "Hook", { release: "none", stemYards: 10, breaks: [{ direction: "outside", angle: 135, distanceYards: 3 }], condition: "Hook and find outside void." }, evidence("Z", "10-12 YDS and HOOK are explicit."), 0.96),
+    sourceRoute("lsu-hank-z", "Z", "Hook", { release: "none", stemYards: 10, breaks: [{ direction: "inside", angle: 135, distanceYards: 3 }], condition: "Hook and find the inside void." }, evidence("Z", "10 YDS and the inward hook are explicit."), 0.96),
     sourceRoute("lsu-hank-h", "H", "Arrow", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 90, distanceYards: 11 }], condition: "Immediate arrow." }, evidence("H", "ARROW explicitly labeled."), 0.9),
-    ...passSetAssignments("lsu-hank-pro"),
-  ], lsuOptions("L DICE PACER HANK", 40, "Hank", "Dice", "Dropback", { protection: "Pacer", blockingScheme: "Half Slide" })),
+  ], lsuOptions("L DICE PACER HANK", 40, "Hank", "Dice", "Dropback", { protection: "Pacer", blockingScheme: "Unspecified" })),
   play("lsu-four-verticals", "Four Verticals", [
     sourceRoute("lsu-verts-x", "X", "Go", { release: "best", stemYards: 34, breaks: [], condition: "Best release; alert versus access." }, evidence("X", "BEST REL. GO and alert are explicit."), 1.06),
     sourceRoute("lsu-verts-y", "Y", "Bender", { release: "none", stemYards: 11, breaks: [{ direction: "inside", angle: 30, distanceYards: 20 }], condition: "Bender versus MFO; seam versus MFC.", alternatives: [{ id: "seam-mfc", label: "Seam versus MFC", when: "Middle field closed", release: "none", stemYards: 34, breaks: [] }] }, evidence("Y", "10-12 YDS plus MFO bender/MFC seam are explicit."), 1.01),
     sourceRoute("lsu-verts-f", "F", "Bender", { release: "none", stemYards: 11, breaks: [{ direction: "inside", angle: 30, distanceYards: 20 }], condition: "Bender versus MFO; seam versus MFC.", alternatives: [{ id: "seam-mfc", label: "Seam versus MFC", when: "Middle field closed", release: "none", stemYards: 34, breaks: [] }] }, evidence("F", "10-12 YDS plus MFO bender/MFC seam are explicit."), 1.01),
     sourceRoute("lsu-verts-z", "Z", "Go", { release: "best", stemYards: 34, breaks: [], condition: "Best release; go." }, evidence("Z", "BEST REL. GO is explicit."), 1.06),
     sourceRoute("lsu-verts-h", "H", "Check Balloon", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 90, distanceYards: 9 }], condition: "Check protection, then balloon." }, evidence("H", "CHECK BALLOON is explicit."), 0.84),
-    ...passSetAssignments("lsu-verts-pro"),
-  ], lsuOptions("L DOME JORDAN CAT", 41, "Four Verticals", "Dome", "Verticals", { protection: "Jordan", blockingScheme: "Dropback Pass Set" })),
+  ], lsuOptions("L DOME JORDAN CAT", 41, "Four Verticals", "Dome", "Verticals", { protection: "Jordan", blockingScheme: "Unspecified" })),
   play("lsu-shallow", "Shallow Cross", [
     sourceRoute("lsu-shallow-x", "X", "Go", { release: "best", stemYards: 34, breaks: [], condition: "Best release; go." }, evidence("X", "BEST REL. GO is explicit."), 1.06),
     sourceRoute("lsu-shallow-y", "Y", "Deep Over", { release: "inside", stemYards: 11, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "Bender versus MFO.", alternatives: [{ id: "bender-mfo", label: "Bender versus MFO", when: "Middle field open", release: "inside", stemYards: 11, breaks: [{ direction: "inside", angle: 30, distanceYards: 22 }] }] }, evidence("Y", "10-12 YDS deep over and MFO bender are explicit."), 1.02),
     sourceRoute("lsu-shallow-f", "F", "Bender", { release: "inside", stemYards: 11, breaks: [{ direction: "inside", angle: 30, distanceYards: 20 }], condition: "Seam versus MFC; bender versus MFO." }, evidence("F", "10-12 YDS and BENDER READ are explicit."), 1.01),
     sourceRoute("lsu-shallow-z", "Z", "Go", { release: "best", stemYards: 34, breaks: [], condition: "Best release; go." }, evidence("Z", "BEST REL. GO is explicit."), 1.06),
     sourceRoute("lsu-shallow-h", "H", "Shallow", { release: "inside", stemYards: 4, breaks: [{ direction: "inside", angle: 90, distanceYards: 28 }], condition: "Continue versus man; throttle in zone." }, evidence("H", "4-6 YDS shallow and READ IT are explicit."), 0.94),
-    ...passSetAssignments("lsu-shallow-pro"),
-  ], lsuOptions("R TIGER PACER PANTHER H", 49, "Shallow Cross", "Tiger", "Dropback", { protection: "Pacer", blockingScheme: "Half Slide" })),
+  ], lsuOptions("R TIGER PACER PANTHER H", 49, "Shallow Cross", "Tiger", "Dropback", { protection: "Pacer", blockingScheme: "Unspecified" })),
   play("lsu-snag", "Snag", [
-    sourceRoute("lsu-snag-x", "X", "Snag", { release: "inside", stemYards: 4, breaks: [{ direction: "inside", angle: 75, distanceYards: 6 }], condition: "Settle in grass." }, evidence("X", "4 YDS and SNAG are explicit."), 0.93),
+    sourceRoute("lsu-snag-x", "X", "Snag", { release: "outside", stemYards: 4, breaks: [{ direction: "outside", angle: 75, distanceYards: 6 }], condition: "Sit versus zone." }, evidence("X", "4 YDS, SNAG, and SIT VS. ZONE are explicit."), 0.93),
     sourceRoute("lsu-snag-y", "Y", "Basic", { release: "inside", stemYards: 12, breaks: [{ direction: "inside", angle: 90, distanceYards: 14 }], condition: "Get friendly across the field." }, evidence("Y", "12 YDS GET FRIENDLY is explicit."), 0.99),
     sourceRoute("lsu-snag-f", "F", "Lucy Slant", { release: "inside", stemYards: 4, breaks: [{ direction: "inside", angle: 45, distanceYards: 10 }], condition: "Slant until you cannot; settle versus zone." }, evidence("F", "SLANT UNTIL YOU CAN'T is explicit."), 0.96),
     sourceRoute("lsu-snag-z", "Z", "Go", { release: "outside", stemYards: 34, breaks: [], condition: "Collision through outside shoulder; clear." }, evidence("Z", "Collision instruction and bus-ticket clear are explicit."), 1.04),
     sourceRoute("lsu-snag-h", "H", "Flat", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 90, distanceYards: 12 }], condition: "Fast flat under the snag." }, evidence("H", "FLAT explicitly labeled."), 0.91),
-    ...passSetAssignments("lsu-snag-pro"),
-  ], lsuOptions("L DOME PACER LUCY SNAG", 66, "Snag", "Dome", "Dropback", { protection: "Pacer", blockingScheme: "Half Slide" })),
+  ], lsuOptions("L DOME PACER LUCY SNAG", 66, "Snag", "Dome", "Dropback", { protection: "Pacer", blockingScheme: "Unspecified" })),
   play("lsu-empty-choice", "Empty Choice", [
-    sourceRoute("lsu-empty-x", "X", "Choice Corner", { release: "none", stemYards: 12, breaks: [{ direction: "outside", angle: 45, distanceYards: 14 }], condition: "Choice by man/zone leverage.", alternatives: [{ id: "zone-settle", label: "Settle versus zone", when: "Zone", release: "none", stemYards: 5, breaks: [{ direction: "inside", angle: 90, distanceYards: 4 }] }] }, evidence("X", "12 YDS corner/choice and leverage conversions are explicit."), 1.02),
+    sourceRoute("lsu-empty-x", "X", "Alert Corner", { release: "none", stemYards: 12, breaks: [{ direction: "outside", angle: 45, distanceYards: 14 }], condition: "Alert corner." }, evidence("X", "ALERT and the 12-yard corner are explicit."), 1.02),
     sourceRoute("lsu-empty-y", "Y", "Seam Read", { release: "inside", stemYards: 11, breaks: [{ direction: "inside", angle: 30, distanceYards: 20 }], condition: "Deep over versus MFC; take middle versus MFO." }, evidence("Y", "10-12 YDS and seam-read rules are explicit."), 1.01),
     sourceRoute("lsu-empty-f", "F", "Spot", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 45, distanceYards: 6 }], condition: "Find the void." }, evidence("F", "5 YDS FIND THE VOID is explicit."), 0.93),
     sourceRoute("lsu-empty-z", "Z", "Spot", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 45, distanceYards: 6 }], condition: "Find the void." }, evidence("Z", "5 YDS FIND THE VOID is explicit."), 0.93),
-    sourceRoute("lsu-empty-h", "H", "Choice Support", { release: "outside", stemYards: 3, breaks: [{ direction: "outside", angle: 90, distanceYards: 8 }], condition: "Expand under the choice route." }, evidence("H", "Split-back alignment is explicit; support path is diagram-inferred.", "medium"), 0.94),
-    ...passSetAssignments("lsu-empty-pro"),
-  ], lsuOptions("R TIGER PACER SPARK CHOICE", 57, "Choice", "Empty", "Empty", { protection: "Pacer", blockingScheme: "Empty Protection", variantOf: "lsu-choice" })),
+    sourceRoute("lsu-empty-h", "H", "Choice", { release: "none", stemYards: 5, breaks: [{ direction: "outside", angle: 90, distanceYards: 5 }], condition: "Convert by man/zone and inside/outside leverage.", alternatives: [{ id: "zone-settle", label: "Settle versus zone", when: "Zone", release: "none", stemYards: 5, breaks: [{ direction: "inside", angle: 90, distanceYards: 4 }] }] }, evidence("H", "CHOICE, 5 YDS, and the leverage conversions are explicit."), 0.96),
+  ], lsuOptions("R TIGER PACER SPARK CHOICE", 57, "Choice", "Tiger Empty", "Empty", { protection: "Pacer", blockingScheme: "Unspecified", variantOf: "lsu-choice" })),
 ];
 
 const texasTechOptions = (call, page, family, formation, folder, extra = {}) => referenceOptions({
@@ -890,43 +957,40 @@ const texasTechOptions = (call, page, family, formation, folder, extra = {}) => 
   family,
   folder,
   formation,
-  players: formation === "Trips Left" ? tripsLeftPlayers.map((player) => ({ ...player, sourceLabel: ({ Y: "S", F: "Y", H: "T", Q: "QB" })[player.label] ?? player.label })) : texasTechPlayers,
+  players: formation === "Trips Left" ? texasTechTripsLeftPlayers : texasTechPlayers,
+  defenders: texasTechReferenceDefenders,
   ...extra,
 });
 
 const texasTechPlays = [
   play("tt-z-mesh", "Z Mesh", [
-    sourceRoute("tt-zmesh-x", "X", "Shallow", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 80, distanceYards: 27 }], condition: "Cross under the paired mesh route." }, evidence("X", "Path and read order are diagram-traced.", "medium-high"), 0.92),
-    sourceRoute("tt-zmesh-y", "Y", "Out", { release: "none", stemYards: 12, breaks: [{ direction: "outside", angle: 90, distanceYards: 7 }], condition: "Set the outside high-low." }, evidence("S", "Canonical Y is source S; path is diagram-traced.", "medium-high"), 0.98),
-    sourceRoute("tt-zmesh-f", "F", "Post", { release: "inside", stemYards: 14, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "Hold the post safety." }, evidence("Y", "Canonical F is source Y; path is diagram-traced.", "medium-high"), 1.04),
-    sourceRoute("tt-zmesh-z", "Z", "Mesh", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 80, distanceYards: 30 }], condition: "Set the mesh and continue." }, evidence("Z", "Mesh path and read 2 are visible."), 0.92),
-    sourceRoute("tt-zmesh-h", "H", "Swing", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 75, distanceYards: 16 }], condition: "Outlet underneath the mesh." }, evidence("T", "Canonical H is source T; path is diagram-traced.", "medium-high"), 0.87),
-    ...passSetAssignments("tt-zmesh-pro"),
-  ], texasTechOptions("700 Z MESH", 118, "Mesh", "Doubles", "Dropback", { protection: "700", blockingScheme: "Dropback Pass Set" })),
+    sourceRoute("tt-zmesh-x", "X", "Shallow", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 80, distanceYards: 27 }], condition: "Continue across the formation." }, tracedEvidence("X", "Shallow path is traced from the diagram."), 0.92),
+    sourceRoute("tt-zmesh-y", "Y", "Speed Out", { release: "none", stemYards: 12, breaks: [{ direction: "outside", angle: 90, distanceYards: 7 }], condition: "Read 2 in the source progression." }, tracedEvidence("S", "Canonical Y is source S; the out and read 2 are visible."), 0.98),
+    sourceRoute("tt-zmesh-f", "F", "Post", { release: "inside", stemYards: 14, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "Read 1 in the source progression." }, tracedEvidence("Y", "Canonical F is source Y; the post and read 1 are visible."), 1.04),
+    sourceRoute("tt-zmesh-z", "Z", "Mesh", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 80, distanceYards: 30 }], condition: "Read 3 in the source progression." }, tracedEvidence("Z", "Mesh path and read 3 are visible."), 0.92),
+    sourceRoute("tt-zmesh-h", "H", "Swing", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 75, distanceYards: 16 }], condition: "Outlet under the mesh." }, tracedEvidence("T", "Canonical H is source T; the left swing is traced from the diagram."), 0.87),
+  ], texasTechOptions("700 Z MESH", 118, "Mesh", "Doubles", "Dropback", { protection: "700", blockingScheme: "Unspecified" })),
   play("tt-y-mesh", "Y Mesh", [
-    sourceRoute("tt-ymesh-x", "X", "Go", { release: "outside", stemYards: 34, breaks: [], condition: "Clear the corner." }, evidence("X", "Go path diagram-traced."), 1.08),
-    sourceRoute("tt-ymesh-y", "Y", "Mesh", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 80, distanceYards: 28 }], condition: "Set the mesh and continue." }, evidence("S", "Canonical Y is source S; mesh path visible."), 0.92),
-    sourceRoute("tt-ymesh-f", "F", "Mesh", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 80, distanceYards: 28 }], condition: "Cross under the paired mesh route." }, evidence("Y", "Canonical F is source Y; mesh path visible."), 0.92),
-    sourceRoute("tt-ymesh-z", "Z", "Post", { release: "inside", stemYards: 14, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "Hold the post safety." }, evidence("Z", "Post path diagram-traced.", "medium-high"), 1.04),
-    sourceRoute("tt-ymesh-h", "H", "Swing", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 75, distanceYards: 16 }], condition: "Outlet underneath the mesh." }, evidence("T", "Canonical H is source T; path is diagram-traced.", "medium-high"), 0.87),
-    ...passSetAssignments("tt-ymesh-pro"),
-  ], texasTechOptions("700 Y MESH", 120, "Mesh", "Doubles", "Dropback", { protection: "700", blockingScheme: "Dropback Pass Set", variantOf: "tt-z-mesh" })),
+    sourceRoute("tt-ymesh-x", "X", "Mesh", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 80, distanceYards: 28 }], condition: "Continue across the formation." }, tracedEvidence("X", "The left-to-right mesh path is traced from the diagram."), 0.92),
+    sourceRoute("tt-ymesh-y", "Y", "Post", { release: "outside", stemYards: 14, breaks: [{ direction: "outside", angle: 45, distanceYards: 20 }], condition: "Read 1 in the source progression." }, tracedEvidence("S", "Canonical Y is source S; the post and read 1 are visible."), 1.04),
+    sourceRoute("tt-ymesh-f", "F", "Mesh", { release: "inside", stemYards: 5, breaks: [{ direction: "inside", angle: 80, distanceYards: 28 }], condition: "Read 2 in the source progression." }, tracedEvidence("Y", "Canonical F is source Y; the right-to-left mesh and read 2 are visible."), 0.92),
+    sourceRoute("tt-ymesh-z", "Z", "Post", { release: "inside", stemYards: 14, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "Clear the right side." }, tracedEvidence("Z", "Post path is traced from the diagram."), 1.04),
+    sourceRoute("tt-ymesh-h", "H", "Swing", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 75, distanceYards: 16 }], condition: "Read 3 in the source progression." }, tracedEvidence("T", "Canonical H is source T; the left swing and read 3 are visible."), 0.87),
+  ], texasTechOptions("700 Y MESH", 120, "Mesh", "Doubles", "Dropback", { protection: "700", blockingScheme: "Unspecified", variantOf: "tt-z-mesh" })),
   play("tt-crack-go", "Crack-and-Go Motion", [
-    sourceRoute("tt-crack-x", "X", "Deep Cross", { release: "inside", stemYards: 8, breaks: [{ direction: "inside", angle: 60, distanceYards: 24 }], condition: "Cross behind the crack action." }, evidence("X", "Backside crossing path is diagram-traced.", "medium-high"), 1.01),
-    assignment("tt-crack-y-motion", "offense", "Y", "Motion", "Rip", { motionType: "jet", direction: "right", distanceYards: 20 }),
-    assignment("tt-crack-y-block", "offense", "Y", "Block", "Crack", { technique: "down", direction: "right", target: "Force defender", climb: false }),
-    sourceRoute("tt-crack-f", "F", "Post", { release: "inside", stemYards: 12, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "Win inside after the motion clears." }, evidence("Y", "Canonical F is source Y; read 2 path is visible.", "medium-high"), 1.04),
-    sourceRoute("tt-crack-z", "Z", "Crack-and-Go", { release: "inside", stemYards: 4, breaks: [{ direction: "outside", angle: 60, distanceYards: 6 }, { direction: "vertical", angle: 0, distanceYards: 25 }], condition: "Sell the crack, then release vertical." }, evidence("Z", "Crack-and-go path and read 1 are explicit."), 1.05),
-    sourceRoute("tt-crack-h", "H", "Shoot", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 75, distanceYards: 13 }], condition: "Fast outlet after the snap." }, evidence("T", "Canonical H is source T; read 3 path is visible.", "medium-high"), 0.91),
-    ...passSetAssignments("tt-crack-pro"),
-  ], texasTechOptions("60 CRACK & GO", 116, "Crack-and-Go", "Doubles", "Motion Pass", { protection: "60", blockingScheme: "Quick Pass Set" })),
+    sourceRoute("tt-crack-x", "X", "Deep Cross", { release: "inside", stemYards: 8, breaks: [{ direction: "inside", angle: 60, distanceYards: 24 }], condition: "Read 4 in the source progression." }, tracedEvidence("X", "Backside crossing path and read 4 are visible."), 1.01),
+    assignment("tt-crack-y-motion", "offense", "Y", "Motion", "Rip", { motionType: "jet", direction: "right", distanceYards: 20 }, { evidence: { method: "diagram-traced", geometryBasis: "diagram-traced", note: "RIP motion is drawn left to right." } }),
+    assignment("tt-crack-y-block", "offense", "Y", "Block", "Crack", { technique: "down", direction: "right", target: "Force defender", climb: false }, { evidence: { method: "diagram-traced", geometryBasis: "diagram-traced", note: "The crack path after motion is shown." } }),
+    sourceRoute("tt-crack-f", "F", "Post", { release: "inside", stemYards: 12, breaks: [{ direction: "inside", angle: 45, distanceYards: 20 }], condition: "Read 2 in the source progression." }, tracedEvidence("Y", "Canonical F is source Y; read 2 and the post path are visible."), 1.04),
+    sourceRoute("tt-crack-z", "Z", "Crack-and-Go", { release: "inside", stemYards: 4, breaks: [{ direction: "outside", angle: 60, distanceYards: 6 }, { direction: "vertical", angle: 0, distanceYards: 25 }], condition: "Read 1 in the source progression." }, tracedEvidence("Z", "Crack-and-go path and read 1 are visible."), 1.05),
+    sourceRoute("tt-crack-h", "H", "Shoot", { release: "inside", stemYards: 0, breaks: [{ direction: "inside", angle: 75, distanceYards: 13 }], condition: "Read 3 in the source progression." }, tracedEvidence("T", "Canonical H is source T; the right shoot and read 3 are visible."), 0.91),
+  ], texasTechOptions("60 CRACK & GO", 116, "Crack-and-Go", "Doubles", "Motion Pass", { protection: "60", blockingScheme: "Diagrammed blocking" })),
   play("tt-bubble", "Bubble Screen", [
-    assignment("tt-bubble-x", "offense", "X", "Block", "Stalk", { technique: "drive", direction: "left", target: "Corner", climb: false }),
-    assignment("tt-bubble-y", "offense", "Y", "Block", "Alley", { technique: "reach", direction: "left", target: "Apex defender", climb: true }),
-    sourceRoute("tt-bubble-f", "F", "Bubble", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 95, distanceYards: 12 }], condition: "Gain width behind the two blockers." }, evidence("Y", "Canonical F is source Y; bubble path and read 1 are visible.", "medium-high"), 1.03),
-    sourceRoute("tt-bubble-z", "Z", "Access", { release: "outside", stemYards: 8, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Hold the backside corner." }, evidence("Z", "Backside access path is diagram-inferred.", "medium"), 0.96),
-    assignment("tt-bubble-h", "offense", "H", "Block", "Protect", { technique: "pass-set", direction: "left", target: "Backside edge", climb: false }),
-    ...passSetAssignments("tt-bubble-pro"),
+    assignment("tt-bubble-x", "offense", "X", "Block", "Stalk", { technique: "drive", direction: "left", target: "Corner", climb: false }, { evidence: { method: "diagram-traced", geometryBasis: "diagram-traced", note: "Source X stalks the corner." } }),
+    assignment("tt-bubble-y", "offense", "Y", "Block", "Alley", { technique: "reach", direction: "right", target: "Apex defender", climb: true }, { evidence: { method: "diagram-traced", geometryBasis: "diagram-traced", note: "Source S blocks the alley defender." } }),
+    sourceRoute("tt-bubble-f", "F", "Bubble", { release: "outside", stemYards: 0, breaks: [{ direction: "outside", angle: 95, distanceYards: 12 }], condition: "Read 1 in the source progression." }, tracedEvidence("Y", "Canonical F is source Y; the bubble and read 1 are visible."), 1.03),
+    sourceRoute("tt-bubble-z", "Z", "Backside Access Choice", { release: "none", stemYards: 8, breaks: [{ direction: "inside", angle: 135, distanceYards: 2 }], condition: "Choose the access conversion shown in the source.", alternatives: [{ id: "access-go", label: "Go access", when: "Take the vertical access", release: "none", stemYards: 34, breaks: [] }, { id: "access-slant", label: "Slant access", when: "Take the inside access", release: "none", stemYards: 5, breaks: [{ direction: "inside", angle: 45, distanceYards: 12 }] }] }, tracedEvidence("Z", "The vertical, inside, and settle access branches are all drawn; the trigger is not specified."), 0.96),
+    assignment("tt-bubble-h", "offense", "H", "Block", "Inside lead", { technique: "reach", direction: "right", target: "Inside support", climb: false }, { evidence: { method: "diagram-traced", geometryBasis: "diagram-traced", note: "Source T works inside in the diagram." } }),
   ], texasTechOptions("300 BUBBLE", 223, "Bubble Screen", "Trips Left", "Screens", { protection: "300", blockingScheme: "Perimeter Screen" })),
 ];
 
@@ -1075,6 +1139,7 @@ function normalizeAssignment(assignmentData, playData) {
     evidence: coachEdited ? assignmentData.evidence : {
       ...embeddedEvidence,
       method: embeddedEvidence.method ?? (evidence ? "labels-and-geometry" : playData.sourcePage ? "diagram-geometry" : "existing-diagram"),
+      geometryBasis: embeddedEvidence.geometryBasis ?? (evidence ? "source-explicit" : playData.sourcePage ? "diagram-traced" : "existing-diagram"),
       confidence: embeddedEvidence.confidence ?? (evidence ? "medium-high" : "medium"),
       sourceLabel: embeddedEvidence.sourceLabel ?? playData.sourceLabel ?? null,
       sourcePage: embeddedEvidence.sourcePage ?? playData.sourcePage ?? null,
@@ -1088,7 +1153,7 @@ function normalizeAssignment(assignmentData, playData) {
 export function normalizePlay(playData) {
   const migrated = isLegacyPlay(playData) ? migrateLegacyPlay(playData) : playData;
   const players = clonePlaybook(migrated.players?.length ? migrated.players : basePlayers);
-  const defenders = clonePlaybook(migrated.defenders?.length ? migrated.defenders : baseDefenders);
+  const defenders = clonePlaybook(Array.isArray(migrated.defenders) ? migrated.defenders : baseDefenders);
   const playerIds = new Set([...players, ...defenders].map((player) => player.id));
 
   return {
@@ -1096,6 +1161,7 @@ export function normalizePlay(playData) {
     folder: migrated.folder ?? (migrated.sourcePage ? "Source Plays" : "Offense"),
     protection: migrated.protection ?? "",
     blockingScheme: migrated.blockingScheme ?? "",
+    conceptName: migrated.conceptName ?? migrated.name,
     conceptTemplateId: migrated.conceptTemplateId ?? null,
     variantOf: migrated.variantOf ?? null,
     players,

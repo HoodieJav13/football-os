@@ -175,6 +175,56 @@ test("the verified reference pack uses canonical and source labels without losin
   }
 });
 
+test("reference calls remain primary while clean concept names remain available", () => {
+  const references = createSeedPlaybooks().slice(1).flatMap((book) => book.plays);
+  assert.ok(references.every((play) => play.sourceCall && play.conceptName));
+  assert.deepEqual(
+    references.slice(0, 4).map((play) => [play.sourceCall, play.conceptName]),
+    [["60 Hitch", "All Hitch"], ["Y-Cross", "Y Cross"], ["91 Y", "Smash"], ["94 Y", "Sail"]],
+  );
+});
+
+test("reference defense follows the cited page instead of a generic shell", () => {
+  const books = createSeedPlaybooks();
+  const airAndLsu = books.slice(1, 3).flatMap((book) => book.plays);
+  const texasTech = books.find((book) => book.id === "texas-tech-reference").plays;
+  assert.ok(airAndLsu.every((play) => play.defenders.length === 0));
+  assert.ok(texasTech.every((play) => play.defenders.length === 11));
+  assert.deepEqual([...new Set(texasTech[0].defenders.map((player) => player.label))].sort(), ["B", "C", "E", "FS", "SS", "T"]);
+});
+
+test("Tiger, Troop, and Texas Tech Mesh routes originate from the source owners", () => {
+  const books = createSeedPlaybooks();
+  const lsu = books.find((book) => book.id === "lsu-2019-reference").plays;
+  const shallow = lsu.find((play) => play.id === "lsu-shallow");
+  const emptyChoice = lsu.find((play) => play.id === "lsu-empty-choice");
+  const troop = lsu.find((play) => play.id === "lsu-choice");
+  assert.ok(byLabel(shallow.players, "H").x < -10);
+  assert.ok(assignmentFor(shallow, "H").points.at(-1)[0] > 0);
+  assert.ok(byLabel(emptyChoice.players, "H").x < -10);
+  assert.ok(byLabel(troop.players, "Y").x > byLabel(troop.players, "Z").x);
+
+  const yMesh = books.find((book) => book.id === "texas-tech-reference").plays.find((play) => play.id === "tt-y-mesh");
+  const sourceS = yMesh.players.find((player) => player.sourceLabel === "S");
+  const sourceY = yMesh.players.find((player) => player.sourceLabel === "Y");
+  const xRoute = assignmentFor(yMesh, "X");
+  const sRoute = yMesh.assignments.find((item) => item.playerId === sourceS.id && item.type === "Route");
+  const yRoute = yMesh.assignments.find((item) => item.playerId === sourceY.id && item.type === "Route");
+  assert.ok(xRoute.points.at(-1)[0] > xRoute.points[0][0]);
+  assert.ok(sRoute.points.at(-1)[0] < sRoute.points[0][0]);
+  assert.ok(yRoute.points.at(-1)[0] < yRoute.points[0][0]);
+});
+
+test("reference route evidence distinguishes explicit, traced, and neutral geometry", () => {
+  const references = createSeedPlaybooks().slice(1).flatMap((book) => book.plays);
+  const routes = references.flatMap((play) => play.assignments.filter((item) => item.type === "Route"));
+  const bases = new Set(routes.map((route) => route.evidence?.geometryBasis));
+  assert.ok(bases.has("source-explicit"));
+  assert.ok(bases.has("diagram-traced"));
+  assert.ok(bases.has("neutral-animation"));
+  assert.ok(routes.every((route) => ["source-explicit", "diagram-traced", "neutral-animation"].includes(route.evidence?.geometryBasis)));
+});
+
 test("conditional route alternatives survive normalization and change preview geometry", () => {
   const choice = createSeedPlaybooks().find((book) => book.id === "lsu-2019-reference").plays.find((play) => play.id === "lsu-choice");
   const lockedHitch = choice.assignments.find((item) => item.id === "lsu-choice-z");
@@ -332,7 +382,8 @@ test("explicit PDF measurements override conflicting traced geometry", () => {
 
   assert.equal(yRoute.definition.stemYards, 5);
   assert.equal(yRoute.definition.condition, "Read man/zone; turn away from leverage.");
-  assert.equal(yRoute.evidence.method, "labels-and-geometry");
+  assert.equal(yRoute.evidence.method, "source-explicit");
+  assert.equal(yRoute.evidence.geometryBasis, "source-explicit");
   assert.equal(yRoute.evidence.confidence, "high");
   assert.equal(yRoute.geometryMode, "structured");
 });

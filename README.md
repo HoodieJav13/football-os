@@ -11,7 +11,7 @@ Football OS is an iPad-first football play designer and coach-facing playbook wo
 - Automatic animation timing with per-player pace and delay
 - Reusable formations and concept templates with play-level overrides
 - Multiple playbooks, folders, filters, variations, and game-plan collections
-- Three protected 10-personnel reference playbooks (Air Raid, LSU 2019, and Texas Tech) with 15 verified concepts, source calls/pages, and independent copy-to-main editing
+- Three protected 10-personnel reference playbooks (Air Raid, LSU 2019, and Texas Tech) with 15 verified concepts, source calls shown as the primary names, call-specific alignments, evidence-qualified route geometry, and independent copy-to-main editing
 - Canonical X/Y/F/Z/H/Q labels alongside retained source-playbook labels and conditional route conversions
 - Temporary game-day changes that can be promoted into permanent plays
 - Production offline copy for game-day use

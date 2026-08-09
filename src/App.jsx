@@ -345,6 +345,7 @@ function Header({
   temporary,
 }) {
   const reference = activePlaybook.readOnly === true;
+  const primaryName = reference && play.sourceCall ? play.sourceCall : play.name;
   const running = playback === "running";
   const runLabel = running ? "Pause" : playback === "paused" ? "Resume" : "Run";
   return (
@@ -361,16 +362,16 @@ function Header({
         />
         <span className="heading-rule" aria-hidden="true" />
         <div>
-          <span className="family-label">{play.family} Family</span>
+          <span className="family-label">{reference ? `Concept · ${play.conceptName ?? play.name}` : `${play.family} Family`}</span>
           <div className="title-line">
-            <h1>{play.name}</h1>
+            <h1>{primaryName}</h1>
             {temporary ? <span className="temporary-chip">Temporary</span> : reference ? <span className="reference-chip"><LockSimple size={13} />Reference</span> : <NotePencil size={18} aria-hidden="true" />}
           </div>
           <div className="play-meta"><span>{play.personnel}</span><span>{play.formation}</span></div>
         </div>
       </div>
       <div className="top-actions">
-        {reference ? <button className="reference-copy-button" onClick={onCopy}><Copy size={18} />Add to {mainPlaybook.name}</button> : null}
+        {reference ? <button className="reference-copy-button" aria-label={`Add to ${mainPlaybook.name}`} onClick={onCopy}><Copy size={18} /><span className="copy-label-long">Add to {mainPlaybook.name}</span><span className="copy-label-short">Add to Active</span></button> : null}
         <span className={`offline-state ${formationLegal ? "" : "draft-state"}`}>
           {!formationLegal ? <Warning size={18} /> : offlineStatus.ready ? <WifiHigh size={18} /> : offlineStatus.online ? <CloudCheck size={18} /> : <WifiSlash size={18} />}
           {!formationLegal
@@ -665,7 +666,11 @@ function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
 
       {evidence?.sourcePage ? (
         <div className="source-evidence">
-          <span>{evidence.method === "labels-and-geometry" ? "PDF labels + geometry" : "PDF geometry inferred"} · {titleCase(evidence.confidence)}</span>
+          <span>{evidence.geometryBasis === "neutral-animation"
+            ? "Source label · neutral animation geometry"
+            : evidence.geometryBasis === "diagram-traced"
+              ? "Diagram-traced geometry"
+              : "Source-explicit geometry"} · {titleCase(evidence.confidence)}</span>
           <strong>{evidence.sourceLabel} · page {evidence.sourcePage}</strong>
           {evidence.note ? <small>{evidence.note}</small> : null}
           {evidence.coachEdited ? <small>Coach-edited after detection</small> : null}
@@ -1481,7 +1486,8 @@ export function App() {
     const copy = {
       ...clonePlaybook([play])[0],
       id: `${mainPlaybook.id}-${play.id}-${Date.now()}`,
-      name: uniqueName(mainPlaybook.plays, play.name),
+      name: uniqueName(mainPlaybook.plays, play.sourceCall || play.name),
+      conceptName: play.conceptName ?? play.name,
       variantOf: null,
       referenceStatus: "copied-reference",
       importedFrom: {
@@ -1497,7 +1503,7 @@ export function App() {
         ? { ...book, plays: [...book.plays, copy] }
         : book),
     }));
-    notify(`${play.name} added to ${mainPlaybook.name}`);
+    notify(`${play.sourceCall || play.name} added to ${mainPlaybook.name}`);
   };
 
   const createPlaybook = (name) => {

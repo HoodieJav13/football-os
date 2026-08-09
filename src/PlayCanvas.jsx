@@ -416,6 +416,9 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
     for (const player of play.defenders) morphPositions.set(defenseMorph.get(player.id), projection.project([player.x, player.y]));
   }
   useFormationMorph({ stageRef, play, projection, ready, playback, positions: morphPositions });
+  const accessiblePlayName = play.referenceStatus === "verified-reference" && play.sourceCall
+    ? play.sourceCall
+    : play.name;
 
   return (
     <div
@@ -432,7 +435,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
         className="play-canvas"
         viewBox={projection.viewBox}
         preserveAspectRatio="xMidYMid meet"
-        aria-label={`${play.name} play diagram`}
+        aria-label={`${accessiblePlayName} play diagram`}
       >
         <defs>
           <marker id="route-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
@@ -444,7 +447,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
         </defs>
 
         {ready ? <FieldMarkings projection={projection} /> : null}
-        <title>{`${play.name}, ${play.formation}, ${play.personnel}`}</title>
+        <title>{`${accessiblePlayName}, ${play.formation}, ${play.personnel}`}</title>
 
         {/*
           Layer order: markings, routes, offence, offence labels, defence,

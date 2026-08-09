@@ -38,7 +38,8 @@ test("@desktop verified reference books are protected and copy independently", a
   await expect(page.getByRole("menuitem", { name: /LSU 2019 Reference/ })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /Texas Tech Reference/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Air Raid Reference/ }).click();
-  await expect(page.getByRole("heading", { name: "All Hitch", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "60 Hitch", exact: true })).toBeVisible();
+  await expect(page.getByText("Concept · All Hitch", { exact: true })).toBeVisible();
   await expect(page.getByText("Reference", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Create a new play" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Route", exact: true })).toBeDisabled();
@@ -46,17 +47,17 @@ test("@desktop verified reference books are protected and copy independently", a
   await page.getByRole("button", { name: "Add to Personal Active" }).click();
   await page.locator(".playbook-trigger").click();
   await page.getByRole("menuitem", { name: /Personal Active/ }).click();
-  await page.getByRole("button", { name: "Open All Hitch", exact: true }).click();
+  await page.getByRole("button", { name: "Open 60 Hitch", exact: true }).click();
   await page.getByRole("button", { name: "More" }).click();
   await page.getByRole("menuitem", { name: "Play details" }).click();
-  await page.getByLabel("Play name").fill("All Hitch Edited");
+  await page.getByLabel("Play name").fill("60 Hitch Edited");
   await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByRole("heading", { name: "All Hitch Edited", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "60 Hitch Edited", exact: true })).toBeVisible();
 
   await page.locator(".playbook-trigger").click();
   await page.getByRole("menuitem", { name: /Air Raid Reference/ }).click();
-  await expect(page.getByRole("heading", { name: "All Hitch", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "All Hitch Edited", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "60 Hitch", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "60 Hitch Edited", exact: true })).toHaveCount(0);
 });
 
 test("@compact browse opens without covering access to structured filters", async ({ page }) => {

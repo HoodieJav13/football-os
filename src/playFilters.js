@@ -40,6 +40,8 @@ export function filterPlays(plays, filters) {
     if (!query) return true;
     return [
       play.name,
+      play.conceptName,
+      play.sourceCall,
       play.family,
       play.formation,
       play.personnel,
