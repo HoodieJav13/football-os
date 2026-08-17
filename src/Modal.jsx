@@ -1,5 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+/** Matches the dialog exit keyframes in styles.css. */
+const EXIT_MS = 160;
 
 const FOCUSABLE = [
   "a[href]",
@@ -39,6 +42,30 @@ export function Modal({
   const panelRef = useRef(null);
   const scrimRef = useRef(null);
   const restoreFocusRef = useRef(null);
+  const [leaving, setLeaving] = useState(false);
+
+  /*
+   * Dismissal animates before the caller unmounts us. Callers render dialogs as
+   * `{flag ? <Dialog/> : null}`, so the moment `onClose` runs the element is
+   * gone and there is nothing left to animate -- this holds it for the exit and
+   * then reports the close.
+   *
+   * Only *dismissals* route through here. Confirming an action (Save, Create,
+   * Delete) closes instantly and deliberately: the outcome that follows -- a new
+   * play, a toast, a changed board -- is the feedback, and making someone watch
+   * a dialog leave first would put a pause between their decision and its
+   * result. Withdrawing should feel like withdrawing; committing should feel
+   * immediate.
+   */
+  const requestClose = useCallback(() => {
+    if (leaving) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+      onClose();
+      return;
+    }
+    setLeaving(true);
+    window.setTimeout(onClose, EXIT_MS);
+  }, [leaving, onClose]);
 
   useEffect(() => {
     restoreFocusRef.current = document.activeElement;
@@ -82,7 +109,7 @@ export function Modal({
       if (event.key === "Escape" && dismissable) {
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        requestClose();
         return;
       }
       if (event.key !== "Tab") return;
@@ -107,16 +134,16 @@ export function Modal({
 
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [dismissable, onClose]);
+  }, [dismissable, requestClose]);
 
   // Portalled to <body> so the aria-hidden treatment above is sound, and so a
   // dialog is never clipped by an ancestor's overflow.
   return createPortal((
     <div
-      className="modal-scrim"
+      className={`modal-scrim ${leaving ? "is-leaving" : ""}`}
       ref={scrimRef}
       onPointerDown={(event) => {
-        if (dismissable && event.target === scrimRef.current) onClose();
+        if (dismissable && event.target === scrimRef.current) requestClose();
       }}
     >
       <Panel

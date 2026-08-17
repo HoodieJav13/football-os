@@ -25,15 +25,15 @@ const assignmentKeyEntries = [
 ];
 
 function AssignmentKey({ showDepths, onShowDepths }) {
-  const { open, toggle, containerRef } = useDismissable();
+  const { open, present, leaving, toggle, containerRef } = useDismissable();
   return (
     <div className="assignment-key" ref={containerRef}>
       <button type="button" aria-expanded={open} aria-haspopup="true" onClick={toggle}>
         <Info size={17} />
         <strong>Key</strong>
       </button>
-      {open ? (
-        <div className="assignment-key-panel" role="group" aria-label="Assignment key">
+      {present ? (
+        <div className={`assignment-key-panel ${leaving ? "is-leaving" : ""}`} role="group" aria-label="Assignment key">
           <div className="assignment-key-head">Assignment types</div>
           {assignmentKeyEntries.map(([label, type, meaning]) => (
             <div className="assignment-key-row" key={type}>

@@ -186,3 +186,96 @@ test("break depths are off by default and toggle on from the Key", async () => {
   assert.ok(await tags() >= 4, "the tags survive dismissing the popover");
   await app.close();
 });
+
+/*
+ * Entrances were the easy half. Exits need the element to survive its own
+ * dismissal, so every one of these asserts the thing is still mounted and
+ * animating shortly after being closed, then actually gone once it finishes --
+ * a leak here would strand a dead panel on screen forever.
+ */
+test("surfaces animate out rather than popping", async () => {
+  const app = await open();
+  const { page } = app;
+
+  // The inspector's content is derived from the selection, so its dismissal
+  // defers the state change: clearing first would leave an empty shell to slide.
+  await token(page, "X").click();
+  await page.waitForTimeout(450);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(70);
+  assert.equal(
+    await page.evaluate(() => {
+      const panel = document.querySelector(".inspector");
+      return panel ? getComputedStyle(panel).animationName : "unmounted";
+    }),
+    "panel-out-right", "the inspector slides out");
+  assert.ok(await page.evaluate(() => document.querySelector(".inspector h2")?.textContent?.trim()),
+    "and it still has its content on the way out");
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator(".inspector").count(), 0, "then it is gone");
+
+  await page.locator(".assignment-key > button").click();
+  await page.waitForTimeout(300);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(60);
+  assert.equal(
+    await page.evaluate(() => {
+      const panel = document.querySelector(".assignment-key-panel");
+      return panel ? getComputedStyle(panel).animationName : "unmounted";
+    }),
+    "pop-out", "the popover shrinks away");
+  await page.waitForTimeout(350);
+  assert.equal(await page.locator(".assignment-key-panel").count(), 0, "then it is gone");
+
+  await page.locator(".film-card.create-card").click();
+  await page.waitForTimeout(400);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(70);
+  const dialog = await page.evaluate(() => {
+    const scrim = document.querySelector(".modal-scrim");
+    return scrim
+      ? { scrim: getComputedStyle(scrim).animationName, panel: getComputedStyle(scrim.firstElementChild).animationName }
+      : "unmounted";
+  });
+  assert.deepEqual(dialog, { scrim: "fade-out", panel: "surface-out" }, "the dialog fades out over a fading scrim");
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator(".modal-scrim").count(), 0, "then it is gone");
+
+  // Reopening during or after an exit must land open, not stuck half-closed.
+  await token(page, "X").click();
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator(".inspector").count(), 1, "the inspector reopens");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(60);
+  await token(page, "Y").click();
+  await page.waitForTimeout(400);
+  assert.equal(await page.locator(".inspector").count(), 1, "closing then immediately reopening lands open");
+
+  app.assertNoErrors();
+  await app.close();
+});
+
+/*
+ * The reopen pill is positioned against .canvas-workspace, whose first grid row
+ * is the layer bar -- so it once sat directly on top of the Key button and ate
+ * every press on it. Any floating control over the canvas can do this.
+ */
+test("floating canvas controls do not cover the layer bar", async () => {
+  const app = await open();
+  const { page } = app;
+  await page.keyboard.press("Escape"); // no selection -> the reopen pill appears
+  await page.waitForTimeout(500);
+
+  const covered = await page.evaluate(() =>
+    [...document.querySelectorAll(".layer-bar button")]
+      .filter((button) => button.offsetParent !== null)
+      .filter((button) => {
+        const box = button.getBoundingClientRect();
+        const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return !button.contains(top) && top !== button;
+      })
+      .map((button) => (button.getAttribute("aria-label") || button.textContent).trim().slice(0, 40)));
+
+  assert.deepEqual(covered, [], "layer bar controls covered by something else");
+  await app.close();
+});
