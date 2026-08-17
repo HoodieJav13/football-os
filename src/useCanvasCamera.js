@@ -91,5 +91,89 @@ export function useCanvasCamera({ stageFor, view, play }) {
   const endPan = useCallback(() => { panSession.current = null; }, []);
   const resetZoom = useCallback(() => setZoom(null), []);
 
-  return { zoom, beginPan, panning, movePan, endPan, resetZoom };
+  /*
+   * Pinch to zoom, the touch equivalent of the wheel.
+   *
+   * A phone in portrait shows the play at about 8.3 px/yd -- the play is 39 yd
+   * wide against a 390px screen, and no layout change fixes that without
+   * cropping someone off the field. Magnifying on demand adds reach without
+   * taking anything away by default.
+   *
+   * Listeners are attached in the capture phase on the stage so a second finger
+   * is seen before React's handlers treat the gesture as a player drag, and the
+   * projection is frozen at gesture start for the same reason panning freezes
+   * it: recomputing per move would chase its own centre.
+   */
+  const pointers = useRef(new Map());
+  const pinch = useRef(null);
+  const pinching = useCallback(() => pinch.current !== null, []);
+
+  useEffect(() => {
+    const stage = stageFor();
+    if (!stage) return undefined;
+
+    const spread = () => {
+      const [a, b] = [...pointers.current.values()];
+      return {
+        distance: Math.hypot(a.x - b.x, a.y - b.y),
+        midpoint: { clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 },
+      };
+    };
+
+    const onDown = (event) => {
+      if (event.pointerType !== "touch") return;
+      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pointers.current.size !== 2) return;
+
+      const box = stage.getBoundingClientRect();
+      const projection = fieldProjection({ width: box.width, height: box.height, view, play, zoom });
+      const { distance, midpoint } = spread();
+      pinch.current = {
+        box,
+        projection,
+        distance,
+        factor: zoom?.factor ?? 1,
+        centre: centreOf(projection),
+        anchor: pointerToField(midpoint, box, projection),
+      };
+    };
+
+    const onMove = (event) => {
+      if (!pointers.current.has(event.pointerId)) return;
+      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (!pinch.current || pointers.current.size !== 2) return;
+      event.preventDefault();
+
+      const { distance, factor, centre, anchor } = pinch.current;
+      const next = Math.min(ZOOM_MAX, Math.max(1, factor * (spread().distance / distance)));
+      if (next <= 1) {
+        setZoom(null);
+        return;
+      }
+      // Hold the field point between the fingers still, exactly as the wheel does.
+      const keep = factor / next;
+      setZoom({
+        factor: next,
+        centre: [anchor[0] - (anchor[0] - centre[0]) * keep, anchor[1] - (anchor[1] - centre[1]) * keep],
+      });
+    };
+
+    const onUp = (event) => {
+      pointers.current.delete(event.pointerId);
+      if (pointers.current.size < 2) pinch.current = null;
+    };
+
+    stage.addEventListener("pointerdown", onDown, true);
+    stage.addEventListener("pointermove", onMove, { capture: true, passive: false });
+    stage.addEventListener("pointerup", onUp, true);
+    stage.addEventListener("pointercancel", onUp, true);
+    return () => {
+      stage.removeEventListener("pointerdown", onDown, true);
+      stage.removeEventListener("pointermove", onMove, true);
+      stage.removeEventListener("pointerup", onUp, true);
+      stage.removeEventListener("pointercancel", onUp, true);
+    };
+  }, [stageFor, view, play, zoom]);
+
+  return { zoom, beginPan, panning, movePan, endPan, resetZoom, pinching };
 }
