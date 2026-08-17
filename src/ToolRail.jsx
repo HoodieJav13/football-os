@@ -35,7 +35,7 @@ export function ToolRail({
   onUndo,
   temporary,
 }) {
-  const { open, close, toggle, containerRef } = useDismissable();
+  const { open, present, leaving, close, toggle, containerRef } = useDismissable();
   const run = (action) => { close(); action(); };
   return (
     <nav className="tool-rail" aria-label="Drawing tools">
@@ -69,8 +69,8 @@ export function ToolRail({
             <span className="tool-icon"><Icon size={23} weight={activeTool === name ? "duotone" : "regular"} /></span>
             <span>{name}</span>
           </button>
-          {name === "More" && open ? (
-            <div className="tool-menu authoring-menu" role="menu">
+          {name === "More" && present ? (
+            <div className={`tool-menu authoring-menu ${leaving ? "is-leaving" : ""}`} role="menu">
               <button role="menuitem" onClick={() => run(onDuplicate)}><Copy size={19} />Duplicate as variation</button>
               <button role="menuitem" disabled={!canAddPlayer} onClick={() => run(onAddPlayer)}><PlusCircle size={19} />Add player</button>
               <button role="menuitem" onClick={() => run(onApplyFormation)}><UserFocus size={19} />Apply formation</button>

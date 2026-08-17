@@ -20,7 +20,7 @@ import {
 
 /** The top bar: playbook switcher, play identity, camera switch, present and run. */
 function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDataTools, onSwitch, playbooks }) {
-  const { open, setOpen, toggle, containerRef } = useDismissable();
+  const { open, present, leaving, setOpen, toggle, containerRef } = useDismissable();
   const canCopy = activePlaybook.id !== mainPlaybook.id;
   return (
     <div className="playbook-switcher" ref={containerRef}>
@@ -38,8 +38,8 @@ function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDa
         </span>
         <CaretDown size={16} />
       </button>
-      {open ? (
-        <div className="playbook-menu" role="menu">
+      {present ? (
+        <div className={`playbook-menu ${leaving ? "is-leaving" : ""}`} role="menu">
           <div className="playbook-menu-head">
             <span>Switch playbook</span>
             <small>{playbooks.length} saved</small>

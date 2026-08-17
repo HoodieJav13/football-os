@@ -61,17 +61,42 @@
 }
 
 /*
+ * Exits, the mirror of the entrances above. They are shorter than the way in --
+ * arriving is an event worth watching, leaving is an acknowledgement -- and
+ * every duration here is paired with the `usePresence` timer that holds the
+ * element in the tree long enough to play it.
+ */
+@keyframes surface-out {
+  to { opacity: 0; translate: 0 6px; scale: 0.985; }
+}
+@keyframes pop-out {
+  to { opacity: 0; translate: 0 -3px; scale: 0.98; }
+}
+@keyframes panel-out-right {
+  to { opacity: 0; translate: 14px 0; }
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+/*
  * Entrances, applied by surface class. Exits stay instant for now: entrance
  * choreography carries nearly all of the perceived smoothness, and animated
  * exits would need unmount management in every conditional render.
  */
 .modal-scrim { animation: fade-in var(--dur-med) var(--ease-enter) both; }
 .modal-scrim > * { animation: surface-in var(--dur-slow) var(--ease-enter) both; }
+.modal-scrim.is-leaving { animation: fade-out 160ms var(--ease) both; pointer-events: none; }
+.modal-scrim.is-leaving > * { animation: surface-out 160ms var(--ease) both; }
 .playbook-menu,
 .tool-menu,
 .assignment-key-panel,
 .speed-menu { transform-origin: top; animation: pop-in var(--dur-med) var(--ease-enter) both; }
+.playbook-menu.is-leaving,
+.tool-menu.is-leaving,
+.assignment-key-panel.is-leaving { animation: pop-out 140ms var(--ease) both; pointer-events: none; }
 .inspector { animation: panel-in-right var(--dur-slow) var(--ease-enter) both; }
+.inspector.is-leaving { animation: panel-out-right 200ms var(--ease) both; pointer-events: none; }
 /*
  * Elevation: the chrome surfaces sit above the field and cast soft shade onto
  * it. The shadows point at the canvas -- inspector left, filmstrip down,
@@ -1020,7 +1045,14 @@ button:active { scale: 0.96; }
 .route-condition textarea { width: 100%; min-height: 44px; resize: vertical; padding: 9px 10px; border: 0; border-radius: 8px; outline: 0; color: var(--text); background: var(--chrome-raised); box-shadow: inset 0 0 0 1px var(--line); font: inherit; font-size: 11px; line-height: 16px; text-transform: none; }
 .route-condition textarea:focus { box-shadow: inset 0 0 0 1px var(--accent); }
 .apply-condition { min-height: 44px; margin-top: -4px; border-radius: 8px; color: oklch(0.17 0.025 75); background: var(--accent); font-size: 11px; line-height: 15px; font-weight: 700; }
-.open-inspector { position: absolute; z-index: 8; right: 0; top: 16px; display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 12px; border-radius: 8px 0 0 8px; background: var(--chrome); box-shadow: 0 0 0 1px var(--line); font-size: 12px; line-height: 16px; }
+/*
+ * Below the layer bar, not inside it. This is positioned against
+ * `.canvas-workspace`, whose first grid row IS the 52px layer bar, so a 16px
+ * offset put the pill on top of that bar's controls -- and once the inspector
+ * column began collapsing to zero, the widened workspace pushed it directly
+ * over the Key button, swallowing every press on it.
+ */
+.open-inspector { position: absolute; z-index: 8; right: 0; top: 68px; display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 12px; border-radius: 8px 0 0 8px; background: var(--chrome); box-shadow: 0 0 0 1px var(--line); font-size: 12px; line-height: 16px; }
 
 .timeline {
   position: relative;
@@ -1416,13 +1448,15 @@ button:active { scale: 0.96; }
     padding: 4px 12px 12px;
     border: 0;
     border-radius: 18px;
-    /* The phone inspector is a bottom sheet: it rises, it does not slide in from the right. */
-    animation: surface-in var(--dur-slow) var(--ease-enter) both;
     box-shadow: 0 0 0 1px var(--line-strong), var(--shadow);
     transition-property: height;
     transition-duration: 200ms;
     transition-timing-function: var(--ease);
+    /* The phone inspector is a bottom sheet: it rises, it does not slide in from the right. */
+    animation: surface-in var(--dur-slow) var(--ease-enter) both;
   }
+  /* ...and it sinks back down, rather than sliding off to the right. */
+  .inspector.is-leaving { animation: surface-out 200ms var(--ease) both; }
   /* Only on phones, where the sheet opens under the finger that summoned it. */
   .inspector.is-arming { pointer-events: none; }
   .inspector.mobile-peek { height: 246px; overflow: hidden; }

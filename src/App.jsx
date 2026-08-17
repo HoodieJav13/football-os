@@ -65,6 +65,9 @@ import { downloadPlayPng, downloadWorkspaceBackup } from "./exportUtils";
 import { refreshOfflineCopy, subscribeOfflineStatus } from "./offline";
 import { parseWorkspaceBackup, RECOVERY_WORKSPACE_KEY, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
 
+/** Matches the inspector exit keyframes in styles.css. */
+const INSPECTOR_EXIT_MS = 200;
+
 function starterPlay(playbookId) {
   return createPlayFromFormation({
     formation: defaultFormations[0],
@@ -166,6 +169,15 @@ export function App() {
   }, [browserFolder, browserQuery, library]);
   const playIndex = useMemo(() => Math.max(0, library.findIndex((item) => item.id === playId)), [library, playId]);
   const play = library[playIndex];
+  /*
+   * The inspector outlives its selection just long enough to slide out. The
+   * grid column collapses on `open` (immediately), so the field starts
+   * reclaiming the width while the panel is still leaving -- the two motions
+   * overlap rather than queueing, which is what makes deselecting feel like one
+   * gesture instead of two.
+   */
+  const [inspectorLeaving, setInspectorLeaving] = useState(false);
+  const inspectorOpen = !present && Boolean(selectedPlayerId) && !inspectorLeaving;
   /*
    * The camera reads the current play and view, so it is created after both
    * exist; a state hook could sit at the top of the component, this cannot.
@@ -344,6 +356,27 @@ export function App() {
   const clearSelection = () => {
     setSelectedAssignmentId(null);
     setSelectedPlayerId(null);
+    setInspectorLeaving(false);
+  };
+
+  /*
+   * Dismissing the inspector animates before the selection actually clears.
+   * The panel's whole content is derived from the selected player, so dropping
+   * the selection first would leave an empty shell to animate; deferring the
+   * state change keeps it whole on the way out. The grid column collapses
+   * immediately, so the field starts widening while the panel is still sliding
+   * -- one gesture rather than two. Other paths that change the selection
+   * (picking another player, switching plays) are replacements, not
+   * dismissals, and stay instant.
+   */
+  const dismissInspector = () => {
+    if (!selectedPlayerId || inspectorLeaving) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+      clearSelection();
+      return;
+    }
+    setInspectorLeaving(true);
+    window.setTimeout(clearSelection, INSPECTOR_EXIT_MS);
   };
 
   /** Selects an assignment and brings its player and unit along with it. */
@@ -1381,7 +1414,7 @@ export function App() {
           // Step back out: drop a drawing tool first, then the selection.
           if (activeTool !== "Select") setActiveTool("Select");
           else if (present) setPresent(false);
-          else clearSelection();
+          else dismissInspector();
           return;
         case "Delete":
         case "Backspace":
@@ -1476,7 +1509,7 @@ export function App() {
           onQuery={setBrowserQuery}
         />
       )}
-      <section className={`editor-shell ${!present && selectedPlayerId ? "" : "inspector-closed"}`}>
+      <section className={`editor-shell ${inspectorOpen ? "" : "inspector-closed"}`}>
         {(
           <ToolRail
             activeTool={activeTool}
@@ -1540,6 +1573,7 @@ export function App() {
         {!present && selectedPlayerId ? (
           <Inspector
             assignments={playerAssignments}
+            leaving={inspectorLeaving}
             route={route}
             unit={selectedUnit}
             label={selectedPlayerLabel}
@@ -1548,7 +1582,7 @@ export function App() {
             copyTargets={copyTargets}
             offensePlayers={play.players}
             onAddStage={addAssignmentStage}
-            onClose={clearSelection}
+            onClose={dismissInspector}
             onAssignmentDefinition={changeAssignmentDefinition}
             onCopyAssignment={copyAssignment}
             onDefinition={changeRouteDefinition}

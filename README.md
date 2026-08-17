@@ -25,6 +25,23 @@ and its `y` coordinate are the same number. The canvas draws both axes on one
 scale, in a fixed window anchored on the line of scrimmage, so every play in a
 playbook renders at the same scale and is directly comparable.
 
+## Source playbooks
+
+Personal Active is the working playbook. Alongside it ship three read-only books
+transcribed from published sources, each play carrying the page it came from:
+
+| Playbook | Plays | Source |
+| --- | --- | --- |
+| Texas Tech Sample | 6 | Texas Tech Style Offensive Attack |
+| LSU 2019 Sample | 6 | 2019 LSU Offense Playbook |
+| Air Raid Passing Game | 48 | Air Raid Offense — Passing Plays |
+
+The Air Raid book is transcribed through the route vocabulary in
+`src/routeVocabulary.js`: its pages print a call sheet (`X Slant`, `Y Post`) and
+no yardages at all, so the names are quoted verbatim and the depths come from the
+vocabulary's conventions. Each play states as much in its assignment evidence,
+and any of it can be overruled by editing the play.
+
 ## Keyboard
 
 | Key | Action |

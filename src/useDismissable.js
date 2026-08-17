@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePresence } from "./usePresence";
 
 /**
  * Open/closed state for a popover, menu, or panel that dismisses the way users
@@ -10,6 +11,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * Returns a ref to attach to the element that should be treated as "inside"
  * (wrap the trigger and the panel together).
  */
+/** Matches the popover exit keyframe in styles.css. */
+const EXIT_MS = 140;
+
 export function useDismissable(initial = false) {
   const [open, setOpen] = useState(initial);
   const containerRef = useRef(null);
@@ -40,5 +44,13 @@ export function useDismissable(initial = false) {
     };
   }, [open]);
 
-  return { open, setOpen, close, toggle, containerRef };
+  /*
+   * `present` outlives `open` so the panel can animate out. Render on
+   * `present`, style on `leaving`. Callers that only ever cared about the
+   * boolean can keep using `open`: it still flips immediately, so aria-expanded
+   * and every other bit of state stays truthful while the panel fades.
+   */
+  const { present, leaving } = usePresence(open, EXIT_MS);
+
+  return { open, present, leaving, setOpen, close, toggle, containerRef };
 }
