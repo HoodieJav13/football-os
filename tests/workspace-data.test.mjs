@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { clonePlaybook } from "../src/playData.js";
+import { clonePlaybook, seedPlaybooks } from "../src/playData.js";
+
+/**
+ * Derived, not hard-coded: seeding a new source playbook is a content change
+ * and should not read as a migration regression.
+ */
+const SEEDED_PLAY_COUNT = seedPlaybooks.reduce((count, book) => count + book.plays.length, 0);
 import {
   BACKUP_FORMAT,
   BACKUP_FORMAT_VERSION,
@@ -54,7 +60,7 @@ test("legacy workspaces migrate to the current version with concept libraries", 
 
   assert.equal(migrated.version, WORKSPACE_VERSION);
   assert.ok(migrated.playbooks.every((book) => Array.isArray(book.concepts)));
-  assert.equal(migrated.playbooks.reduce((count, book) => count + book.plays.length, 0), 18);
+  assert.equal(migrated.playbooks.reduce((count, book) => count + book.plays.length, 0), SEEDED_PLAY_COUNT);
 });
 
 test("every supported legacy version converts percent coordinates to yards", () => {
@@ -106,8 +112,8 @@ test("workspace backups make a valid, restorable round trip", () => {
   assert.equal(backup.format, BACKUP_FORMAT);
   assert.equal(backup.formatVersion, BACKUP_FORMAT_VERSION);
   assert.equal(restored.exportedAt, "2026-07-24T12:00:00.000Z");
-  assert.equal(restored.playbookCount, 3);
-  assert.equal(restored.playCount, 18);
+  assert.equal(restored.playbookCount, seedPlaybooks.length);
+  assert.equal(restored.playCount, SEEDED_PLAY_COUNT);
   assert.equal(restored.workspace.version, WORKSPACE_VERSION);
   assert.equal(restored.upconvertedFrom, null);
   assert.notEqual(restored.workspace, workspace);
