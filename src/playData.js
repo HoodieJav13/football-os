@@ -1,3 +1,5 @@
+import { routeFromVocabulary, routePace } from "./routeVocabulary.js";
+
 export const MAIN_PLAYBOOK_ID = "personal-active";
 
 /**
@@ -707,6 +709,252 @@ const lsuPlays = [
   ], lsuOptions("Spark", 55, "Triple")),
 ];
 
+/* ------------------------------------------------------------------ *
+ * Air Raid: "Air Raid Offense -- Passing Plays"
+ * ------------------------------------------------------------------ */
+
+/**
+ * Alignments, read off the diagrams page by page.
+ *
+ * The book is written in five personnel groupings and never labels any of them,
+ * so these names are ours. Four receivers (X, H, Y, Z) and one back (T) is the
+ * base; the variations move H between the slot and the backfield, which is the
+ * book's main way of re-running the same concept against a different picture.
+ */
+const airRaidBase = (extra) => [
+  ...interiorLine(),
+  offensivePlayer("Q", 0, -SHOTGUN_DEPTH_YARDS),
+  ...extra,
+];
+
+/** 2x2: X and Z outside, H and Y in the slots, the back offset either side. */
+const airRaidDoubles = (backSide = 1) => airRaidBase([
+  offensivePlayer("X", -20, 0),
+  offensivePlayer("Z", 20, 0),
+  offensivePlayer("H", -10.5, -1.5),
+  offensivePlayer("Y", 10.5, -1.5),
+  offensivePlayer("T", backSide * 3, -SHOTGUN_DEPTH_YARDS),
+]);
+
+/** Three wide with H beside the quarterback -- the book's second look. */
+const airRaidAce = airRaidBase([
+  offensivePlayer("X", -20, 0),
+  offensivePlayer("Z", 20, 0),
+  offensivePlayer("Y", 10.5, -1.5),
+  offensivePlayer("H", -3, -SHOTGUN_DEPTH_YARDS),
+  offensivePlayer("T", 3, -SHOTGUN_DEPTH_YARDS),
+]);
+
+/** Trips right: X alone weak, H inside the trips. */
+const airRaidTrips = airRaidBase([
+  offensivePlayer("X", -20, 0),
+  offensivePlayer("Z", 20, 0),
+  offensivePlayer("Y", 12.5, -1.5),
+  offensivePlayer("H", 6.5, -1.5),
+  offensivePlayer("T", 3, -SHOTGUN_DEPTH_YARDS),
+]);
+
+/**
+ * Z crosses the formation to the weak slot, H goes to the backfield. Y is the
+ * only receiver left strong, so he is the one on the line -- without that the
+ * formation is a man short of the seven it needs to be legal.
+ */
+const airRaidSwitch = airRaidBase([
+  offensivePlayer("X", -20, 0),
+  offensivePlayer("Z", -11, -1.5),
+  offensivePlayer("Y", 10.5, 0),
+  offensivePlayer("H", -3, -SHOTGUN_DEPTH_YARDS),
+  offensivePlayer("T", 3, -SHOTGUN_DEPTH_YARDS),
+]);
+
+/** X tightened down so the mesh starts inside the numbers. */
+const airRaidCompressed = airRaidBase([
+  offensivePlayer("X", -12, 0),
+  offensivePlayer("Z", 15, 0),
+  offensivePlayer("Y", 10.5, -1.5),
+  offensivePlayer("H", -3, -SHOTGUN_DEPTH_YARDS),
+  offensivePlayer("T", 3, -SHOTGUN_DEPTH_YARDS),
+]);
+
+/** Y tight to the tackle, for the option game. */
+const airRaidTightY = airRaidBase([
+  offensivePlayer("X", -20, 0),
+  offensivePlayer("Z", 20, 0),
+  offensivePlayer("H", -10.5, -1.5),
+  offensivePlayer("Y", 4.5, -1.5),
+  offensivePlayer("T", 3, -SHOTGUN_DEPTH_YARDS),
+]);
+
+const AIR_RAID_ALIGNMENTS = {
+  doubles: { players: airRaidDoubles(1), formation: "Doubles" },
+  "doubles-back-left": { players: airRaidDoubles(-1), formation: "Doubles (Back Left)" },
+  ace: { players: airRaidAce, formation: "Ace" },
+  trips: { players: airRaidTrips, formation: "Trips Right" },
+  switch: { players: airRaidSwitch, formation: "Switch" },
+  compressed: { players: airRaidCompressed, formation: "Compressed" },
+  "tight-y": { players: airRaidTightY, formation: "Tight Y" },
+};
+
+/**
+ * Source spellings that are not vocabulary keys.
+ *
+ * The call map for each play is transcribed verbatim from the page so it can be
+ * checked against the PDF line by line, which means it also carries the page's
+ * own shorthand. Translating here keeps the transcription honest.
+ */
+const AIR_RAID_CALL_ALIASES = { "2-3 Yd. Hitch": "Short Hitch" };
+
+/** Calls that keep the back in to block rather than releasing him. */
+const isProtectionCall = (call) => call.startsWith("Protect");
+
+const airRaidSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/**
+ * Builds one Air Raid play from the page's own five-line call sheet.
+ *
+ * `calls` is `{ X: "Slant", Y: "Post", ... }` exactly as printed. Everything
+ * else -- geometry, pace, evidence -- follows from the name and the alignment,
+ * which is the whole point of having a vocabulary.
+ */
+const airRaidPlay = (name, page, alignment, calls, options = {}) => {
+  const slug = airRaidSlug(name);
+  const { players, formation } = AIR_RAID_ALIGNMENTS[alignment];
+  const note = options.note ?? "";
+
+  const specs = Object.entries(calls).map(([label, call]) => {
+    const id = `ar-${slug}-${label.toLowerCase()}`;
+    const sourceNote = [`Source call: ${label} ${call}`, note].filter(Boolean).join(" · ");
+    const provenance = { method: "labels-and-geometry", confidence: "medium-high", note: sourceNote, coachEdited: false };
+
+    if (isProtectionCall(call)) {
+      const back = players.find((player) => player.label === label);
+      const side = back.x < 0 ? -1 : 1;
+      const built = assignment(id, "offense", label, "Block", call, {
+        technique: "pass-set",
+        direction: side < 0 ? "left" : "right",
+        target: "E",
+        climb: false,
+      });
+      /*
+       * A back in protection steps up to meet the edge, he does not set five
+       * yards deeper the way a tackle does -- and the generic pass-set geometry,
+       * applied from the backfield, would put him below the visible window.
+       */
+      return { ...built, points: [[back.x, back.y], [back.x + side * 1.5, back.y + 1.5]], evidence: provenance };
+    }
+
+    // The back's "Go" is a vertical release from depth, not a receiver's go route.
+    const vocabularyName = label === "T" && call === "Go"
+      ? "T Go"
+      : AIR_RAID_CALL_ALIASES[call] ?? call;
+    const owner = players.find((player) => player.label === label);
+    const geometry = routeFromVocabulary(vocabularyName, [owner.x, owner.y]);
+
+    return {
+      id,
+      playerRef: label,
+      unit: "offense",
+      type: "Route",
+      preset: call,
+      pace: routePace(vocabularyName),
+      delay: 0,
+      phase: "post",
+      evidence: provenance,
+      ...geometry,
+    };
+  });
+
+  return play(`ar-${slug}`, name, specs, {
+    family: options.family ?? "Air Raid",
+    formation,
+    personnel: "X · H · Y · Z · T",
+    folder: "Source Plays",
+    players,
+    sourcePage: page,
+    sourceLabel: "Air Raid Offense — Passing Plays",
+  });
+};
+
+/**
+ * The book, in order. Each row is one diagram: page, alignment, and the five
+ * calls printed beside it. Duplicated play names in the source are the same
+ * concept drawn from a second alignment, so they are suffixed rather than
+ * dropped -- the pairing is the book's actual teaching method.
+ */
+const airRaidPlays = [
+  // p2 -- quick game off the 60 protection
+  airRaidPlay("60 Hitch", 2, "doubles", { X: "Hitch", H: "Hitch", Y: "Hitch", Z: "Hitch", T: "Protect" }, { family: "Quick Game" }),
+  airRaidPlay("60 Go", 2, "doubles", { X: "Go", H: "Go", Y: "Go", Z: "Go", T: "Protect or Middle Curl" }, { family: "Quick Game", note: "Each WR - outside release" }),
+  airRaidPlay("60 Out", 2, "doubles", { X: "Out", H: "Go", Y: "Go", Z: "Out", T: "Protect or Middle Curl" }, { family: "Quick Game" }),
+  airRaidPlay("66", 2, "doubles", { X: "Hitch", H: "Go", Y: "Go", Z: "Hitch", T: "Protect or Middle Curl" }, { family: "Quick Game" }),
+
+  // p3 -- the shoot series
+  airRaidPlay("7 H", 3, "doubles", { X: "Slant", H: "Shoot", Y: "Post", Z: "Slant", T: "Protect" }, { family: "Shoot" }),
+  airRaidPlay("7 H-Shoot T-Wheel", 3, "doubles", { X: "Slant", H: "Shoot", Y: "Post", Z: "Slant", T: "Wheel" }, { family: "Shoot" }),
+  airRaidPlay("8 T", 3, "doubles", { X: "Slant", H: "Slant", Y: "Corner", Z: "Slant", T: "Shoot" }, { family: "Shoot" }),
+  airRaidPlay("9 Y", 3, "doubles-back-left", { X: "Slant", H: "Slant", Y: "Shoot", Z: "Slant", T: "Protect" }, { family: "Shoot" }),
+
+  // p4 -- the 617/618 stick family
+  airRaidPlay("617", 4, "doubles", { X: "Go", H: "Flat", Y: "Slant", Z: "Slant", T: "Shoot" }, { family: "Stick" }),
+  airRaidPlay("617 Switch", 4, "switch", { X: "Post", H: "Flat", Y: "Slant", Z: "Corner", T: "Shoot" }, { family: "Stick" }),
+  airRaidPlay("618 Y-Stick", 4, "doubles", { X: "Post", H: "Dig", Y: "Stick", Z: "Go", T: "Shoot" }, { family: "Stick" }),
+  airRaidPlay("618 Y-Option", 4, "tight-y", { X: "Slant", H: "Slant", Y: "Option", Z: "Go", T: "Shoot" }, { family: "Stick" }),
+
+  // p5 -- 619 and the standalone Y concepts
+  airRaidPlay("619 Y-Flat", 5, "doubles", { X: "Slant", H: "Slant", Y: "Flat", Z: "Go", T: "Protect or Middle Curl" }, { family: "Stick" }),
+  airRaidPlay("Y-Corner", 5, "doubles", { X: "Hitch", H: "Post", Y: "Corner", Z: "Slant", T: "Swing" }, { family: "Y Concepts" }),
+  airRaidPlay("Y-Corner, Z-Flat", 5, "doubles", { X: "Hitch", H: "Post", Y: "Corner", Z: "Flat", T: "Protect or Middle Curl" }, { family: "Y Concepts" }),
+  airRaidPlay("Y-Cross", 5, "doubles-back-left", { X: "Go", H: "Post", Y: "Cross", Z: "Hitch", T: "Shoot" }, { family: "Y Concepts" }),
+
+  // p6 -- 90 Shallow, run from each receiver in turn
+  airRaidPlay("90 Y", 6, "doubles", { X: "Go", H: "Dig", Y: "Shallow", Z: "Go", T: "Shoot" }, { family: "Shallow" }),
+  airRaidPlay("90 H", 6, "doubles-back-left", { X: "Go", H: "Shallow", Y: "Dig", Z: "Go", T: "Shoot" }, { family: "Shallow" }),
+  airRaidPlay("90 Z", 6, "doubles", { X: "Go", H: "Dig", Y: "Go", Z: "Shallow", T: "Shoot" }, { family: "Shallow" }),
+  airRaidPlay("90 X", 6, "doubles-back-left", { X: "Shallow", H: "Go", Y: "Dig", Z: "Go", T: "Shoot" }, { family: "Shallow" }),
+
+  // p7 -- 91 Smash
+  airRaidPlay("91 Y", 7, "doubles", { X: "Hitch", H: "Post", Y: "Corner", Z: "2-3 Yd. Hitch", T: "Protect or Middle Curl" }, { family: "Smash" }),
+  airRaidPlay("91 H", 7, "doubles-back-left", { X: "2-3 Yd. Hitch", H: "Corner", Y: "Post", Z: "Hitch", T: "Protect or Middle Curl" }, { family: "Smash" }),
+  airRaidPlay("91 Y, H-Post Corner", 7, "doubles", { X: "Hitch", H: "Post Corner", Y: "Corner", Z: "2-3 Yd. Hitch", T: "Protect or Middle Curl" }, { family: "Smash" }),
+  airRaidPlay("91 Y, H-Cross", 7, "doubles", { X: "Hitch", H: "Cross", Y: "Corner", Z: "2-3 Yd. Hitch", T: "Protect or Middle Curl" }, { family: "Smash", note: "Rollout" }),
+
+  // p8 -- 92 Mesh
+  airRaidPlay("92 Mesh", 8, "doubles", { X: "Go", H: "Mesh", Y: "Mesh", Z: "Go", T: "Shoot" }, { family: "Mesh" }),
+  airRaidPlay("92 Mesh Y-Post", 8, "compressed", { X: "Mesh", H: "Shoot", Y: "Post", Z: "Mesh", T: "Shoot" }, { family: "Mesh" }),
+  airRaidPlay("92 Mesh Y-Corner", 8, "compressed", { X: "Mesh", H: "Shoot", Y: "Corner", Z: "Mesh", T: "Shoot" }, { family: "Mesh" }),
+  airRaidPlay("92 Mesh Z-Corner", 8, "doubles", { X: "Mesh", H: "Shoot", Y: "Mesh", Z: "Corner", T: "Swing" }, { family: "Mesh" }),
+
+  // p9 -- 93 Wheel, taught from the slot and then from the backfield
+  airRaidPlay("93 H", 9, "doubles", { X: "Curl", H: "Wheel", Y: "Pivot", Z: "Post", T: "Swing" }, { family: "Wheel" }),
+  airRaidPlay("93 Y", 9, "doubles-back-left", { X: "Post", H: "Pivot", Y: "Wheel", Z: "Curl", T: "Swing" }, { family: "Wheel" }),
+  airRaidPlay("93 H (Ace)", 9, "ace", { X: "Curl", H: "Wheel", Y: "Pivot", Z: "Post", T: "Swing" }, { family: "Wheel" }),
+  airRaidPlay("93 Double", 9, "ace", { X: "Curl", H: "Wheel", Y: "Slant", Z: "Slant", T: "Wheel" }, { family: "Wheel" }),
+
+  // p10 -- 94 Sail
+  airRaidPlay("94 Y", 10, "doubles", { X: "Dig", H: "Shoot", Y: "Sail", Z: "Go", T: "Swing" }, { family: "Sail" }),
+  airRaidPlay("94 H", 10, "doubles-back-left", { X: "Go", H: "Sail", Y: "Dig", Z: "Hitch", T: "Swing" }, { family: "Sail" }),
+  airRaidPlay("94 Y X-Post", 10, "doubles", { X: "Post", H: "Dig", Y: "Sail", Z: "Go", T: "Protect or Shoot" }, { family: "Sail", note: "Rollout" }),
+  airRaidPlay("94 Y (Trips)", 10, "trips", { X: "Dig", H: "Shoot", Y: "Sail", Z: "Go", T: "Protect" }, { family: "Sail", note: "Rollout" }),
+
+  // p11 -- 95 Cross, again from two alignments
+  airRaidPlay("95 Y", 11, "doubles", { X: "Go", H: "Flat", Y: "Cross", Z: "Dig", T: "Swing" }, { family: "Cross" }),
+  airRaidPlay("95 H", 11, "doubles-back-left", { X: "Dig", H: "Cross", Y: "Flat", Z: "Go", T: "Swing" }, { family: "Cross" }),
+  airRaidPlay("95 Y (Ace)", 11, "ace", { X: "Go", H: "Flat", Y: "Cross", Z: "Dig", T: "Swing" }, { family: "Cross" }),
+  airRaidPlay("95 Y, X-Post", 11, "doubles-back-left", { X: "Post", H: "Flat", Y: "Cross", Z: "Dig", T: "Protect" }, { family: "Cross", note: "Rollout" }),
+
+  // p12 -- 96 All Curl
+  airRaidPlay("96", 12, "doubles", { X: "Curl", H: "Curl", Y: "Curl", Z: "Curl", T: "Swing" }, { family: "Curl" }),
+  airRaidPlay("96 Shoot", 12, "doubles", { X: "Curl", H: "Shoot", Y: "Shoot", Z: "Curl", T: "Protect or Middle Curl" }, { family: "Curl" }),
+  airRaidPlay("96 Wheel", 12, "doubles", { X: "Curl", H: "Wheel", Y: "Wheel", Z: "Curl", T: "Protect" }, { family: "Curl" }),
+  airRaidPlay("96 Y-Middle Curl", 12, "ace", { X: "Curl", H: "Shoot", Y: "Middle Curl", Z: "Curl", T: "Swing" }, { family: "Curl" }),
+
+  // p13 -- 98 Double Smash
+  airRaidPlay("98", 13, "doubles", { X: "Hitch", H: "Corner", Y: "Corner", Z: "Hitch", T: "Protect or Middle Curl" }, { family: "Double Smash" }),
+  airRaidPlay("98 Switch", 13, "doubles", { X: "Hitch", H: "Corner", Y: "Corner", Z: "Post", T: "Protect or Middle Curl" }, { family: "Double Smash" }),
+  airRaidPlay("98 T-go", 13, "doubles", { X: "Hitch", H: "Corner", Y: "Corner", Z: "Hitch", T: "Go" }, { family: "Double Smash" }),
+  airRaidPlay("98 Shakes", 13, "ace", { X: "Corner", H: "Shoot", Y: "Go", Z: "Corner", T: "Swing" }, { family: "Double Smash", note: "Cover 2 beater" }),
+];
+
 export const defaultFormations = [
   { id: "trips-right-open", name: "Trips Right Open", personnel: "11 Personnel", players: clonePlaybook(basePlayers) },
   {
@@ -769,6 +1017,21 @@ export const seedPlaybooks = [
     formations: [{ id: "lsu-doubles", name: "LSU Doubles", personnel: "X · Y · F · H · Z", players: clonePlaybook(lsuPlayers) }],
     concepts: [],
     plays: lsuPlays,
+  },
+  {
+    id: "air-raid-sample",
+    name: "Air Raid Passing Game",
+    description: "48 plays transcribed from the source",
+    isMain: false,
+    source: "Air Raid Offense — Passing Plays",
+    formations: Object.entries(AIR_RAID_ALIGNMENTS).map(([id, { players: roster, formation }]) => ({
+      id: `air-raid-${id}`,
+      name: formation,
+      personnel: "X · H · Y · Z · T",
+      players: clonePlaybook(roster),
+    })),
+    concepts: [],
+    plays: airRaidPlays,
   },
 ];
 
@@ -850,8 +1113,15 @@ function normalizeAssignment(assignmentData, playData) {
         ? "detected"
         : assignmentData.geometryMode ?? (assignmentData.definition ? "structured" : "detected"),
     evidence: coachEdited ? assignmentData.evidence : {
-      method: evidence ? "labels-and-geometry" : playData.sourcePage ? "diagram-geometry" : "existing-diagram",
-      confidence: evidence ? "medium-high" : "medium",
+      /*
+       * A seed may state its own provenance. The Air Raid plays do: their route
+       * *names* are printed text on the page, which is stronger evidence than
+       * anything measured off a diagram, even though their depths are only
+       * convention. Without this the inference below would understate them.
+       */
+      method: assignmentData.evidence?.method
+        ?? (evidence ? "labels-and-geometry" : playData.sourcePage ? "diagram-geometry" : "existing-diagram"),
+      confidence: assignmentData.evidence?.confidence ?? (evidence ? "medium-high" : "medium"),
       sourceLabel: playData.sourceLabel ?? null,
       sourcePage: playData.sourcePage ?? null,
       note: evidence?.note ?? assignmentData.evidence?.note ?? "",
