@@ -14,8 +14,9 @@ const open = useBrowser();
  *    piece of chrome, and at least 40% of the viewport (measured 45% / 52% /
  *    66% / 65% on 2026-09-14 -- the floor is below every layout but above
  *    what a stray column or row would leave);
- *  - on touch layouts the primary controls are at least 40 CSS px tall
- *    (AGENTS.md: 44 for touch targets; PROJECT_POLICY: 40 on desktop);
+ *  - on touch layouts the primary controls are at least 44 by 44 CSS px
+ *    (AGENTS.md:17 "Touch targets are at least 44 by 44 CSS pixels" -- both
+ *    axes, because a 31px-wide button is as easy to miss as a 31px-tall one);
  *  - on phones no chrome permanently covers the field: the play browser and
  *    layer controls are collapsed toggles, and what they open is temporary
  *    (AGENTS.md: "must not permanently consume field height").
@@ -59,7 +60,7 @@ const measure = (page) => page.evaluate(([chrome, controls]) => {
     stage: stage && shown(stage) ? rect(stage) : null,
     chrome: chrome.flatMap((selector) => [...document.querySelectorAll(selector)].filter(shown).map((el) => ({ selector, ...rect(el) }))),
     controls: [...document.querySelectorAll(controls)].filter(shown).map((el) => ({
-      name: (el.getAttribute("aria-label") || el.textContent).trim().slice(0, 30), h: rect(el).h,
+      name: (el.getAttribute("aria-label") || el.textContent).trim().slice(0, 30), w: rect(el).w, h: rect(el).h,
     })),
     browserOpen: Boolean(document.querySelector(".filmstrip.mobile-open")),
     layersOpen: Boolean(document.querySelector(".layer-bar.mobile-open")),
@@ -85,8 +86,8 @@ for (const [name, viewport, touch] of MATRIX) {
       `${name}: the field (${Math.round(stageArea)}px²) out-sizes the largest chrome surface ${biggestChrome.selector} (${Math.round(biggestChrome.area)}px²)`);
 
     if (touch) {
-      const short = m.controls.filter((c) => c.h < 40).map((c) => `${c.name} ${c.h}px`);
-      assert.deepEqual(short, [], `${name}: primary controls under 40px tall`);
+      const small = m.controls.filter((c) => c.w < 44 || c.h < 44).map((c) => `${c.name} ${Math.round(c.w)}x${Math.round(c.h)}`);
+      assert.deepEqual(small, [], `${name}: primary controls under 44x44`);
     }
     app.assertNoErrors();
     await app.close();
