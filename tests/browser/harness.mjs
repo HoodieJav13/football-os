@@ -45,12 +45,14 @@ export function useBrowser() {
     await browser?.close();
   });
 
-  return async function open({ viewport = DESKTOP, touch = false, settle = 1800 } = {}) {
+  return async function open({ viewport = DESKTOP, touch = false, settle = 1800, serviceWorkers = "allow" } = {}) {
     const context = await browser.newContext({
       viewport,
       hasTouch: touch,
       isMobile: touch,
       deviceScaleFactor: 1,
+      // "block" makes registration fail, for asserting what the app promises without a worker.
+      serviceWorkers,
     });
     const page = await context.newPage();
     const errors = [];
@@ -63,6 +65,7 @@ export function useBrowser() {
     await page.waitForTimeout(settle);
     return {
       page,
+      context,
       errors,
       /** Fails with the actual messages rather than a bare count. */
       assertNoErrors: () => assert.deepEqual(errors, [], "console/page errors"),
