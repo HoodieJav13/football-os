@@ -29,6 +29,8 @@ export const MATRIX = [
   ["desktop 1280x800", { width: 1280, height: 800 }, false],
   ["iPad 1024x1366", { width: 1024, height: 1366 }, true],
   ["phone portrait 390x844", { width: 390, height: 844 }, true],
+  ["phone portrait 375x812", { width: 375, height: 812 }, true],
+  ["phone portrait 320x568", { width: 320, height: 568 }, true],
   ["phone landscape 844x390", { width: 844, height: 390 }, true],
 ];
 
@@ -60,7 +62,7 @@ const measure = (page) => page.evaluate(([chrome, controls]) => {
     stage: stage && shown(stage) ? rect(stage) : null,
     chrome: chrome.flatMap((selector) => [...document.querySelectorAll(selector)].filter(shown).map((el) => ({ selector, ...rect(el) }))),
     controls: [...document.querySelectorAll(controls)].filter(shown).map((el) => ({
-      name: (el.getAttribute("aria-label") || el.textContent).trim().slice(0, 30), w: rect(el).w, h: rect(el).h,
+      name: (el.getAttribute("aria-label") || el.textContent).trim().slice(0, 30), ...rect(el),
     })),
     browserOpen: Boolean(document.querySelector(".filmstrip.mobile-open")),
     layersOpen: Boolean(document.querySelector(".layer-bar.mobile-open")),
@@ -88,6 +90,8 @@ for (const [name, viewport, touch] of MATRIX) {
     if (touch) {
       const small = m.controls.filter((c) => c.w < 44 || c.h < 44).map((c) => `${c.name} ${Math.round(c.w)}x${Math.round(c.h)}`);
       assert.deepEqual(small, [], `${name}: primary controls under 44x44`);
+      const outside = m.controls.filter((c) => c.x < -0.5 || c.y < -0.5 || c.right > m.innerWidth + 0.5 || c.bottom > m.innerHeight + 0.5);
+      assert.deepEqual(outside, [], `${name}: primary controls outside the viewport`);
     }
     app.assertNoErrors();
     await app.close();

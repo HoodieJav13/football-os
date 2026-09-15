@@ -1418,7 +1418,7 @@ button:active { scale: 0.96; }
     right: 8px;
     bottom: 8px;
     display: grid;
-    /* Two history cells plus the six tools; all one row, or the bar wraps and eats the field. */
+    /* Two history cells plus six tools; narrow phones use two rows below. */
     grid-template-columns: repeat(8, minmax(44px, 1fr));
     align-items: center;
     gap: 2px;
@@ -1510,6 +1510,18 @@ button:active { scale: 0.96; }
   .print-pages { width: calc(100% - 16px); margin-top: 12px; }
   .print-page { padding: 14px; }
   .print-page > header strong { font-size: 18px; }
+}
+
+/* Keep all eight touch targets visible on narrow portrait screens. */
+@media (max-width: 389px) {
+  .tool-rail { left: 4px; right: 4px; padding: 2px; gap: 1px; }
+}
+
+@media (max-width: 359px) {
+  .tool-rail { grid-template-columns: repeat(4, minmax(44px, 1fr)); }
+  .canvas-workspace { padding-bottom: 120px; }
+  .tool-menu { bottom: 116px; }
+  .tool-menu.authoring-menu { bottom: 196px; max-height: calc(100dvh - 272px); }
 }
 
 /*
