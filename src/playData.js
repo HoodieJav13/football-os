@@ -1,4 +1,4 @@
-import { copyResponsibilityArea, validateResponsibilityAreas } from "./responsibilityArea.js";
+import { copyResponsibilityArea, hasResponsibilityArea, validateResponsibilityAreas } from "./responsibilityArea.js";
 import { routeFromVocabulary, routePace } from "./routeVocabulary.js";
 export const MAIN_PLAYBOOK_ID = "personal-active";
 
@@ -1634,32 +1634,74 @@ export function createConceptTemplate(playData, { id, name }) {
   };
 }
 
+export function copyAssignmentForPlayer(play, assignmentId, targetPlayerId, newAssignmentId) {
+  const assignment = play.assignments.find(item => item.id === assignmentId);
+  if (!assignment) throw new Error("The source assignment is missing.");
+  const roster = assignment.unit === "defense" ? play.defenders : play.players;
+  const sources = roster.filter(player => player.id === assignment.playerId);
+  const targets = roster.filter(player => player.id === targetPlayerId);
+  if (sources.length !== 1 || targets.length !== 1) throw new Error("Choose one player on the same unit.");
+  if (play.assignments.some(item => item.unit === assignment.unit && item.playerId === targetPlayerId && item.phase === assignment.phase)) throw new Error("The target assignment stage is occupied.");
+  if (!newAssignmentId || play.assignments.some(item => item.id === newAssignmentId)) throw new Error("The copied assignment needs a unique ID.");
+  const dx = targets[0].x - sources[0].x, dy = targets[0].y - sources[0].y;
+  return {
+    ...clonePlaybook(assignment), id: newAssignmentId, playerId: targetPlayerId,
+    points: assignment.points.map(([x,y]) => clampPoint([x+dx,y+dy])),
+    evidence: assignment.evidence ? { ...assignment.evidence, coachEdited:true, method:"coach-copied" } : assignment.evidence,
+    templateOverride: assignment.inheritedFrom ? true : assignment.templateOverride,
+  };
+}
+
+export function mirrorAssignmentPath(play, assignmentId) {
+  const assignment = play.assignments.find(item => item.id === assignmentId);
+  if (!assignment) throw new Error("The assignment is missing.");
+  const owner = findPlayer(play, assignment.unit, assignment.playerId);
+  if (!owner) throw new Error("The assignment owner is missing.");
+  return {
+    ...clonePlaybook(assignment), preset: `${assignment.preset ?? assignment.type} Mirror`, geometryMode:"manual",
+    points: assignment.points.map(([x,y]) => clampPoint([2*owner.x-x,y])),
+    evidence: assignment.evidence ? { ...assignment.evidence, coachEdited:true } : assignment.evidence,
+  };
+}
+
 export function applyConceptTemplateToPlay(playData, concept) {
+  validateResponsibilityAreas(concept, `concept ${concept.name}`);
   const sourceRoster = {
     players: concept.players ?? basePlayers,
     defenders: concept.defenders ?? baseDefenders,
   };
-
-  const incoming = (concept.assignments ?? []).flatMap((item) => {
+  // Resolve the entire transfer before producing a candidate. A region cannot
+  // fall through a first-label match or silently share another incoming slot.
+  const mappings = (concept.assignments ?? []).flatMap(item => {
     const unit = item.unit ?? "offense";
-    const label = item.positionLabel ?? item.playerId;
-    const sourcePlayer = (unit === "defense" ? sourceRoster.defenders : sourceRoster.players)
-      .find((player) => player.label === label);
-    const targetPlayer = (unit === "defense" ? playData.defenders : playData.players)
-      .find((player) => player.label === label);
+    const sources = unit === "defense" ? sourceRoster.defenders : sourceRoster.players;
+    const targets = unit === "defense" ? playData.defenders : playData.players;
+    const ownsArea = hasResponsibilityArea(item);
+    const stableSource = sources.find(player => player.id === item.playerId);
+    const label = item.positionLabel ?? (ownsArea ? stableSource?.label : item.playerId);
+    const sourceMatches = sources.filter(player => player.label === label);
+    const targetMatches = targets.filter(player => player.label === label);
+    const refuse = () => { throw new Error(`Responsibility area for ${label ?? item.playerId} cannot transfer safely. Use unique labels and matching owners before applying.`); };
+    if (ownsArea && (!stableSource || stableSource.label !== label || sourceMatches.length !== 1 || targetMatches.length !== 1)) refuse();
+    const sourcePlayer = ownsArea ? stableSource : sourceMatches[0];
+    const targetPlayer = targetMatches[0];
     if (!sourcePlayer || !targetPlayer) return [];
-
-    const dx = targetPlayer.x - sourcePlayer.x;
-    const dy = targetPlayer.y - sourcePlayer.y;
-    const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    return [{
-      ...clonePlaybook(item),
-      id: `${playData.id}-${concept.id}-${slug}-${item.phase ?? "post"}`,
+    const phase = item.phase ?? assignmentPhaseForType(item.type);
+    return [{item, unit, phase, sourcePlayer, targetPlayer, ownsArea, refuse, slot:`${unit}:${targetPlayer.id}:${phase}`}];
+  });
+  for (const mapping of mappings) {
+    if (mapping.ownsArea && mappings.filter(other => other.slot === mapping.slot).length !== 1) mapping.refuse();
+  }
+  const incoming = mappings.map(({item,unit,phase,sourcePlayer,targetPlayer}) => {
+    const dx = targetPlayer.x-sourcePlayer.x, dy = targetPlayer.y-sourcePlayer.y;
+    return {
+      ...clonePlaybook(item), unit, phase,
+      id: `${playData.id}-${concept.id}-${unit}-${encodeURIComponent(targetPlayer.id)}-${phase}`,
       playerId: targetPlayer.id,
-      points: item.points.map(([x, y]) => clampPoint([x + dx, y + dy])),
-      inheritedFrom: { conceptId: concept.id, conceptName: concept.name, assignmentId: item.id },
-      templateOverride: false,
-    }];
+      points: item.points.map(([x,y]) => clampPoint([x+dx,y+dy])),
+      inheritedFrom: {conceptId:concept.id,conceptName:concept.name,assignmentId:item.id},
+      templateOverride:false,
+    };
   });
 
   const incomingKeys = new Set(incoming.map(assignmentSlotKey));

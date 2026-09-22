@@ -156,7 +156,7 @@ export function SaveConceptDialog({ concepts, play, onClose, onSave }) {
   );
 }
 
-export function ApplyConceptDialog({ concepts, currentConceptId, onApply, onClose }) {
+export function ApplyConceptDialog({ error, concepts, currentConceptId, onApply, onClose }) {
   const [conceptId, setConceptId] = useState(currentConceptId ?? concepts[0]?.id ?? "");
   const concept = concepts.find((item) => item.id === conceptId);
   return (
@@ -175,6 +175,7 @@ export function ApplyConceptDialog({ concepts, currentConceptId, onApply, onClos
           </select>
         </label>
       ) : <div className="empty-concepts"><GitMerge size={25} /><strong>No saved concepts yet</strong><span>Save the assignments from a play first.</span></div>}
+      {error ? <p className="restore-error" role="alert">{error}</p> : null}
       <button className="modal-primary" type="submit" disabled={!concept}>Apply concept</button>
       <button className="modal-close" type="button" onClick={onClose}><X size={18} />Cancel</button>
     </Modal>

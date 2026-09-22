@@ -46,6 +46,8 @@ import {
   clampPoint,
   clonePlaybook,
   createConceptTemplate,
+  copyAssignmentForPlayer,
+  mirrorAssignmentPath,
   createPlayFromFormation,
   defaultFormations,
   defensiveAssignmentTypes,
@@ -100,6 +102,7 @@ export function App() {
   const [applyFormationDialog, setApplyFormationDialog] = useState(false);
   const [saveConceptDialog, setSaveConceptDialog] = useState(false);
   const [applyConceptDialog, setApplyConceptDialog] = useState(false);
+  const [applyConceptError, setApplyConceptError] = useState("");
   const [dataToolsDialog, setDataToolsDialog] = useState(false);
   const [printPreview, setPrintPreview] = useState(false);
   const [restoreCandidate, setRestoreCandidate] = useState(null);
@@ -661,7 +664,11 @@ export function App() {
     if (mutationLocked) return;
     const concept = activePlaybook.concepts.find((item) => item.id === conceptId);
     if (!concept) return;
-    updatePlay(play.id, (current) => applyConceptTemplateToPlay(current, concept));
+    let candidate;
+    try { candidate = applyConceptTemplateToPlay(play, concept); }
+    catch (error) { setApplyConceptError(error.message); return; }
+    setApplyConceptError("");
+    updatePlay(play.id, () => candidate);
     clearSelection();
     setSelectedUnit("offense");
     setApplyConceptDialog(false);
@@ -878,37 +885,23 @@ export function App() {
 
   const copyAssignment = (targetId) => {
     if (!route || currentLayerLocked) return;
-    const sourceStart = playerLocation(play, selectedUnit, selectedPlayerId);
-    const targetStart = playerLocation(play, selectedUnit, targetId);
-    if (!sourceStart || !targetStart || assignmentFor(play, selectedUnit, targetId, route.phase)) return;
-    const dx = targetStart[0] - sourceStart[0];
-    const dy = targetStart[1] - sourceStart[1];
-    const copy = {
-      ...clonePlaybook([route])[0],
-      id: `${play.id}-${selectedUnit}-${targetId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${route.phase}-${Date.now()}`,
-      playerId: targetId,
-      points: route.points.map(([x, y]) => clampPoint([x + dx, y + dy])),
-      evidence: route.evidence ? { ...route.evidence, coachEdited: true, method: "coach-copied" } : route.evidence,
-      templateOverride: route.inheritedFrom ? true : route.templateOverride,
-    };
+    let copy;
+    try {
+      copy = copyAssignmentForPlayer(play, route.id, targetId, `${play.id}-${selectedUnit}-${targetId}-${route.phase}-${Date.now()}`);
+    } catch (error) { notifyProblem(error.message); return; }
     updatePlay(play.id, (current) => ({ ...current, assignments: [...current.assignments, copy] }));
     setSelectedPlayerId(targetId);
     setSelectedAssignmentId(copy.id);
-    notify(`Assignment copied to ${playerLabel(play, selectedUnit, targetId)}`);
+    notify(copy.definition?.responsibilityArea
+      ? `Assignment and responsibility area copied. Adjust the area for ${playerLabel(play, selectedUnit, targetId)}.`
+      : `Assignment copied to ${playerLabel(play, selectedUnit, targetId)}`);
   };
 
   const mirrorAssignment = () => {
     if (!route || currentLayerLocked) return;
-    const start = playerLocation(play, selectedUnit, selectedPlayerId);
-    if (!start) return;
-    updateSelectedAssignment((current) => ({
-      ...current,
-      preset: `${current.preset ?? current.type} Mirror`,
-      geometryMode: "manual",
-      points: current.points.map(([x, y]) => clampPoint([start[0] - (x - start[0]), y])),
-      evidence: current.evidence ? { ...current.evidence, coachEdited: true } : current.evidence,
-    }));
-    notify(`${selectedPlayerLabel} assignment mirrored`);
+    const mirrored = mirrorAssignmentPath(play, route.id);
+    updateSelectedAssignment(() => mirrored);
+    notify(`${selectedPlayerLabel} path mirrored`);
   };
 
   const toggleRun = () => {
@@ -1535,7 +1528,7 @@ export function App() {
             onDelete={() => setDeletePlayDialog(true)}
             onDetails={() => setDetailsDialog(true)}
             onDuplicate={duplicatePlay}
-            onApplyConcept={() => setApplyConceptDialog(true)}
+            onApplyConcept={() => { setApplyConceptError(""); setApplyConceptDialog(true); }}
             onApplyFormation={() => setApplyFormationDialog(true)}
             canGameDay={gameDayStorage.writable}
             onGameDay={openGameDay}
@@ -1649,7 +1642,7 @@ export function App() {
       {saveFormationDialog ? <SaveFormationDialog play={play} onClose={() => setSaveFormationDialog(false)} onSave={saveFormation} /> : null}
       {applyFormationDialog ? <ApplyFormationDialog currentFormation={play.formation} formations={activePlaybook.formations} onClose={() => setApplyFormationDialog(false)} onApply={applyFormation} /> : null}
       {saveConceptDialog ? <SaveConceptDialog concepts={activePlaybook.concepts} play={play} onClose={() => setSaveConceptDialog(false)} onSave={saveConcept} /> : null}
-      {applyConceptDialog ? <ApplyConceptDialog concepts={activePlaybook.concepts} currentConceptId={play.conceptTemplateId} onClose={() => setApplyConceptDialog(false)} onApply={applyConcept} /> : null}
+      {applyConceptDialog ? <ApplyConceptDialog error={applyConceptError} concepts={activePlaybook.concepts} currentConceptId={play.conceptTemplateId} onClose={() => setApplyConceptDialog(false)} onApply={applyConcept} /> : null}
       {dataToolsDialog ? (
         <DataToolsDialog
           gameDayRecovery={gameDayStorage.error ? gameDayStorage : null}
