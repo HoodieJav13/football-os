@@ -458,6 +458,7 @@ export function App() {
   };
 
   const undo = () => {
+    cancelRegionDrag();
     if (mutationLocked) return;
     const entry = historyRef.current.get(play.id);
     const previous = entry?.past.at(-1);
@@ -473,6 +474,7 @@ export function App() {
   };
 
   const redo = () => {
+    cancelRegionDrag();
     if (mutationLocked) return;
     const entry = historyRef.current.get(play.id);
     const next = entry?.future[0];

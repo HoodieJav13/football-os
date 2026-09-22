@@ -1,9 +1,10 @@
 import { projectResponsibilityArea, REGION_COLORS, responsibilityEntries } from './responsibilityArea.js';
 
 /** Fills paint below routes; handles paint in a separate pass above tokens. */
-export function ResponsibilityAreas({play,projection,layers,selectedAssignmentId,editing,onSelect,onBeginDrag,controls=false,clean=false,mini=false}) {
+export function ResponsibilityAreas({play,projection,layers,selectedAssignmentId,editing,onSelect,onBeginDrag,controls=false,clean=false,mini=false,editable=true}) {
   const entries=responsibilityEntries(play,layers);
   const occupied=[];
+  const interactive = !clean && editable && !layers?.defense?.locked;
   return <g className={controls?'responsibility-area-handles':'responsibility-areas'} opacity={layers?.defense?.dimmed?0.4:1}>
     {entries.map(({assignment,area,ownerKey})=>{
       const {cx,cy,rx,ry}=projectResponsibilityArea(area,projection);
@@ -29,10 +30,10 @@ export function ResponsibilityAreas({play,projection,layers,selectedAssignmentId
       occupied.push({x:cx,y:keyY,width:keyWidth});
       return <g key={assignment.id} data-region-assignment={assignment.id} data-region-owner={assignment.playerId}>
         <ellipse className="responsibility-area-fill" cx={cx} cy={cy} rx={rx} ry={ry} fill={color} fillOpacity=".20" stroke={color} strokeOpacity=".6" strokeWidth={projection.pixels(mini?1:1.5)} pointerEvents="none" />
-        {!mini?<g className="region-owner-key" role={clean?undefined:'button'} tabIndex={clean?undefined:0} aria-label={clean?undefined:`Select ${ownerKey} ${area.label} area`}
-          onPointerDown={clean?undefined:event=>{event.stopPropagation();onSelect?.(assignment.id);}}
-          onKeyDown={clean?undefined:event=>{if(event.key==='Enter'){event.preventDefault();onSelect?.(assignment.id);}}}>
-          {!clean?<rect x={cx-projection.pixels(22)} y={keyY-projection.pixels(22)} width={projection.pixels(44)} height={projection.pixels(44)} fill="transparent" />:null}
+        {!mini?<g className="region-owner-key" role={interactive?'button':undefined} tabIndex={interactive?0:undefined} aria-label={!interactive?undefined:`Select ${ownerKey} ${area.label} area`}
+          onPointerDown={!interactive?undefined:event=>{event.stopPropagation();onSelect?.(assignment.id);}}
+          onKeyDown={!interactive?undefined:event=>{if(event.key==='Enter'){event.preventDefault();onSelect?.(assignment.id);}}}>
+          {interactive?<rect x={cx-projection.pixels(22)} y={keyY-projection.pixels(22)} width={projection.pixels(44)} height={projection.pixels(44)} fill="transparent" />:null}
           <rect x={cx-keyWidth/2} y={keyY-keyHeight/2} width={keyWidth} height={keyHeight} rx={projection.pixels(5)} fill="#102922" stroke={color} strokeWidth={projection.pixels(1)} />
           <text x={cx} y={keyY+projection.pixels(4)} fontSize={projection.pixels(12)} textAnchor="middle" fill={color}>{ownerKey}</text>
         </g>:null}

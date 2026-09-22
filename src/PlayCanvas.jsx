@@ -474,7 +474,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
         </defs>
 
         {ready ? <FieldMarkings projection={projection} prefix={prefix} /> : null}
-        {ready ? <ResponsibilityAreas play={play} projection={projection} layers={layers} clean={suppressEditing} onSelect={onSelectAssignment} /> : null}
+        {ready ? <ResponsibilityAreas play={play} projection={projection} layers={layers} clean={suppressEditing} editable={editable} onSelect={onSelectAssignment} /> : null}
         <title>{`${play.name}, ${play.formation}, ${play.personnel}`}</title>
 
         {/*

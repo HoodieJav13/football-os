@@ -35,3 +35,10 @@ The completion report records the exact saved play ID, exported-backup SHA-256,
 artifacts and separate automated add/revision/export timings. These timings
 include automation and waits; the owner's current-process time is unmeasured,
 so no labor reduction or time savings are claimed.
+
+Saved rehearsal play: `cover3-462e344f-a3d9-476b-9447-b04797fba80f`.
+
+Backup SHA-256: `bc2a0decf2a4867e729b46b83334111928db0ebb1f002c174fffe78d50a1e6fe`.
+
+[Restorable rehearsal backup](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/cover3-rehearsal.footballos).
+[Completion and verification report](reports/2026-09-22-responsibility-areas.md).
