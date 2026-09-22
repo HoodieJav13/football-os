@@ -7,6 +7,7 @@ import {
   CloudCheck,
   Copy,
   DownloadSimple,
+  LockSimple,
   NotePencil,
   Pause,
   Play,
@@ -94,6 +95,8 @@ export function Header({
   onView,
   temporary,
 }) {
+  const reference = activePlaybook.readOnly === true;
+  const primaryName = reference && play.sourceCall ? play.sourceCall : play.name;
   const running = playback === "running";
   const runLabel = running ? "Pause" : playback === "paused" ? "Resume" : "Run";
   return (
@@ -110,15 +113,16 @@ export function Header({
         />
         <span className="heading-rule" aria-hidden="true" />
         <div>
-          <span className="family-label">{play.family} Family</span>
+          <span className="family-label">{reference ? `Concept · ${play.conceptName ?? play.name}` : `${play.family} Family`}</span>
           <div className="title-line">
-            <h1>{play.name}</h1>
-            {temporary ? <span className="temporary-chip">Temporary</span> : <NotePencil size={18} aria-hidden="true" />}
+            <h1>{primaryName}</h1>
+            {temporary ? <span className="temporary-chip">Temporary</span> : reference ? <span className="reference-chip"><LockSimple size={13} />Reference</span> : <NotePencil size={18} aria-hidden="true" />}
           </div>
           <div className="play-meta"><span>{play.personnel}</span><span>{play.formation}</span></div>
         </div>
       </div>
       <div className="top-actions">
+        {reference ? <button className="reference-copy-button" aria-label={`Add to ${mainPlaybook.name}`} onClick={onCopy}><Copy size={18} /><span>Add to Active</span></button> : null}
         <span className={`offline-state ${formationLegal ? "" : "draft-state"}`}>
           {!formationLegal ? <Warning size={18} /> : offlineStatus.ready ? <WifiHigh size={18} /> : offlineStatus.online ? <CloudCheck size={18} /> : <WifiSlash size={18} />}
           {!formationLegal

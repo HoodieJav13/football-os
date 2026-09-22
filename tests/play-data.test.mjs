@@ -1,3 +1,5 @@
+import {readFileSync} from "node:fs";
+import {fieldProjection} from "../src/fieldView.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -66,14 +68,14 @@ test("coordinates are stored in yards from the line of scrimmage", () => {
   assert.ok(Math.abs(byLabel(basePlayers, "X").x) < FIELD.halfWidthYards);
 });
 
-test("the fixed field window contains every seeded route without clipping", () => {
-  const books = createSeedPlaybooks();
-  const points = books.flatMap((book) => book.plays.flatMap((play) => play.assignments.flatMap((item) => item.points)));
-  const deepest = Math.max(...points.map(([, y]) => y));
-  const shallowest = Math.min(...points.map(([, y]) => y));
-
-  assert.ok(deepest <= FIELD_WINDOW.downfieldYards, `deepest point ${deepest} exceeds the window`);
-  assert.ok(shallowest >= -FIELD_WINDOW.behindYards, `deepest backfield point ${shallowest} exceeds the window`);
+test("presentation framing contains all seeded paths without rewriting field data", () => {
+ for (const book of createSeedPlaybooks()) for (const play of book.plays) {
+  const projection=fieldProjection({width:1200,height:800,play,view:"end",framePlay:true});
+  for(const a of play.assignments) for(const point of a.points) {
+   const [x,y]=projection.project(point), b=projection.bounds;
+   assert.ok(x>=b.minX && x<=b.maxX && y>=b.minY && y<=b.maxY, play.id);
+  }
+ }
 });
 
 test("every seeded assignment is anchored on a player that exists in its play", () => {
@@ -116,8 +118,9 @@ test("playbook cloning protects the source during temporary changes", () => {
 test("source playbooks remain separate from the main personal playbook", () => {
   assert.deepEqual(seedPlaybooks.map((book) => book.name), [
     "Personal Active",
-    "Texas Tech Sample",
-    "LSU 2019 Sample",
+    "Air Raid Reference",
+    "LSU 2019 Reference",
+    "Texas Tech Reference",
     "Air Raid Passing Game",
   ]);
   assert.equal(seedPlaybooks[0].isMain, true);
@@ -133,7 +136,7 @@ test("migrated personal plays keep their content and gain pace data", () => {
   legacy[0].assignments[0] = { ...legacy[0].assignments[0], pace: undefined, delay: 0.5 };
   const books = createSeedPlaybooks(legacy);
   assert.equal(books[0].plays[0].assignments[0].pace, 1);
-  assert.equal(books[0].plays[0].assignments[0].geometryMode, "detected");
+  assert.equal(books[0].plays[0].assignments[0].geometryMode, legacy[0].assignments[0].geometryMode);
   assert.ok(books[0].plays[0].assignments[0].definition);
   assert.equal(books[0].plays[0].name, legacy[0].name);
 });
@@ -250,7 +253,9 @@ test("route inference measures the stem in yards", () => {
 
 test("explicit PDF measurements override conflicting traced geometry", () => {
   const books = createSeedPlaybooks();
-  const lsu = books.find((book) => book.id === "lsu-2019-sample");
+  const legacy=JSON.parse(readFileSync(new URL("./fixtures/workspace-v9.json",import.meta.url),"utf8"));
+  const lsu = legacy.playbooks.find((book) => book.id === "lsu-2019-sample");
+  lsu.plays=lsu.plays.map(normalizePlay);
   const sticky = lsu.plays.find((play) => play.id === "lsu-dice-jordan-sticky");
   const yRoute = sticky.assignments.find((item) => item.id === "lsu-sticky-y");
 

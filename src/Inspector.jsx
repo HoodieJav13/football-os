@@ -100,11 +100,24 @@ function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
 
       {evidence?.sourcePage ? (
         <div className="source-evidence">
-          <span>{evidence.method === "labels-and-geometry" ? "PDF labels + geometry" : "PDF geometry inferred"} · {titleCase(evidence.confidence)}</span>
+          <span>{evidence.geometryBasis === "neutral-animation" ? "Source label · neutral animation geometry" : evidence.geometryBasis === "diagram-traced" ? "Diagram-traced geometry" : "Source-explicit geometry"} · {titleCase(evidence.confidence)}</span>
           <strong>{evidence.sourceLabel} · page {evidence.sourcePage}</strong>
           {evidence.note ? <small>{evidence.note}</small> : null}
           {evidence.coachEdited ? <small>Coach-edited after detection</small> : null}
         </div>
+      ) : null}
+
+      {definition.alternatives.length ? (
+        <label className="route-alternative">Preview conversion
+          <select
+            value={definition.activeAlternativeId ?? ""}
+            onChange={(event) => changeDefinition({ ...definition, activeAlternativeId: event.target.value || null })}
+          >
+            <option value="">Base route</option>
+            {definition.alternatives.map((alternative) => <option key={alternative.id} value={alternative.id}>{alternative.label}</option>)}
+          </select>
+          {definition.activeAlternativeId ? <small>{definition.alternatives.find((item) => item.id === definition.activeAlternativeId)?.when}</small> : null}
+        </label>
       ) : null}
 
       <fieldset className="release-control">
@@ -193,6 +206,7 @@ export function Inspector({
   route,
   unavailableTypes,
   unit,
+  reference = false,
 }) {
   const [mobileExpanded, setMobileExpanded] = useState(false);
   /*
@@ -255,14 +269,28 @@ export function Inspector({
         </div>
         <button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button>
       </div>
-      <AssignmentStagePicker
+      {!reference ? <AssignmentStagePicker
         activeId={route?.id ?? null}
         assignments={assignments}
         onAdd={onAddStage}
         onSelect={onSelectStage}
         unit={unit}
-      />
+      /> : null}
       <div className="inspector-body">
+        {reference ? (
+          <div className="reference-inspector">
+            <div className="reference-lock-note"><LockSimple size={18} /><span><strong>Verified reference</strong><small>Copy this play to Personal Active before editing.</small></span></div>
+            <dl>
+              <div><dt>Position</dt><dd>{label}{route?.evidence?.sourcePositionLabel && route.evidence.sourcePositionLabel !== label ? ` · source ${route.evidence.sourcePositionLabel}` : ""}</dd></div>
+              <div><dt>Assignment</dt><dd>{route?.preset ?? route?.type ?? "None"}</dd></div>
+              {route ? <div><dt>Timing</dt><dd>{timingSummary}</dd></div> : null}
+              {route?.type === "Route" ? <div><dt>Route</dt><dd>{routeDefinitionSummary(route.definition)}</dd></div> : null}
+              {route?.definition?.condition ? <div><dt>Rule</dt><dd>{route.definition.condition}</dd></div> : null}
+              {route?.evidence?.note ? <div><dt>Evidence</dt><dd>{route.evidence.note}</dd></div> : null}
+            </dl>
+          </div>
+        ) : <>
+
         {route?.inheritedFrom ? (
           <div className={`concept-source ${route.templateOverride ? "override" : ""}`}>
             <GitMerge size={16} />
@@ -304,6 +332,7 @@ export function Inspector({
             <button className="advanced-toggle remove-player" onClick={onRemovePlayer}><Trash size={18} />Remove {unit === "defense" ? "defender" : "player"}</button>
           </div>
         </details>
+        </>}
       </div>
     </aside>
   );

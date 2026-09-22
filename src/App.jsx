@@ -1,3 +1,4 @@
+import { createEmptyPlayFilters, createFamilyBases, createPlayFilterOptions, filterPlays } from "./playFilters";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CaretLeft, CornersOut, Play, X } from "@phosphor-icons/react";
 
@@ -113,8 +114,7 @@ export function App() {
     defense: { visible: true, dimmed: false, locked: false },
     assignments: { visible: true },
   });
-  const [browserQuery, setBrowserQuery] = useState("");
-  const [browserFolder, setBrowserFolder] = useState("all");
+  const [playFilters, setPlayFilters] = useState(createEmptyPlayFilters);
   const [draftAssignment, setDraftAssignment] = useState([]);
   /** Live drag feedback: which player is in hand, and which guides it snapped to. */
   const [dragInfo, setDragInfo] = useState(null);
@@ -136,37 +136,19 @@ export function App() {
   const svgRef = useRef(null);
   const [, setHistoryVersion] = useState(0);
 
-  const playbooks = workspace.playbooks;
+  const playbooks = workspace.playbooks.filter(book => !book.archived);
   const activePlaybook = playbooks.find((book) => book.id === workspace.activePlaybookId) ?? playbooks[0];
   const mainPlaybook = playbooks.find((book) => book.id === workspace.mainPlaybookId) ?? playbooks[0];
   const library = activePlaybook.plays;
+  const referenceLocked = activePlaybook.readOnly === true;
   /*
    * Each family's base is its first play in full library order -- stable even
    * when search or folder filters hide it, so a filtered strip still diffs
    * against the real base rather than whichever variant happens to be visible.
    */
-  const familyBases = useMemo(() => {
-    const bases = new Map();
-    for (const item of library) if (!bases.has(item.family)) bases.set(item.family, item);
-    return bases;
-  }, [library]);
-  const folders = useMemo(() => [...new Set(library.map((item) => item.folder ?? "Unfiled"))].sort(), [library]);
-  const visibleLibrary = useMemo(() => {
-    const query = browserQuery.trim().toLowerCase();
-    return library.filter((item) => {
-      if (browserFolder !== "all" && (item.folder ?? "Unfiled") !== browserFolder) return false;
-      if (!query) return true;
-      return [
-        item.name,
-        item.family,
-        item.formation,
-        item.personnel,
-        item.protection,
-        item.blockingScheme,
-        item.folder,
-      ].some((value) => value?.toLowerCase().includes(query));
-    });
-  }, [browserFolder, browserQuery, library]);
+  const familyBases = useMemo(() => createFamilyBases(library), [library]);
+  const playFilterOptions = useMemo(() => createPlayFilterOptions(library), [library]);
+  const visibleLibrary = useMemo(() => filterPlays(library, playFilters), [library, playFilters]);
   const playIndex = useMemo(() => Math.max(0, library.findIndex((item) => item.id === playId)), [library, playId]);
   const play = library[playIndex];
   /*
@@ -196,7 +178,7 @@ export function App() {
   const playerAssignments = useMemo(() => selectedPlayerId
     ? play.assignments.filter((item) => item.unit === selectedUnit && item.playerId === selectedPlayerId)
     : [], [play.assignments, selectedPlayerId, selectedUnit]);
-  const currentLayerLocked = layers[selectedUnit]?.locked ?? false;
+  const currentLayerLocked = referenceLocked || (layers[selectedUnit]?.locked ?? false);
   const copyTargets = useMemo(() => {
     if (!selectedPlayerId) return [];
     const phase = route?.phase ?? "post";
@@ -314,7 +296,7 @@ export function App() {
     setWorkspace((current) => ({
       ...current,
       playbooks: current.playbooks.map((book) => {
-        if (book.id !== current.activePlaybookId) return book;
+        if (book.id !== current.activePlaybookId || book.readOnly) return book;
         const nextPlays = typeof nextValue === "function" ? nextValue(book.plays) : nextValue;
         return { ...book, plays: nextPlays };
       }),
@@ -326,7 +308,7 @@ export function App() {
   };
 
   const pushHistory = (targetId, snapshot = library.find((item) => item.id === targetId)) => {
-    if (!snapshot) return;
+    if (!snapshot || referenceLocked) return;
     const entry = historyRef.current.get(targetId) ?? { past: [], future: [] };
     historyRef.current.set(targetId, {
       past: [...entry.past.slice(-39), clonePlaybook([snapshot])[0]],
@@ -336,6 +318,7 @@ export function App() {
   };
 
   const updatePlay = (targetId, updater, { record = true } = {}) => {
+    if (referenceLocked) return;
     if (record) pushHistory(targetId);
     setLibrary((current) => current.map((item) => item.id === targetId ? updater(item) : item));
   };
@@ -410,6 +393,7 @@ export function App() {
   };
 
   const undo = () => {
+    if (referenceLocked) return;
     const entry = historyRef.current.get(play.id);
     const previous = entry?.past.at(-1);
     if (!previous) return;
@@ -424,6 +408,7 @@ export function App() {
   };
 
   const redo = () => {
+    if (referenceLocked) return;
     const entry = historyRef.current.get(play.id);
     const next = entry?.future[0];
     if (!next) return;
@@ -464,8 +449,7 @@ export function App() {
     setPlayId(nextPlay.id);
     if (compactViewport()) clearSelection();
     else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
-    setBrowserQuery("");
-    setBrowserFolder("all");
+    setPlayFilters(createEmptyPlayFilters());
     setDraftAssignment([]);
     setActiveTool("Select");
     setPlayback("idle");
@@ -477,7 +461,9 @@ export function App() {
     const copy = {
       ...clonePlaybook([play])[0],
       id: `${mainPlaybook.id}-${play.id}-${Date.now()}`,
-      name: uniqueName(mainPlaybook.plays, play.name),
+      name: uniqueName(mainPlaybook.plays, play.sourceCall || play.name),
+      conceptName: play.conceptName ?? play.name,
+      referenceStatus: "copied-reference",
       variantOf: null,
       importedFrom: {
         playbookId: activePlaybook.id,
@@ -600,7 +586,7 @@ export function App() {
     setWorkspace((current) => ({
       ...current,
       playbooks: current.playbooks.map((book) => {
-        if (book.id !== current.activePlaybookId) return book;
+        if (book.id !== current.activePlaybookId || book.readOnly) return book;
         const existing = book.formations.findIndex((item) => item.name.toLowerCase() === name.toLowerCase());
         const formations = existing >= 0
           ? book.formations.map((item, index) => index === existing ? { ...saved, id: item.id } : item)
@@ -640,7 +626,7 @@ export function App() {
     setWorkspace((current) => ({
       ...current,
       playbooks: current.playbooks.map((book) => {
-        if (book.id !== current.activePlaybookId) return book;
+        if (book.id !== current.activePlaybookId || book.readOnly) return book;
         return {
           ...book,
           concepts: existing
@@ -1202,7 +1188,7 @@ export function App() {
 
     if (activeTool === "Select") {
       setSelectedAssignmentId(existing?.id ?? null);
-      if (!layers[unit].locked && !pinching()) {
+      if (!referenceLocked && !layers[unit].locked && !pinching()) {
         playerDrag.current = {
           id: playerId,
           unit,
@@ -1327,12 +1313,14 @@ export function App() {
   };
 
   const startGameDay = () => {
+    if (referenceLocked) return;
     setGameDay({ playbookId: activePlaybook.id, playId: play.id, snapshot: clonePlaybook([play])[0], startedAt: new Date().toISOString() });
     setGameDayDialog(false);
     notify("Temporary game-day variation started");
   };
 
   const resolveGameDay = (resolution) => {
+    if (referenceLocked) return;
     if (!gameDay) return;
     if (gameDay.playbookId !== activePlaybook.id) {
       notifyProblem("Open the adjusted playbook before resolving this change");
@@ -1393,6 +1381,7 @@ export function App() {
 
     const onKeyDown = (event) => {
       if (anyDialogOpen || isTyping(event.target)) return;
+      if (referenceLocked && !["Escape", " ", "[", "]"].includes(event.key)) return;
       const accel = event.metaKey || event.ctrlKey;
 
       if (accel && event.key.toLowerCase() === "z") {
@@ -1495,24 +1484,17 @@ export function App() {
       />
       {(
         <Filmstrip
-          family={activePlaybook.name}
-          familyBases={familyBases}
-          library={visibleLibrary}
-          fullCount={library.length}
-          folders={folders}
-          folder={browserFolder}
-          query={browserQuery}
-          activeId={play.id}
-          onChange={selectPlay}
-          onCreate={() => setCreatePlayDialog(true)}
-          onFolder={setBrowserFolder}
-          onQuery={setBrowserQuery}
+          allPlays={library} family={activePlaybook.name} familyBases={familyBases}
+          filters={playFilters} filterOptions={playFilterOptions} plays={visibleLibrary}
+          canCreate={!referenceLocked} activeId={play.id} onChange={selectPlay}
+          onCreate={() => setCreatePlayDialog(true)} onFilters={setPlayFilters}
         />
       )}
       <section className={`editor-shell ${inspectorOpen ? "" : "inspector-closed"}`}>
         {(
           <ToolRail
             activeTool={activeTool}
+            readOnly={referenceLocked}
             canAddPlayer={play.players.length < 11}
             canRedo={canRedo}
             canUndo={canUndo}
@@ -1577,6 +1559,7 @@ export function App() {
             route={route}
             unit={selectedUnit}
             label={selectedPlayerLabel}
+            reference={referenceLocked}
             locked={currentLayerLocked}
             unavailableTypes={unavailableTypes}
             copyTargets={copyTargets}

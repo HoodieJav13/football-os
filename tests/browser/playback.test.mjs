@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { playClock, token, tokenSpot, useBrowser, waitForIdle } from "./harness.mjs";
@@ -88,7 +89,8 @@ test("Space still runs the play after clicking a player", async () => {
 });
 
 test("routes light only while their player is running them", async () => {
-  const app = await open();
+  const legacy = JSON.parse(readFileSync(new URL('../fixtures/workspace-v9.json', import.meta.url),'utf8'));
+  const app = await open({workspace:legacy});
   const { page } = app;
   await page.keyboard.press("Space");
 
