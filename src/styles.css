@@ -1804,3 +1804,7 @@ button:active { scale: 0.96; }
  .reference-copy-button { padding:0 8px; }
  .reference-copy-button span { display:none; }
 }
+
+.storage-recovery { position: fixed; z-index: 40; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); max-height: 40dvh; overflow: auto; padding: 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--chrome); box-shadow: 0 8px 32px #0008; font-size: 12px; }
+.storage-recovery p { margin: 8px 0; line-height: 1.5; }
+.storage-recovery button { min-height:44px; padding: 8px 12px; border-radius:8px; background:var(--accent-soft); color:var(--accent); }

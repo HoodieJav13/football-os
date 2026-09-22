@@ -19,6 +19,7 @@ import {
 export function ToolRail({
   activeTool,
   canAddPlayer,
+  canGameDay = true,
   canRedo,
   canUndo,
   onDelete,
@@ -79,7 +80,7 @@ export function ToolRail({
               <button role="menuitem" onClick={() => run(onSaveFormation)}><FloppyDisk size={19} />Save formation</button>
               <button role="menuitem" onClick={() => run(onApplyConcept)}><GitMerge size={19} />Apply concept</button>
               <button role="menuitem" onClick={() => run(onSaveConcept)}><Stack size={19} />Save concept</button>
-              <button role="menuitem" onClick={() => run(onGameDay)}><SlidersHorizontal size={19} />{temporary ? "Resolve adjustment" : "Game Day Adjust"}</button>
+              <button role="menuitem" disabled={!canGameDay} onClick={() => run(onGameDay)}><SlidersHorizontal size={19} />{temporary ? "Resolve adjustment" : "Game Day Adjust"}</button>
               <button role="menuitem" onClick={() => run(onDetails)}><NotePencil size={19} />Play details</button>
               {/*
                 Deleting a play is the one action here that undo cannot reverse,

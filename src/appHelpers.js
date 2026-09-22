@@ -1,24 +1,15 @@
 import {
-  MAIN_PLAYBOOK_ID,
   assignmentDefinitionToPoints,
   assignmentPhaseForType,
   findPlayer,
   isLineLabel,
   manCoveragePoints,
-  normalizePlay,
   playerLabel,
   sanitizeBlockDefinition,
   sanitizeDefensiveDefinition,
   sanitizeMotionDefinition,
   sanitizeRouteDefinition,
 } from "./playData";
-import {
-  LEGACY_WORKSPACE_KEYS,
-  WORKSPACE_KEY,
-  createDefaultWorkspace,
-  normalizeWorkspace,
-  validPlays,
-} from "./workspaceData";
 import { ArrowClockwise, ArrowsOut, CursorClick, DotsThree, ShareNetwork, ShieldCheck } from "@phosphor-icons/react";
 
 /**
@@ -26,9 +17,8 @@ import { ArrowClockwise, ArrowsOut, CursorClick, DotsThree, ShareNetwork, Shield
  * readers, assignment lookup, and the small pure utilities several panels need.
  * Extracted from App.jsx unchanged -- this file is a move, not a rewrite.
  */
-export const LEGACY_LIBRARY_KEY = "football-os.library.v4";
-export const GAME_DAY_KEY = "football-os.game-day.v6";
-export const LEGACY_GAME_DAY_KEYS = ["football-os.game-day.v5", "football-os.game-day.v4"];
+export { LEGACY_LIBRARY_KEY, GAME_DAY_KEY, LEGACY_GAME_DAY_KEYS } from "./workspaceStorage.js";
+import { loadWorkspaceState, loadGameDayState } from "./workspaceStorage.js";
 
 export const compactViewport = () => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
 
@@ -41,35 +31,8 @@ export const toolItems = [
   ["More", DotsThree],
 ];
 
-export function readWorkspace() {
-  try {
-    const saved = JSON.parse(window.localStorage.getItem(WORKSPACE_KEY))
-      ?? LEGACY_WORKSPACE_KEYS
-        .map((key) => JSON.parse(window.localStorage.getItem(key)))
-        .find(Boolean);
-    const normalized = normalizeWorkspace(saved);
-    if (normalized) return normalized;
-
-    const legacy = JSON.parse(window.localStorage.getItem(LEGACY_LIBRARY_KEY));
-    return createDefaultWorkspace(validPlays(legacy) ? legacy : undefined);
-  } catch {
-    return createDefaultWorkspace();
-  }
-}
-
-export function readGameDay() {
-  try {
-    const saved = JSON.parse(window.localStorage.getItem(GAME_DAY_KEY))
-      ?? LEGACY_GAME_DAY_KEYS
-        .map((key) => JSON.parse(window.localStorage.getItem(key)))
-        .find(Boolean);
-    return saved?.playId && saved?.snapshot
-      ? { ...saved, playbookId: saved.playbookId ?? MAIN_PLAYBOOK_ID, snapshot: normalizePlay(saved.snapshot) }
-      : null;
-  } catch {
-    return null;
-  }
-}
+export const readWorkspace = () => loadWorkspaceState(window.localStorage).workspace;
+export const readGameDay = () => loadGameDayState(window.localStorage).gameDay;
 
 /** The flanker is the most useful default selection; fall back to any assignment. */
 

@@ -23,6 +23,7 @@ const printLayers = {
 const noop = () => {};
 
 export function DataToolsDialog({
+  writable = true,
   activePlaybook,
   offlineStatus,
   onBackup,
@@ -45,13 +46,13 @@ export function DataToolsDialog({
         {offlineStatus.ready ? <WifiHigh size={24} /> : <WifiSlash size={24} />}
         <div>
           <strong>{offlineStatus.ready ? "Game-day offline copy ready" : offlineStatus.development ? "Offline copy available after production build" : "Offline copy is still preparing"}</strong>
-          <span>{workspace.playbooks.length} playbooks · {playCount} plays stored on this device</span>
+          <span>{writable ? `${workspace.playbooks.length} playbooks · ${playCount} plays in this workspace` : "Recovery view · saved workspace has not been loaded"}</span>
         </div>
         <button type="button" onClick={onRefreshOffline} disabled={offlineStatus.development}><ArrowClockwise size={17} />Refresh</button>
       </div>
 
       <div className="data-action-grid">
-        <button type="button" onClick={onBackup}>
+        <button type="button" disabled={!writable} onClick={onBackup}>
           <DownloadSimple size={22} />
           <span><strong>Download backup</strong><small>Everything in one restorable .footballos file</small></span>
         </button>

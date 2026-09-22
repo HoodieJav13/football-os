@@ -20,7 +20,7 @@ import {
 } from "@phosphor-icons/react";
 
 /** The top bar: playbook switcher, play identity, camera switch, present and run. */
-function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDataTools, onSwitch, playbooks }) {
+function PlaybookSwitcher({ writable = true, activePlaybook, mainPlaybook, onCopy, onCreate, onDataTools, onSwitch, playbooks }) {
   const { open, present, leaving, setOpen, toggle, containerRef } = useDismissable();
   const canCopy = activePlaybook.id !== mainPlaybook.id;
   return (
@@ -59,11 +59,11 @@ function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDa
           ))}
           <div className="playbook-menu-actions">
             {canCopy ? (
-              <button onClick={() => { onCopy(); setOpen(false); }}>
+              <button disabled={!writable} onClick={() => { onCopy(); setOpen(false); }}>
                 <Copy size={19} /><span><strong>Add this play to {mainPlaybook.name}</strong><small>Creates an independent copy</small></span>
               </button>
             ) : null}
-            <button onClick={() => { onCreate(); setOpen(false); }}>
+            <button disabled={!writable} onClick={() => { onCreate(); setOpen(false); }}>
               <PlusCircle size={19} /><span><strong>New playbook</strong><small>Start a separate collection</small></span>
             </button>
             <button onClick={() => { onDataTools(); setOpen(false); }}>
@@ -77,6 +77,7 @@ function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDa
 }
 
 export function Header({
+  writable = true,
   activePlaybook,
   formationLegal,
   mainPlaybook,
@@ -103,6 +104,7 @@ export function Header({
     <header className="topbar">
       <div className="play-heading">
         <PlaybookSwitcher
+          writable={writable}
           activePlaybook={activePlaybook}
           mainPlaybook={mainPlaybook}
           onCopy={onCopy}
@@ -122,7 +124,7 @@ export function Header({
         </div>
       </div>
       <div className="top-actions">
-        {reference ? <button className="reference-copy-button" aria-label={`Add to ${mainPlaybook.name}`} onClick={onCopy}><Copy size={18} /><span>Add to Active</span></button> : null}
+        {reference ? <button disabled={!writable} className="reference-copy-button" aria-label={`Add to ${mainPlaybook.name}`} onClick={onCopy}><Copy size={18} /><span>Add to Active</span></button> : null}
         <span className={`offline-state ${formationLegal ? "" : "draft-state"}`}>
           {!formationLegal ? <Warning size={18} /> : offlineStatus.ready ? <WifiHigh size={18} /> : offlineStatus.online ? <CloudCheck size={18} /> : <WifiSlash size={18} />}
           {!formationLegal

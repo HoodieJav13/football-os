@@ -46,7 +46,7 @@ export function useBrowser() {
     await browser?.close();
   });
 
-  return async function open({ viewport = DESKTOP, touch = false, settle = 1800, serviceWorkers = "allow", workspace } = {}) {
+  return async function open({ viewport = DESKTOP, touch = false, settle = 1800, serviceWorkers = "allow", workspace, storage } = {}) {
     const context = await browser.newContext({
       viewport,
       hasTouch: touch,
@@ -61,6 +61,7 @@ export function useBrowser() {
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
+    if (storage) await page.addInitScript(entries => { for (const [key,value] of Object.entries(entries)) localStorage.setItem(key,value); }, storage);
     if (workspace) await page.addInitScript(({key,workspace}) => {
       if (!localStorage.getItem(key)) localStorage.setItem(key,JSON.stringify(workspace));
     }, {key:WORKSPACE_KEY,workspace});

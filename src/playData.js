@@ -1,3 +1,4 @@
+import { copyResponsibilityArea, validateResponsibilityAreas } from "./responsibilityArea.js";
 import { routeFromVocabulary, routePace } from "./routeVocabulary.js";
 export const MAIN_PLAYBOOK_ID = "personal-active";
 
@@ -298,6 +299,8 @@ export function sanitizeDefensiveDefinition(type, definition = {}) {
     return {
       area: zoneAreas.includes(definition.area) ? definition.area : "hook",
       landmark: typeof definition.landmark === "string" ? definition.landmark : "",
+      ...(Object.hasOwn(definition, "responsibilityArea")
+        ? { responsibilityArea: copyResponsibilityArea(definition.responsibilityArea) } : {}),
     };
   }
   if (type === "Fit") {
@@ -1402,6 +1405,7 @@ function normalizeAssignment(assignmentData, playData) {
 }
 
 export function normalizePlay(playData) {
+  validateResponsibilityAreas(playData, `play ${playData.id}`);
   const migrated = isLegacyPlay(playData) ? migrateLegacyPlay(playData) : playData;
   const players = clonePlaybook(migrated.players?.length ? migrated.players : basePlayers);
   const defenders = clonePlaybook(Array.isArray(migrated.defenders) ? migrated.defenders : baseDefenders);

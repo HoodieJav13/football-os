@@ -1,3 +1,4 @@
+import { browserStorage, loadWorkspaceState, loadGameDayState, restoreWorkspace } from "./workspaceStorage.js";
 import { createEmptyPlayFilters, createFamilyBases, createPlayFilterOptions, filterPlays } from "./playFilters";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CaretLeft, CornersOut, Play, X } from "@phosphor-icons/react";
@@ -33,8 +34,6 @@ import {
   isLinePlayer,
   playerExists,
   preferredAssignment,
-  readGameDay,
-  readWorkspace,
   titleCase,
   toolItems,
   uniqueName,
@@ -64,7 +63,7 @@ import {
 } from "./playData";
 import { downloadPlayPng, downloadWorkspaceBackup } from "./exportUtils";
 import { refreshOfflineCopy, subscribeOfflineStatus } from "./offline";
-import { parseWorkspaceBackup, RECOVERY_WORKSPACE_KEY, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
+import { parseWorkspaceBackup, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
 
 /** Matches the inspector exit keyframes in styles.css. */
 const INSPECTOR_EXIT_MS = 200;
@@ -78,7 +77,12 @@ function starterPlay(playbookId) {
 }
 
 export function App() {
-  const [workspace, setWorkspace] = useState(readWorkspace);
+  const [storageState, setStorageState] = useState(() => loadWorkspaceState(browserStorage));
+  const [workspace, setWorkspace] = useState(storageState.workspace);
+  const [saveError, setSaveError] = useState(null);
+  const [gameDaySaveError, setGameDaySaveError] = useState(null);
+  const [gameDayStorage] = useState(() => loadGameDayState(browserStorage));
+  const writable = storageState.writable;
   const [playId, setPlayId] = useState(null);
   const [view, setView] = useState("end");
   const [activeTool, setActiveTool] = useState("Select");
@@ -86,7 +90,7 @@ export function App() {
   const [playback, setPlayback] = useState("idle");
   const [runKey, setRunKey] = useState(0);
   const [present, setPresent] = useState(false);
-  const [gameDay, setGameDay] = useState(readGameDay);
+  const [gameDay, setGameDay] = useState(gameDayStorage.gameDay);
   const [gameDayDialog, setGameDayDialog] = useState(false);
   const [detailsDialog, setDetailsDialog] = useState(false);
   const [createPlayDialog, setCreatePlayDialog] = useState(false);
@@ -141,6 +145,7 @@ export function App() {
   const mainPlaybook = playbooks.find((book) => book.id === workspace.mainPlaybookId) ?? playbooks[0];
   const library = activePlaybook.plays;
   const referenceLocked = activePlaybook.readOnly === true;
+  const mutationLocked = referenceLocked || !writable;
   /*
    * Each family's base is its first play in full library order -- stable even
    * when search or folder filters hide it, so a filtered strip still diffs
@@ -178,7 +183,7 @@ export function App() {
   const playerAssignments = useMemo(() => selectedPlayerId
     ? play.assignments.filter((item) => item.unit === selectedUnit && item.playerId === selectedPlayerId)
     : [], [play.assignments, selectedPlayerId, selectedUnit]);
-  const currentLayerLocked = referenceLocked || (layers[selectedUnit]?.locked ?? false);
+  const currentLayerLocked = mutationLocked || (layers[selectedUnit]?.locked ?? false);
   const copyTargets = useMemo(() => {
     if (!selectedPlayerId) return [];
     const phase = route?.phase ?? "post";
@@ -233,8 +238,14 @@ export function App() {
   workspaceRef.current = workspace;
 
   useEffect(() => {
+    if (!writable) return undefined;
     const flush = () => {
-      window.localStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspaceRef.current));
+      try {
+        browserStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspaceRef.current));
+        setSaveError(null);
+      } catch (error) {
+        setSaveError(`Changes could not be saved: ${error.message}. Keep this page open and download a backup.`);
+      }
     };
     const timer = window.setTimeout(flush, 400);
     const onHide = () => {
@@ -248,14 +259,20 @@ export function App() {
       window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [workspace]);
+  }, [workspace, writable]);
 
   useEffect(() => subscribeOfflineStatus(setOfflineStatus), []);
 
   useEffect(() => {
-    if (gameDay) window.localStorage.setItem(GAME_DAY_KEY, JSON.stringify(gameDay));
-    else window.localStorage.removeItem(GAME_DAY_KEY);
-  }, [gameDay]);
+    if (!writable || !gameDayStorage.writable) return;
+    try {
+      if (gameDay) browserStorage.setItem(GAME_DAY_KEY, JSON.stringify({ ...gameDay, workspaceVersion: WORKSPACE_VERSION }));
+      else if (gameDayStorage.gameDay || browserStorage.getItem(GAME_DAY_KEY) !== null) browserStorage.setItem(GAME_DAY_KEY, JSON.stringify({ resolved: true, workspaceVersion: WORKSPACE_VERSION }));
+      setGameDaySaveError(null);
+    } catch (error) {
+      setGameDaySaveError(`Changes could not be saved: ${error.message}. Keep this page open and download a backup.`);
+    }
+  }, [gameDay, writable, gameDayStorage]);
 
   /*
    * Feedback is scoped to the play it was raised on -- an "Undo" offered for a
@@ -293,6 +310,7 @@ export function App() {
   }, []);
 
   const setLibrary = (nextValue) => {
+    if (!writable) return;
     setWorkspace((current) => ({
       ...current,
       playbooks: current.playbooks.map((book) => {
@@ -308,7 +326,7 @@ export function App() {
   };
 
   const pushHistory = (targetId, snapshot = library.find((item) => item.id === targetId)) => {
-    if (!snapshot || referenceLocked) return;
+    if (!snapshot || mutationLocked) return;
     const entry = historyRef.current.get(targetId) ?? { past: [], future: [] };
     historyRef.current.set(targetId, {
       past: [...entry.past.slice(-39), clonePlaybook([snapshot])[0]],
@@ -318,7 +336,7 @@ export function App() {
   };
 
   const updatePlay = (targetId, updater, { record = true } = {}) => {
-    if (referenceLocked) return;
+    if (mutationLocked) return;
     if (record) pushHistory(targetId);
     setLibrary((current) => current.map((item) => item.id === targetId ? updater(item) : item));
   };
@@ -393,7 +411,7 @@ export function App() {
   };
 
   const undo = () => {
-    if (referenceLocked) return;
+    if (mutationLocked) return;
     const entry = historyRef.current.get(play.id);
     const previous = entry?.past.at(-1);
     if (!previous) return;
@@ -408,7 +426,7 @@ export function App() {
   };
 
   const redo = () => {
-    if (referenceLocked) return;
+    if (mutationLocked) return;
     const entry = historyRef.current.get(play.id);
     const next = entry?.future[0];
     if (!next) return;
@@ -457,6 +475,7 @@ export function App() {
   };
 
   const copyToMain = () => {
+    if (!writable) return;
     if (activePlaybook.id === mainPlaybook.id) return;
     const copy = {
       ...clonePlaybook([play])[0],
@@ -482,6 +501,7 @@ export function App() {
   };
 
   const createPlaybook = (name) => {
+    if (!writable) return;
     const idBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "playbook";
     const existingIds = new Set(playbooks.map((book) => book.id));
     let id = idBase;
@@ -514,6 +534,7 @@ export function App() {
   };
 
   const createPlay = ({ formationId, mode, name }) => {
+    if (mutationLocked) return;
     const id = `${activePlaybook.id}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "play"}-${Date.now()}`;
     let created;
 
@@ -563,6 +584,7 @@ export function App() {
   };
 
   const deletePlay = () => {
+    if (mutationLocked) return;
     if (library.length <= 1) return;
     const nextLibrary = library.filter((item) => item.id !== play.id);
     const nextPlay = nextLibrary[Math.min(playIndex, nextLibrary.length - 1)];
@@ -577,6 +599,7 @@ export function App() {
   };
 
   const saveFormation = (name) => {
+    if (mutationLocked) return;
     const saved = {
       id: `${activePlaybook.id}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "formation"}`,
       name,
@@ -600,6 +623,7 @@ export function App() {
   };
 
   const applyFormation = (formationId) => {
+    if (mutationLocked) return;
     const formation = activePlaybook.formations.find((item) => item.id === formationId);
     if (!formation || !formationStatus(formation.players).legal) {
       notifyProblem("Choose a legal saved formation");
@@ -617,6 +641,7 @@ export function App() {
   };
 
   const saveConcept = (name) => {
+    if (mutationLocked) return;
     const existing = activePlaybook.concepts.find((concept) => concept.name.toLowerCase() === name.toLowerCase());
     const idBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "concept";
     const concept = createConceptTemplate(play, {
@@ -640,6 +665,7 @@ export function App() {
   };
 
   const applyConcept = (conceptId) => {
+    if (mutationLocked) return;
     const concept = activePlaybook.concepts.find((item) => item.id === conceptId);
     if (!concept) return;
     updatePlay(play.id, (current) => applyConceptTemplateToPlay(current, concept));
@@ -664,12 +690,15 @@ export function App() {
 
   const confirmRestore = () => {
     if (!restoreCandidate) return;
-    window.localStorage.setItem(RECOVERY_WORKSPACE_KEY, JSON.stringify({
-      version: WORKSPACE_VERSION,
-      createdAt: new Date().toISOString(),
-      workspace,
-    }));
-    const restored = restoreCandidate.workspace;
+    let restored;
+    try {
+      restored = restoreWorkspace(browserStorage, restoreCandidate.workspace, { ...storageState, workspace });
+    } catch (error) {
+      setRestoreError(`Backup was not restored: ${error.message}. The current workspace is unchanged.`);
+      return;
+    }
+    setStorageState({ workspace: restored, writable: true, error: null, sourceKey: WORKSPACE_KEY, raw: null });
+    setSaveError(null);
     const restoredBook = restored.playbooks.find((book) => book.id === restored.activePlaybookId) ?? restored.playbooks[0];
     setWorkspace(restored);
     setPlayId(restoredBook.plays[0].id);
@@ -1188,7 +1217,7 @@ export function App() {
 
     if (activeTool === "Select") {
       setSelectedAssignmentId(existing?.id ?? null);
-      if (!referenceLocked && !layers[unit].locked && !pinching()) {
+      if (!mutationLocked && !layers[unit].locked && !pinching()) {
         playerDrag.current = {
           id: playerId,
           unit,
@@ -1302,6 +1331,7 @@ export function App() {
   };
 
   const openGameDay = () => {
+    if (mutationLocked || !gameDayStorage.writable) return;
     if (gameDay && (gameDay.playbookId !== activePlaybook.id || gameDay.playId !== play.id)) {
       const targetBook = playbooks.find((book) => book.id === gameDay.playbookId);
       if (targetBook) {
@@ -1313,14 +1343,16 @@ export function App() {
   };
 
   const startGameDay = () => {
-    if (referenceLocked) return;
+    if (mutationLocked || !gameDayStorage.writable) return;
+    if (mutationLocked) return;
     setGameDay({ playbookId: activePlaybook.id, playId: play.id, snapshot: clonePlaybook([play])[0], startedAt: new Date().toISOString() });
     setGameDayDialog(false);
     notify("Temporary game-day variation started");
   };
 
   const resolveGameDay = (resolution) => {
-    if (referenceLocked) return;
+    if (!gameDayStorage.writable) return;
+    if (mutationLocked) return;
     if (!gameDay) return;
     if (gameDay.playbookId !== activePlaybook.id) {
       notifyProblem("Open the adjusted playbook before resolving this change");
@@ -1381,7 +1413,7 @@ export function App() {
 
     const onKeyDown = (event) => {
       if (anyDialogOpen || isTyping(event.target)) return;
-      if (referenceLocked && !["Escape", " ", "[", "]"].includes(event.key)) return;
+      if (mutationLocked && !["Escape", " ", "[", "]"].includes(event.key)) return;
       const accel = event.metaKey || event.ctrlKey;
 
       if (accel && event.key.toLowerCase() === "z") {
@@ -1459,7 +1491,15 @@ export function App() {
 
   return (
     <main className={`app-shell ${present ? "is-presenting" : ""} ${playback === "running" ? "is-running" : ""}`} tabIndex={-1}>
+      {(storageState.error || gameDayStorage.error || gameDaySaveError || saveError) ? (
+        <aside className="storage-recovery" role="alert">
+          <strong>{!writable ? "Read-only recovery view" : "Storage needs attention"}</strong>
+          <p>{storageState.error || gameDayStorage.error || gameDaySaveError || saveError}</p>
+          <button onClick={() => setDataToolsDialog(true)}>Open backup and recovery</button>
+        </aside>
+      ) : null}
       <Header
+        writable={writable}
         activePlaybook={activePlaybook}
         formationLegal={currentFormationStatus.legal}
         mainPlaybook={mainPlaybook}
@@ -1486,7 +1526,7 @@ export function App() {
         <Filmstrip
           allPlays={library} family={activePlaybook.name} familyBases={familyBases}
           filters={playFilters} filterOptions={playFilterOptions} plays={visibleLibrary}
-          canCreate={!referenceLocked} activeId={play.id} onChange={selectPlay}
+          canCreate={!mutationLocked} activeId={play.id} onChange={selectPlay}
           onCreate={() => setCreatePlayDialog(true)} onFilters={setPlayFilters}
         />
       )}
@@ -1494,7 +1534,7 @@ export function App() {
         {(
           <ToolRail
             activeTool={activeTool}
-            readOnly={referenceLocked}
+            readOnly={mutationLocked}
             canAddPlayer={play.players.length < 11}
             canRedo={canRedo}
             canUndo={canUndo}
@@ -1504,6 +1544,7 @@ export function App() {
             onDuplicate={duplicatePlay}
             onApplyConcept={() => setApplyConceptDialog(true)}
             onApplyFormation={() => setApplyFormationDialog(true)}
+            canGameDay={gameDayStorage.writable}
             onGameDay={openGameDay}
             onRedo={redo}
             onSaveConcept={() => setSaveConceptDialog(true)}
@@ -1617,11 +1658,15 @@ export function App() {
       {applyConceptDialog ? <ApplyConceptDialog concepts={activePlaybook.concepts} currentConceptId={play.conceptTemplateId} onClose={() => setApplyConceptDialog(false)} onApply={applyConcept} /> : null}
       {dataToolsDialog ? (
         <DataToolsDialog
+          writable={writable}
           activePlaybook={activePlaybook}
           offlineStatus={offlineStatus}
           onBackup={() => {
-            downloadWorkspaceBackup(workspace);
-            notify("Football OS backup downloaded");
+            if (!writable) return;
+            try {
+              downloadWorkspaceBackup(workspace);
+              notify("Football OS backup downloaded");
+            } catch (error) { notifyProblem(error.message); }
           }}
           onClose={() => setDataToolsDialog(false)}
           onConfirmRestore={confirmRestore}

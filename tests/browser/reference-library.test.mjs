@@ -11,7 +11,7 @@ test('verified reference is read-only and its active copy is editable',async()=>
  await book.click();await token(page,'X').click();
  assert.match(await page.locator('.inspector').innerText(),/Copy this play/);
  assert.equal(await page.locator('.inspector input').count(),0);
- const sourceBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem('football-os.playbooks.v10')).playbooks.find(b=>b.id==='air-raid-reference').plays);
+ const sourceBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem('football-os.playbooks.v11')).playbooks.find(b=>b.id==='air-raid-reference').plays);
  await page.keyboard.press('ArrowRight');
  await page.keyboard.press('Delete');
  assert.equal(await page.getByRole('button',{name:'More',exact:true}).isDisabled(),true);
@@ -22,7 +22,7 @@ test('verified reference is read-only and its active copy is editable',async()=>
  await token(page,'X').click();assert.ok(await page.locator('.inspector input').count()>0);
  const stem=page.locator('.inspector input[type=number]').first();
  await stem.fill('17'); await page.waitForTimeout(700);
- const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('football-os.playbooks.v10')));
+ const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('football-os.playbooks.v11')));
  assert.deepEqual(stored.playbooks.find(b=>b.id==='air-raid-reference').plays,sourceBefore);
  const copied=stored.playbooks[0].plays.at(-1);
  assert.equal(copied.assignments.find(a=>a.playerId===copied.players.find(p=>p.label==='X').id).definition.stemYards,17);

@@ -1,3 +1,4 @@
+import { validateResponsibilityAreas } from "./responsibilityArea.js";
 import {
   basePlayers,
   clonePlaybook,
@@ -14,21 +15,22 @@ import {
  * and renamed `play.routes` to `play.assignments`. Versions 5-8 are read and
  * upconverted; their keys are left in place so an upgrade is recoverable.
  */
-export const WORKSPACE_VERSION = 10;
+export const WORKSPACE_VERSION = 11;
 export const WORKSPACE_KEY = `football-os.playbooks.v${WORKSPACE_VERSION}`;
 export const RECOVERY_WORKSPACE_KEY = "football-os.recovery.v1";
 export const LEGACY_WORKSPACE_KEYS = [
+  "football-os.playbooks.v10",
   "football-os.playbooks.v9",
   "football-os.playbooks.v8",
   "football-os.playbooks.v7",
   "football-os.playbooks.v6",
   "football-os.playbooks.v5",
 ];
-const SUPPORTED_VERSIONS = [5, 6, 7, 8, 9, 10];
+const SUPPORTED_VERSIONS = [5, 6, 7, 8, 9, 10, 11];
 
 export const BACKUP_FORMAT = "football-os-workspace";
-export const BACKUP_FORMAT_VERSION = 2;
-const SUPPORTED_BACKUP_VERSIONS = [1, 2];
+export const BACKUP_FORMAT_VERSION = 3;
+const SUPPORTED_BACKUP_VERSIONS = [1, 2, 3];
 
 function validPoints(points) {
   return Array.isArray(points)
@@ -70,6 +72,7 @@ export function validPlays(value) {
       && typeof play.name === "string"
       && play.name.trim().length > 0
       && validRoster(play.players)
+      && (play.defenders === undefined || validRoster(play.defenders))
       && validAssignments(play.assignments ?? play.routes)
     ));
 }
@@ -115,7 +118,18 @@ function migrateConcept(concept) {
   };
 }
 
+export function validateWorkspaceAreas(value, allowRegions = value?.version === WORKSPACE_VERSION) {
+  for (const book of Array.isArray(value?.playbooks) ? value.playbooks : []) {
+    for (const kind of ["plays", "concepts"]) {
+      for (const entity of Array.isArray(book?.[kind]) ? book[kind] : []) {
+        validateResponsibilityAreas(entity, `book ${book.id}, ${kind === "plays" ? "play" : "concept"} ${entity?.id}`, allowRegions);
+      }
+    }
+  }
+}
+
 export function normalizeWorkspace(value) {
+  validateWorkspaceAreas(value);
   const valid = SUPPORTED_VERSIONS.includes(value?.version)
     && typeof value.mainPlaybookId === "string"
     && typeof value.activePlaybookId === "string"
@@ -212,6 +226,7 @@ export function parseWorkspaceBackup(text) {
   }
 
   // A format-1 backup holds a v5-v8 percent-space workspace; normalizeWorkspace upconverts it.
+  validateWorkspaceAreas(parsed.workspace, parsed.formatVersion === BACKUP_FORMAT_VERSION && parsed.workspace?.version === WORKSPACE_VERSION);
   const workspace = normalizeWorkspace(parsed.workspace);
   if (!workspace) throw new Error("The backup is incomplete or contains invalid play data.");
 
