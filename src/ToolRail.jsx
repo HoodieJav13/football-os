@@ -25,6 +25,7 @@ export function ToolRail({
   onDelete,
   onDetails,
   onDuplicate,
+  onAddCover3,
   onApplyConcept,
   onApplyFormation,
   onGameDay,
@@ -74,6 +75,7 @@ export function ToolRail({
           </button>
           {name === "More" && present ? (
             <div className={`tool-menu authoring-menu ${leaving ? "is-leaving" : ""}`} role="menu">
+              {!readOnly ? <button role="menuitem" onClick={() => run(onAddCover3)}><PlusCircle size={19} />Add Cover 3 teaching example</button> : null}
               <button role="menuitem" onClick={() => run(onDuplicate)}><Copy size={19} />Duplicate as variation</button>
               <button role="menuitem" disabled={!canAddPlayer} onClick={() => run(onAddPlayer)}><PlusCircle size={19} />Add player</button>
               <button role="menuitem" onClick={() => run(onApplyFormation)}><UserFocus size={19} />Apply formation</button>

@@ -1,3 +1,4 @@
+import { createCover3Lesson } from './cover3Lesson';
 import { FIELD } from './playData';
 import { copyResponsibilityArea, responsibilityOwnerKeys } from './responsibilityArea';
 import { LessonExport } from './LessonExport';
@@ -612,6 +613,17 @@ export function App() {
     setCreatePlayDialog(false);
     setActiveTool("Select");
     notify(`${created.name} created`);
+  };
+
+  const addCover3Lesson = () => {
+    if (mutationLocked || mainPlaybook.readOnly) return;
+    const lesson = createCover3Lesson(`cover3-${crypto.randomUUID()}`,uniqueName(mainPlaybook.plays,'Cover 3 — teaching example'));
+    setWorkspace(current => ({...current,activePlaybookId:current.mainPlaybookId,playbooks:current.playbooks.map(book => book.id === current.mainPlaybookId ? {...book,plays:[...book.plays,lesson]} : book)}));
+    setPlayId(lesson.id);
+    setPlayFilters(createEmptyPlayFilters());
+    clearSelection();
+    setActiveTool('Select'); setPlayback('idle');
+    notify('Editable Cover 3 example added. Adjust it for your teaching.');
   };
 
   const duplicatePlay = () => {
@@ -1603,6 +1615,7 @@ export function App() {
             onAddPlayer={addPlayer}
             onDelete={() => setDeletePlayDialog(true)}
             onDetails={() => setDetailsDialog(true)}
+            onAddCover3={addCover3Lesson}
             onDuplicate={duplicatePlay}
             onApplyConcept={() => { setApplyConceptError(""); setApplyConceptDialog(true); }}
             onApplyFormation={() => setApplyFormationDialog(true)}

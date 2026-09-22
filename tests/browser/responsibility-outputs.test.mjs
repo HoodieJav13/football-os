@@ -29,3 +29,14 @@ for(const view of ['end','side'])test(`clean ${view} output retains complete are
  const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).playbooks[0].plays[0],WORKSPACE_KEY);assert.deepEqual(saved.assignments,p.assignments);
  app.assertNoErrors();await app.close();
 });
+
+test('clean outputs honor intentional defense and assignment visibility and dimming',async()=>{
+ const {w}=fixture(),app=await open({workspace:w}),{page}=app;
+ await page.getByRole('button',{name:'Dim defense',exact:true}).click();await dataTools(page);await page.getByRole('button',{name:/Open PDF collection preview/}).click();
+ assert.equal(await page.locator('.print-field .responsibility-areas').getAttribute('opacity'),'0.4');
+ await page.getByRole('button',{name:'Close',exact:true}).click();
+ await page.getByRole('button',{name:'Hide defense',exact:true}).click();await dataTools(page);await page.getByRole('button',{name:/Open PDF collection preview/}).click();
+ assert.equal(await page.locator('.print-field .responsibility-area-fill').count(),0);assert.equal(await page.locator('.print-field .responsibility-legend').count(),0);
+ assert.equal(await page.locator('.print-field g.defender').first().evaluate(e=>getComputedStyle(e.parentElement).opacity),'0');
+ app.assertNoErrors();await app.close();
+});

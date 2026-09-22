@@ -138,6 +138,7 @@ button:active { scale: 0.96; }
 .app-shell:focus { outline: none; }
 .app-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 72px 118px minmax(0, 1fr) 52px;
   width: 100vw;
   height: 100dvh;
@@ -1286,7 +1287,7 @@ button:active { scale: 0.96; }
   .back-control { width: 44px; height: 44px; }
   .top-actions > .segmented { display: none; }
   .run-button { min-width: 52px; width: 52px; font-size: 0; }
-  .run-button svg:last-child { display: none; }
+  .run-button svg { display: block; }
   .filmstrip {
     display: block;
     height: 48px;
@@ -1462,7 +1463,7 @@ button:active { scale: 0.96; }
   /* Only on phones, where the sheet opens under the finger that summoned it. */
   .inspector.is-arming { pointer-events: none; }
   .inspector.mobile-peek { height: 246px; overflow: hidden; }
-  .inspector.mobile-expanded { height: min(680px, calc(100% - 16px)); overflow-y: auto; }
+  .inspector.mobile-expanded { display: block; height: min(680px, calc(100% - 16px)); overflow-y: auto; }
   .mobile-sheet-handle {
     position: sticky;
     z-index: 2;
@@ -1486,7 +1487,7 @@ button:active { scale: 0.96; }
     scroller inside it would swallow that drag. So the desktop model of pinning
     the summaries and scrolling only the open section is deliberately off here.
   */
-  .mobile-expanded .inspector-body { display: block; }
+  .mobile-expanded .inspector-body { display: block; overflow: visible; }
   .inspector-section[open] { display: block; min-height: 0; }
   .inspector-section[open]::details-content { display: block; }
   .section-body { min-height: 0; overflow: visible; }

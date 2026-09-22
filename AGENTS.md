@@ -84,3 +84,13 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Flat-releasing routes (Shoot, Flat, Swing, Wheel) climb more than the page draws them, because most of the players running them start five yards deep: a break authored at the 90° the diagram shows finishes behind the line of scrimmage and threatens nobody. The same reason the back's protection is authored as explicit points — the generic `pass-set` technique sets five yards *deeper*, which from the backfield lands outside the visible window entirely.
 - A source playbook's duplicated play names are kept, not deduplicated. The Air Raid book teaches `93 H` and `95 Y` twice each, once from the slot and once with the back beside the quarterback, and that pairing is the book's actual method — the second diagram is the point, not a printing error. Suffix the alignment (`93 H (Ace)`) and let the two sit next to each other.
 - Seed content is content: tests that assert playbook or play *counts* should derive them from `seedPlaybooks`, so adding a source book does not read as a migration regression. Three unit tests hard-coded 3 playbooks and 18 plays and failed on a content addition that broke nothing.
+
+
+## Responsibility-area invariants
+
+- Areas belong to defensive Zone assignments at `definition.responsibilityArea`, with field-yard coordinates and stable player IDs. They are optional; normalization never invents one. Validate owners and envelopes before filtering or migration.
+- Copy creates independent area geometry at the same field coordinates and announces adjustment guidance. Player movement and Mirror path leave it unchanged. Concept transfers with ambiguous labels/slots fail atomically before history changes.
+- Areas render only with both defense and assignments visible, inherit defense dimming, and respect locks/read-only state. C·1/C·2 ownership derives from roster IDs/order. The editable lesson uses distinct W and M hook labels.
+- Region-only edits must never regenerate drop paths. Handle previews do not autosave; one committed drag is one undo entry; cancellation discards it. Phone quick adjustments stay available.
+- PNG and print use measured clean fitted canvases with current view/layers and an SVG legend. Preserve unique SVG definition IDs and non-scaling strokes when inlining export styles. Inspect actual PNG/PDF artifacts, not only markup.
+- Local work follows the approved Tasks 0–5 plan in `docs/superpowers/plans/2026-09-22-responsibility-areas.md`; release/merge authority is separate. Film research remains paused.

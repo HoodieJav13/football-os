@@ -24,8 +24,8 @@ export function ResponsibilityAreas({play,projection,layers,selectedAssignmentId
       }
       // Short keys remain legible even when several authored ellipses overlap.
       const keyHeight=projection.pixels(20),keyWidth=projection.pixels(Math.max(28,ownerKey.length*8+12));
-      let keyY=cy;
-      while(occupied.some(p=>Math.abs(p.x-cx)<(p.width+keyWidth)/2 && Math.abs(p.y-keyY)<keyHeight))keyY+=keyHeight;
+      let keyY=cy-keyHeight*1.5;
+      while(occupied.some(p=>Math.abs(p.x-cx)<(p.width+keyWidth)/2 && Math.abs(p.y-keyY)<keyHeight))keyY-=keyHeight;
       occupied.push({x:cx,y:keyY,width:keyWidth});
       return <g key={assignment.id} data-region-assignment={assignment.id} data-region-owner={assignment.playerId}>
         <ellipse className="responsibility-area-fill" cx={cx} cy={cy} rx={rx} ry={ry} fill={color} fillOpacity=".20" stroke={color} strokeOpacity=".6" strokeWidth={projection.pixels(mini?1:1.5)} pointerEvents="none" />
