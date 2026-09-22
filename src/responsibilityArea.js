@@ -33,3 +33,28 @@ export function validateResponsibilityAreas(entity, location='play', allowRegion
     if (typeof a.playerId !== 'string' || !a.playerId || !Array.isArray(entity.defenders) || entity.defenders.filter(p=>p?.id===a.playerId).length!==1) fail('requires exactly one matching defender ID');
   }
 }
+
+export function regionBounds(a) {
+  return {minX:a.center[0]-a.radiusX,maxX:a.center[0]+a.radiusX,minY:a.center[1]-a.radiusY,maxY:a.center[1]+a.radiusY};
+}
+export function projectResponsibilityArea(a,projection) {
+  const [cx,cy]=projection.project(a.center);
+  return {cx,cy,rx:projection.view==='side'?a.radiusY:a.radiusX,ry:projection.view==='side'?a.radiusX:a.radiusY};
+}
+export function responsibilityOwnerKeys(play) {
+  const ownedIds=new Set((play.assignments??[]).filter(hasResponsibilityArea).map(a=>a.playerId));
+  const roster=play.defenders??[];
+  const ownedLabels=new Set(roster.filter(p=>ownedIds.has(p.id)).map(p=>p.label));
+  const seen=new Map(),counts=new Map();
+  for(const p of roster) counts.set(p.label,(counts.get(p.label)??0)+1);
+  return new Map(roster.map(p=>{
+    const index=(seen.get(p.label)??0)+1;seen.set(p.label,index);
+    return [p.id,ownedLabels.has(p.label)&&counts.get(p.label)>1?`${p.label}·${index}`:p.label];
+  }));
+}
+export function responsibilityEntries(play,layers) {
+  if(layers && (!layers.defense.visible || !layers.assignments.visible)) return [];
+  const keys=responsibilityOwnerKeys(play);
+  return (play.assignments??[]).filter(a=>a.unit==='defense'&&a.type==='Zone'&&hasResponsibilityArea(a))
+    .map(a=>({assignment:a,area:a.definition.responsibilityArea,ownerKey:keys.get(a.playerId)??a.playerId}));
+}

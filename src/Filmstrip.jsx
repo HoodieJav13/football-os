@@ -1,3 +1,4 @@
+import { ResponsibilityAreas } from "./ResponsibilityAreas.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CaretDown,
@@ -25,6 +26,7 @@ function MiniDiagram({ play, basePlay }) {
   return (
     <svg className="mini-diagram" viewBox={projection.viewBox} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <line className="mini-line-of-scrimmage" x1={projection.lateralRange[0]} y1="0" x2={projection.lateralRange[1]} y2="0" />
+      <ResponsibilityAreas play={play} projection={projection} mini clean />
       {play.assignments.map((item) => (
         <polyline
           key={item.id}

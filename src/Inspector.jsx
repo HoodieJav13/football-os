@@ -1,3 +1,4 @@
+import { ResponsibilityAreaControls } from './ResponsibilityAreaControls';
 import { useEffect, useRef, useState } from "react";
 import {
   AssignmentStagePicker,
@@ -184,6 +185,7 @@ function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
 }
 
 export function Inspector({
+  areaDisabled, areaOwner, editingArea, onResponsibilityArea, onEditArea,
   assignments,
   leaving,
   copyTargets,
@@ -304,6 +306,7 @@ export function Inspector({
           <span>Assignment</span>
           <AssignmentTypePicker unit={unit} value={route?.type ?? ""} onChange={onSetAssignmentType} unavailable={unavailableTypes} />
         </div>
+        {route?.type === 'Zone' && unit === 'defense' ? <ResponsibilityAreaControls area={route.definition.responsibilityArea} ownerLabel={areaOwner} disabled={areaDisabled} onChange={onResponsibilityArea} onEdit={onEditArea} editing={editingArea} defaultCenter={route.points.at(-1)} /> : null}
         {locked ? <div className="locked-layer-note"><LockSimple size={17} />{lockReason ?? `Unlock the ${unit} layer to edit assignments.`}</div> : null}
         {route ? (
           <details className="inspector-section">

@@ -96,7 +96,7 @@ export function DataToolsDialog({
   );
 }
 
-export function PrintCollectionPreview({ playbook, plays, onClose }) {
+export function PrintCollectionPreview({ playbook, plays, onClose, view = "end", layers = printLayers }) {
   return createPortal((
     <div className="print-preview" role="dialog" aria-modal="true" aria-label="PDF collection preview">
       <header className="print-preview-toolbar">
@@ -112,7 +112,8 @@ export function PrintCollectionPreview({ playbook, plays, onClose }) {
               <PlayCanvas
                 activeTool="Select"
                 draftAssignment={[]}
-                layers={printLayers}
+                layers={layers}
+                clean framePlay
                 onPointerDown={noop}
                 onPointerMove={noop}
                 onPointerUp={noop}
@@ -126,7 +127,7 @@ export function PrintCollectionPreview({ playbook, plays, onClose }) {
                 selectedAssignmentId={null}
                 selectedUnit="offense"
                 speed={1}
-                view="end"
+                view={view}
               />
             </div>
             <footer><span>{play.family} Family</span><span>{index + 1} / {plays.length}</span></footer>

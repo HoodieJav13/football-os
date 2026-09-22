@@ -1,6 +1,9 @@
 import { createWorkspaceBackup } from "./workspaceData";
 
 const SVG_STYLE_PROPERTIES = [
+  "vector-effect",
+  "display",
+  "visibility",
   "fill",
   "fill-opacity",
   "stroke",
@@ -43,7 +46,7 @@ export function downloadWorkspaceBackup(workspace) {
   downloadBlob(blob, `football-os-backup-${date}.footballos`);
 }
 
-const EXPORT_PIXELS_PER_YARD = 26;
+const EXPORT_SCALE = 2;
 const FIELD_BACKGROUND = "#12352c";
 
 /**
@@ -68,7 +71,7 @@ function cloneSvgWithInlineStyles(svg, viewBox, size) {
     if (!target) return;
     const computed = window.getComputedStyle(element);
     SVG_STYLE_PROPERTIES.forEach((property) => {
-      const value = computed.getPropertyValue(property);
+      const value = computed.getPropertyValue(property).replace(/url\(["']?[^)"']*#([^"')]+)["']?\)/g, "url(#$1)");
       if (value) target.style.setProperty(property, value);
     });
   });
@@ -90,10 +93,12 @@ function cloneSvgWithInlineStyles(svg, viewBox, size) {
 export async function svgToPngBlob(svg) {
   if (!svg) throw new Error("The play canvas is not available.");
   const viewBox = readViewBox(svg);
-  // Yard-true output: one scale for both axes, so the PNG is not stretched either.
+  const measured = svg.getBoundingClientRect();
+  if (!(measured.width > 0 && measured.height > 0)) throw new Error("The export canvas is not ready.");
+  // Resolution depends on the measured output, never imported field extents.
   const size = {
-    width: Math.round(viewBox.width * EXPORT_PIXELS_PER_YARD),
-    height: Math.round(viewBox.height * EXPORT_PIXELS_PER_YARD),
+    width: Math.round(measured.width * EXPORT_SCALE),
+    height: Math.round(measured.height * EXPORT_SCALE),
   };
   const clone = cloneSvgWithInlineStyles(svg, viewBox, size);
   const markup = new XMLSerializer().serializeToString(clone);

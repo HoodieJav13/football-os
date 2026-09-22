@@ -1,3 +1,6 @@
+import { FIELD } from './playData';
+import { copyResponsibilityArea, responsibilityOwnerKeys } from './responsibilityArea';
+import { LessonExport } from './LessonExport';
 import { browserStorage, loadWorkspaceState, loadGameDayState, restoreWorkspace, recoverGameDay } from "./workspaceStorage.js";
 import { createEmptyPlayFilters, createFamilyBases, createPlayFilterOptions, filterPlays } from "./playFilters";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -113,6 +116,12 @@ export function App() {
     supported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
     development: true,
   });
+  const [editRegionId, setEditRegionId] = useState(null);
+  const [regionPreview, setRegionPreview] = useState(null);
+  const [frozenRegionProjection, setFrozenRegionProjection] = useState(null);
+  const regionDrag = useRef(null);
+  const [exportJob, setExportJob] = useState(null);
+  const exporting = useRef(false);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState("offense");
@@ -187,6 +196,40 @@ export function App() {
     ? play.assignments.filter((item) => item.unit === selectedUnit && item.playerId === selectedPlayerId)
     : [], [play.assignments, selectedPlayerId, selectedUnit]);
   const currentLayerLocked = mutationLocked || (layers[selectedUnit]?.locked ?? false);
+  const areaDisabled = currentLayerLocked || !layers.defense.visible || !layers.assignments.visible || playback !== 'idle' || present;
+  const cancelRegionDrag = () => {
+    regionDrag.current = null;
+    setRegionPreview(null);
+    setFrozenRegionProjection(null);
+  };
+  const leaveRegionEdit = () => { cancelRegionDrag(); setEditRegionId(null); };
+  useEffect(() => {
+    leaveRegionEdit();
+  }, [play.id, view, layers, selectedAssignmentId, playback, present, mutationLocked]);
+  useEffect(() => {
+    if (editRegionId && !route?.definition?.responsibilityArea) leaveRegionEdit();
+  }, [route, editRegionId]);
+  const displayPlay = regionPreview?.playId === play.id ? {...play, assignments: play.assignments.map(a => a.id === regionPreview.assignmentId ? {...a, definition:{...a.definition, responsibilityArea:regionPreview.area}} : a)} : play;
+  const changeResponsibilityArea = (area) => {
+    if (areaDisabled || route?.unit !== 'defense' || route?.type !== 'Zone') return;
+    if (JSON.stringify(area) === JSON.stringify(route.definition.responsibilityArea)) return;
+    const next = area ? copyResponsibilityArea(area) : undefined;
+    updateSelectedAssignment(current => {
+      const definition = {...current.definition};
+      if (next) definition.responsibilityArea = next;
+      else delete definition.responsibilityArea;
+      return {...current, definition};
+    });
+    if (!next) leaveRegionEdit();
+  };
+  const beginRegionDrag = (event, kind, projection) => {
+    if (areaDisabled || editRegionId !== route?.id || pinching()) return;
+    const box = svgRef.current.parentElement.getBoundingClientRect();
+    const area = copyResponsibilityArea(route.definition.responsibilityArea);
+    regionDrag.current = {playId:play.id, assignmentId:route.id, area, next:area, kind, projection, box, start:pointerToField(event,box,projection)};
+    setFrozenRegionProjection(projection);
+    capturePointer(svgRef.current.parentElement,event.pointerId);
+  };
   const copyTargets = useMemo(() => {
     if (!selectedPlayerId) return [];
     const phase = route?.phase ?? "post";
@@ -711,12 +754,19 @@ export function App() {
   };
 
   const exportCurrentPng = async () => {
+    if (exporting.current || exportJob) return;
+    await document.fonts.ready;
+    setExportJob({play:clonePlaybook([play])[0],view,layers:structuredClone(layers)});
+  };
+  const exportReady = async (svg) => {
+    if (!svg || !exportJob || exporting.current) return;
+    exporting.current = true;
     try {
-      await downloadPlayPng(svgRef.current, play.name);
-      notify(`${play.name} PNG downloaded`);
+      await downloadPlayPng(svg, exportJob.play.name);
+      notify(`${exportJob.play.name} PNG downloaded`);
     } catch (error) {
-      notifyProblem(error instanceof Error ? error.message : "PNG export failed");
-    }
+      notifyProblem(error instanceof Error ? error.message : 'PNG export failed');
+    } finally { setExportJob(null); exporting.current = false; }
   };
 
   const refreshOffline = async () => {
@@ -1017,7 +1067,7 @@ export function App() {
 
   const startDraw = (event) => {
     // Two fingers are a camera gesture, never a stroke or a player drag.
-    if (pinching()) return;
+    if (pinching()) { leaveRegionEdit(); return; }
     if (activeTool === "Select") {
       // Zoomed in, an empty-field drag pans the camera; at base framing the
       // same gesture keeps its old meaning, a swipe between plays.
@@ -1080,11 +1130,24 @@ export function App() {
 
   const movePointer = (event) => {
     if (pinching()) {
+      leaveRegionEdit();
       // A drag that turns into a pinch must not keep moving whatever it grabbed.
       playerDrag.current = null;
       routePointDrag.current = null;
       drawing.current = false;
       setDragInfo(null);
+      return;
+    }
+    if (regionDrag.current) {
+      const drag = regionDrag.current;
+      const point = pointerToField(event, drag.box, drag.projection);
+      const dx = point[0] - drag.start[0], dy = point[1] - drag.start[1];
+      const next = copyResponsibilityArea(drag.area);
+      if (drag.kind === 'center') next.center = clampPoint([next.center[0]+dx,next.center[1]+dy]);
+      else if (drag.kind === 'radiusX') next.radiusX = Math.max(.5,Math.min((FIELD.bounds.maxX-FIELD.bounds.minX)/2,next.radiusX+dx));
+      else next.radiusY = Math.max(.5,Math.min((FIELD.bounds.maxY-FIELD.bounds.minY)/2,next.radiusY+dy));
+      drag.next = next;
+      setRegionPreview({playId:drag.playId,assignmentId:drag.assignmentId,area:next});
       return;
     }
     if (panning()) {
@@ -1139,6 +1202,12 @@ export function App() {
   };
 
   const finishPointer = (event) => {
+    if (regionDrag.current) {
+      const drag = regionDrag.current;
+      if (drag.playId === play.id && drag.assignmentId === route?.id) changeResponsibilityArea(drag.next);
+      cancelRegionDrag();
+      return;
+    }
     if (panning()) {
       endPan();
       return;
@@ -1418,6 +1487,7 @@ export function App() {
       switch (event.key) {
         case "Escape":
           event.preventDefault();
+          if (editRegionId) { leaveRegionEdit(); return; }
           // Step back out: drop a drawing tool first, then the selection.
           if (activeTool !== "Select") setActiveTool("Select");
           else if (present) setPresent(false);
@@ -1427,7 +1497,8 @@ export function App() {
         case "Backspace":
           if (!route) return;
           event.preventDefault();
-          deleteAssignment();
+          if (editRegionId) changeResponsibilityArea(undefined);
+          else deleteAssignment();
           return;
         case " ":
           event.preventDefault();
@@ -1445,7 +1516,12 @@ export function App() {
             ArrowUp: [0, step],
             ArrowDown: [0, -step],
           }[event.key];
-          if (nudgeSelection(dx, dy)) event.preventDefault();
+          if (editRegionId && !areaDisabled && route?.definition.responsibilityArea) {
+            const area = route.definition.responsibilityArea;
+            cancelRegionDrag();
+            changeResponsibilityArea({...area,center:clampPoint([area.center[0]+dx,area.center[1]+dy])});
+            event.preventDefault();
+          } else if (nudgeSelection(dx, dy)) event.preventDefault();
           return;
         }
         case "[":
@@ -1544,6 +1620,11 @@ export function App() {
           <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} />
           <PlayCanvas
             ref={svgRef}
+            editable={!mutationLocked}
+            editRegionId={editRegionId}
+            projectionOverride={frozenRegionProjection}
+            onBeginRegionDrag={beginRegionDrag}
+            onPointerCancel={() => { cancelRegionDrag(); playerDrag.current=null; routePointDrag.current=null; drawing.current=false; setDraftAssignment([]); setDragInfo(null); }}
             activeTool={activeTool}
             draftAssignment={draftAssignment}
             onPointerDown={startDraw}
@@ -1552,7 +1633,7 @@ export function App() {
             onStartPointDrag={startPointDrag}
             onSelectPlayer={selectPlayer}
             onSelectAssignment={selectAssignment}
-            play={play}
+            play={displayPlay}
             /*
               Deliberately NOT keyed by play id: switching plays keeps the same
               SVG so tokens can morph between formations. Every play switch
@@ -1581,6 +1662,11 @@ export function App() {
         </div>
         {!present && selectedPlayerId ? (
           <Inspector
+            areaDisabled={areaDisabled}
+            areaOwner={responsibilityOwnerKeys(play).get(selectedPlayerId) ?? selectedPlayerLabel}
+            editingArea={editRegionId === route?.id}
+            onResponsibilityArea={changeResponsibilityArea}
+            onEditArea={() => { cancelRegionDrag(); setEditRegionId(editRegionId === route?.id ? null : route?.id); }}
             assignments={playerAssignments}
             leaving={inspectorLeaving}
             route={route}
@@ -1679,7 +1765,8 @@ export function App() {
           workspace={workspace}
         />
       ) : null}
-      {printPreview ? <PrintCollectionPreview playbook={activePlaybook} plays={visibleLibrary.length ? visibleLibrary : library} onClose={() => setPrintPreview(false)} /> : null}
+      {exportJob ? <LessonExport {...exportJob} onReady={exportReady} /> : null}
+      {printPreview ? <PrintCollectionPreview view={view} layers={layers} playbook={activePlaybook} plays={visibleLibrary.length ? visibleLibrary : library} onClose={() => setPrintPreview(false)} /> : null}
       <Feedback
         feedback={feedback}
         onAction={() => {

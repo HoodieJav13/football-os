@@ -1,3 +1,4 @@
+import { regionBounds, responsibilityEntries } from "./responsibilityArea.js";
 import { FIELD, FIELD_WINDOW } from "./playData.js";
 
 /**
@@ -38,6 +39,10 @@ export function playBounds(play) {
     ...(play.players ?? []).map((player) => [player.x, player.y]),
     ...(play.defenders ?? []).map((player) => [player.x, player.y]),
     ...(play.assignments ?? []).flatMap((item) => item.points),
+    ...responsibilityEntries(play).flatMap(({area}) => {
+      const b = regionBounds(area);
+      return [[b.minX,b.minY],[b.maxX,b.maxY]];
+    }),
   ];
   if (!points.length) return null;
 
@@ -234,10 +239,18 @@ export function pointerToField({ clientX, clientY }, box, projection) {
  * Includes the LOS itself so it can be drawn as its own emphasised line.
  */
 export function visibleYardLines(projection) {
-  const step = FIELD.yardLineStepYards;
   const [low, high] = projection.depthRange;
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return [];
+  // Sparse markings at extreme imported extents; never alter the saved geometry.
+  const base = FIELD.yardLineStepYards;
+  const step = Math.max(base, Math.ceil((high / 100 - low / 100) / base) * base);
+  const first = Math.ceil(low / step) * step;
   const lines = [];
-  for (let depth = Math.ceil(low / step) * step; depth <= high; depth += step) lines.push(round(depth));
+  for (let i = 0; i <= 101; i++) {
+    const depth = first + i * step;
+    if (depth > high || !Number.isFinite(depth)) break;
+    lines.push(Math.abs(depth) < 1e12 ? round(depth) : depth);
+  }
   return lines;
 }
 

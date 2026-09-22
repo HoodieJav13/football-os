@@ -294,3 +294,10 @@ test("editing keeps the fixed, comparable window wherever it fits", () => {
     );
   }
 });
+
+
+test("large imported extents do not allocate unbounded yard markings", () => {
+  const lines = visibleYardLines({depthRange:[-1000000,1000000]});
+  assert.ok(lines.length <= 102);
+  assert.ok(lines.includes(0));
+});

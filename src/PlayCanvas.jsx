@@ -1,4 +1,6 @@
-import { forwardRef, useLayoutEffect, useRef, useState } from "react";
+import { ResponsibilityAreas, ResponsibilityLegend, regionLegendLayout } from "./ResponsibilityAreas.jsx";
+import { responsibilityOwnerKeys } from "./responsibilityArea.js";
+import { forwardRef, useId, useLayoutEffect, useRef, useState } from "react";
 import { assignmentStartSeconds, FIELD, isLineLabel, morphKeys, routeDuration } from "./playData";
 import {
   fieldProjection,
@@ -236,7 +238,7 @@ function useElementSize() {
   return [ref, size];
 }
 
-function FieldMarkings({ projection }) {
+function FieldMarkings({ projection, prefix }) {
   const half = FIELD.halfWidthYards;
   const hash = FIELD.hashFromCentreYards;
   const [nearDepth, farDepth] = projection.depthRange;
@@ -270,17 +272,17 @@ function FieldMarkings({ projection }) {
         gradient.
       */}
       <defs>
-        <radialGradient id="field-light" cx="50%" cy="42%" r="85%">
+        <radialGradient id={`${prefix}-field-light`} cx="50%" cy="42%" r="85%">
           <stop offset="0%" stopColor="oklch(0.285 0.05 171)" />
           <stop offset="55%" stopColor="oklch(0.255 0.045 171)" />
           <stop offset="100%" stopColor="oklch(0.235 0.042 171)" />
         </radialGradient>
-        <radialGradient id="field-vignette" cx="50%" cy="46%" r="78%">
+        <radialGradient id={`${prefix}-field-vignette`} cx="50%" cy="46%" r="78%">
           <stop offset="62%" stopColor="oklch(0 0 0 / 0)" />
           <stop offset="100%" stopColor="oklch(0 0 0 / 0.26)" />
         </radialGradient>
       </defs>
-      <rect className="field-surface" x={surface.x} y={surface.y} width={surface.width} height={surface.height} />
+      <rect style={{fill:`url(#${prefix}-field-light)`}} className="field-surface" x={surface.x} y={surface.y} width={surface.width} height={surface.height} />
 
       {yardLines.filter((depth) => depth !== 0).map((depth) => (
         line([-half, depth], [half, depth], `yard-${depth}`, depth % 10 === 0 ? "yard-line major" : "yard-line")
@@ -319,7 +321,7 @@ function FieldMarkings({ projection }) {
         );
       }))}
 
-      <rect className="field-vignette" x={surface.x} y={surface.y} width={surface.width} height={surface.height} />
+      <rect style={{fill:`url(#${prefix}-field-vignette)`}} className="field-vignette" x={surface.x} y={surface.y} width={surface.width} height={surface.height} />
     </g>
   );
 }
@@ -369,21 +371,37 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   zoom,
   showDepths,
   present,
+  clean = false,
+  framePlay = false,
+  editable = true,
+  editRegionId = null,
+  onBeginRegionDrag,
+  onPointerCancel,
+  projectionOverride,
+  onReady,
 }, ref) {
   const [stageRef, size] = useElementSize();
+  const canvasRef = useRef(null);
+  const prefix = `canvas-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const suppressEditing = clean || present;
+  const legend = (clean || present) ? regionLegendLayout(play, layers, size.width) : {height:0,entries:[]};
+  const ownerKeys = responsibilityOwnerKeys(play);
   const rememberFocusedToken = useRestoreTokenFocus(playKey);
   /*
    * The projection is a pure function of (box size, view, zoom), so App
    * recomputes an identical one from the same stage box when handling pointer
    * input. Nothing needs to be shared through a ref.
    */
-  const projection = fieldProjection({ width: size.width, height: size.height, view, play, zoom, framePlay: present });
+  const projection = projectionOverride ?? fieldProjection({ width: size.width, height: Math.max(1,size.height-legend.height), view, play, zoom:clean?null:zoom, framePlay: framePlay || present || clean });
+  const svgBox = projection.viewBox.split(" ").map(Number);
+  svgBox[3] += projection.pixels(legend.height);
 
-  const showMotion = playback !== "idle";
+  const showMotion = !clean && playback !== "idle";
   const assignments = play.assignments;
   const assignmentVisible = (item) => layers.assignments.visible && layers[item.unit].visible;
-  const selected = assignments.find((item) => item.id === selectedAssignmentId) ?? null;
-  const ready = size.width > 0 && size.height > 0;
+  const selected = suppressEditing ? null : assignments.find((item) => item.id === selectedAssignmentId) ?? null;
+  const ready = size.width > 0 && size.height > legend.height;
+  useLayoutEffect(() => { onReady?.(ready ? canvasRef.current : null); }, [ready,play,view,layers,legend.height,onReady]);
 
   const defenderRadius = sizeOf(TOKEN.defense, projection);
   const defenderLabelSize = sizeOf(TOKEN.defenseLabel, projection);
@@ -392,7 +410,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
     ? tokenRunAnimations(player, assignments, projection, speed, assignmentVisible)
     : null);
 
-  const draggedPlayer = ready && dragInfo
+  const draggedPlayer = !suppressEditing && ready && dragInfo
     ? (dragInfo.unit === "defense" ? play.defenders : play.players).find((p) => p.id === dragInfo.playerId)
     : null;
 
@@ -404,12 +422,12 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
    * only needs to be absent the next time anything renders.
    */
   const entered = useRef(false);
-  const entering = !entered.current;
+  const entering = !suppressEditing && !entered.current;
   // Only counts once tokens have actually rendered: the first mount is a
   // zero-size canvas with nothing on it, and flipping there would skip the show.
   // The first-load routes draw in after the roster has landed.
   useLayoutEffect(() => {
-    if (!ready || entered.current) return;
+    if (!ready || entered.current || suppressEditing) return;
     entered.current = true;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
     const svg = stageRef.current?.querySelector("svg");
@@ -424,35 +442,39 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
     for (const player of play.players) morphPositions.set(offenseMorph.get(player.id), projection.project([player.x, player.y]));
     for (const player of play.defenders) morphPositions.set(defenseMorph.get(player.id), projection.project([player.x, player.y]));
   }
-  useFormationMorph({ stageRef, play, projection, ready, playback, positions: morphPositions });
+  useFormationMorph({ stageRef, play, projection, ready:ready && !suppressEditing, playback, positions: morphPositions });
 
   return (
     <div
       ref={stageRef}
       className={`field-stage ${view} tool-${activeTool.toLowerCase()} ${dragInfo ? "is-dragging" : ""} ${projection.zoomFactor > 1 ? "is-zoomed" : ""} ${layers.offense.dimmed ? "dim-offense" : ""} ${layers.defense.dimmed ? "dim-defense" : ""}`}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerDown={clean ? undefined : onPointerDown}
+      onPointerMove={clean ? undefined : onPointerMove}
+      onPointerUp={clean ? undefined : onPointerUp}
+      onPointerCancel={clean ? undefined : (onPointerCancel ?? onPointerUp)}
     >
       <svg
-        ref={ref}
+        ref={node => { canvasRef.current=node; if(typeof ref === "function") ref(node); else if(ref) ref.current=node; }}
         key={playKey}
-        className="play-canvas"
-        viewBox={projection.viewBox}
+        className={`play-canvas ${clean ? "clean-canvas" : ""}`}
+        data-clean={clean ? "true" : undefined}
+        data-ready={ready ? "true" : "false"}
+        data-play-id={play.id}
+        viewBox={svgBox.join(" ")}
         preserveAspectRatio="xMidYMid meet"
         aria-label={`${play.name} play diagram`}
       >
         <defs>
-          <marker id="route-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <marker className="route-arrow" id={`${prefix}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" />
           </marker>
-          <marker id="route-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          {!suppressEditing ? <marker className="route-arrow-active" id={`${prefix}-route-arrow-active`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" />
-          </marker>
+          </marker> : null}
         </defs>
 
-        {ready ? <FieldMarkings projection={projection} /> : null}
+        {ready ? <FieldMarkings projection={projection} prefix={prefix} /> : null}
+        {ready ? <ResponsibilityAreas play={play} projection={projection} layers={layers} clean={suppressEditing} onSelect={onSelectAssignment} /> : null}
         <title>{`${play.name}, ${play.formation}, ${play.personnel}`}</title>
 
         {/*
@@ -492,15 +514,15 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
                 data-stem-yards={item.definition?.stemYards}
                 data-break-count={item.definition?.breaks?.length}
                 points={polylinePoints(
-                  item.id === selectedAssignmentId && draftAssignment.length > 1 ? draftAssignment : item.points,
+                  !suppressEditing && item.id === selectedAssignmentId && draftAssignment.length > 1 ? draftAssignment : item.points,
                   projection,
                 )}
-                className={`route assignment-${item.type.toLowerCase()} ${item.id === selectedAssignmentId ? "selected" : ""} ${layers[item.unit].visible ? "" : "layer-hidden"}`}
-                markerEnd={item.id === selectedAssignmentId ? "url(#route-arrow-active)" : "url(#route-arrow)"}
+                className={`route assignment-${item.type.toLowerCase()} ${!suppressEditing && item.id === selectedAssignmentId ? "selected" : ""} ${layers[item.unit].visible ? "" : "layer-hidden"}`}
+                markerEnd={`url(#${prefix}-${!suppressEditing && item.id === selectedAssignmentId ? "route-arrow-active" : "route-arrow"})`}
                 onPointerDown={(event) => {
                   event.stopPropagation();
                   suppressGhostClick(event);
-                  onSelectAssignment(item.id);
+                  if (!suppressEditing) onSelectAssignment(item.id);
                 }}
               />
             ))}
@@ -535,7 +557,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
 
         {ready ? <g className={`unit-layer ${layers.offense.visible ? "" : "layer-hidden"}`}>{play.players.map((player, playerIndex) => {
           const [screenX, screenY] = projection.project([player.x, player.y]);
-          const isSelected = selectedUnit === "offense" && selectedPlayerId === player.id;
+          const isSelected = !suppressEditing && selectedUnit === "offense" && selectedPlayerId === player.id;
           const onLine = isLineLabel(player.label);
           return (
             <g
@@ -545,19 +567,19 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               data-morph={offenseMorph.get(player.id)}
               className={`player ${onLine ? "line-player" : ""} ${isSelected ? "focus-player" : ""} ${entering ? "token-enter" : ""}`}
               style={enterStyle(playerIndex)}
-              tabIndex={layers.offense.locked || !layers.offense.visible ? -1 : 0}
-              role="button"
+              tabIndex={suppressEditing || layers.offense.locked || !layers.offense.visible ? -1 : 0}
+              role={suppressEditing ? undefined : "button"}
               aria-label={tokenLabel(player, "offense", assignments)}
               aria-current={isSelected}
               onFocus={() => rememberFocusedToken(player.id)}
-              onKeyDown={(event) => onTokenKeyDown(event, () => onSelectPlayer("offense", player.id, event))}
+              onKeyDown={(event) => onTokenKeyDown(event, () => !suppressEditing && onSelectPlayer("offense", player.id, event))}
               onPointerDown={(event) => {
                 event.stopPropagation();
                 suppressGhostClick(event);
-                onSelectPlayer("offense", player.id, event);
+                !suppressEditing && onSelectPlayer("offense", player.id, event);
               }}
             >
-              <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} />
+              {!suppressEditing ? <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} /> : null}
               <circle cx={screenX} cy={screenY} r={sizeOf(onLine ? TOKEN.line : TOKEN.skill, projection)} />
               {runAnimations(player)}
             </g>
@@ -597,24 +619,24 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               data-player={player.id}
               data-unit="defense"
               data-morph={defenseMorph.get(player.id)}
-              className={`defender ${selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""} ${entering ? "token-enter" : ""}`}
+              className={`defender ${!suppressEditing && selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""} ${entering ? "token-enter" : ""}`}
               style={enterStyle(play.players.length + playerIndex)}
-              tabIndex={layers.defense.locked || !layers.defense.visible ? -1 : 0}
-              role="button"
+              tabIndex={suppressEditing || layers.defense.locked || !layers.defense.visible ? -1 : 0}
+              role={suppressEditing ? undefined : "button"}
               aria-label={tokenLabel(player, "defense", assignments)}
-              aria-current={selectedUnit === "defense" && selectedPlayerId === player.id}
+              aria-current={!suppressEditing && selectedUnit === "defense" && selectedPlayerId === player.id}
               onFocus={() => rememberFocusedToken(player.id)}
-              onKeyDown={(event) => onTokenKeyDown(event, () => onSelectPlayer("defense", player.id, event))}
+              onKeyDown={(event) => onTokenKeyDown(event, () => !suppressEditing && onSelectPlayer("defense", player.id, event))}
               onPointerDown={(event) => {
                 event.stopPropagation();
                 suppressGhostClick(event);
-                onSelectPlayer("defense", player.id, event);
+                !suppressEditing && onSelectPlayer("defense", player.id, event);
               }}
             >
-              <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} />
+              {!suppressEditing ? <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} /> : null}
               <circle cx={screenX} cy={screenY} r={defenderRadius} />
               <text x={screenX} y={screenY + defenderLabelSize * 0.35} fontSize={defenderLabelSize}>
-                {player.label}
+                {ownerKeys.get(player.id) ?? player.label}
               </text>
               {runAnimations(player)}
             </g>
@@ -627,7 +649,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
           under the defenders. They never sit on the route's own player: point 0
           is the anchor and is deliberately not given a handle.
         */}
-        {ready && selected && assignmentVisible(selected) ? selected.points.slice(1).map((point, pointOffset) => {
+        {ready && editable && !editRegionId && selected && !layers[selected.unit].locked && assignmentVisible(selected) ? selected.points.slice(1).map((point, pointOffset) => {
           const pointIndex = pointOffset + 1;
           const [screenX, screenY] = projection.project(point);
           return (
@@ -667,6 +689,8 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
             })() : null}
           </g>
         ) : null}
+        {ready && editable && editRegionId && playback === "idle" ? <ResponsibilityAreas play={play} projection={projection} layers={layers} selectedAssignmentId={editRegionId} editing controls clean={suppressEditing} onBeginDrag={onBeginRegionDrag} /> : null}
+        {ready ? <ResponsibilityLegend layout={legend} projection={projection} /> : null}
       </svg>
 
       {/*
