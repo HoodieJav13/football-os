@@ -1550,6 +1550,7 @@ export function createPlayFromFormation({ formation, id, name }) {
   return {
     id,
     name,
+    conceptName: name,
     family: "Unsorted",
     personnel: formation.personnel ?? "10 Personnel",
     formation: formation.name,

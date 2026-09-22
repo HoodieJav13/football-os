@@ -1,6 +1,7 @@
 import { validateResponsibilityAreas } from "./responsibilityArea.js";
 import {
   basePlayers,
+  MAIN_PLAYBOOK_ID,
   clonePlaybook,
   createSeedPlaybooks,
   LEGACY_REFERENCE_PLAYBOOK_IDS,
@@ -31,6 +32,20 @@ const SUPPORTED_VERSIONS = [5, 6, 7, 8, 9, 10, 11];
 export const BACKUP_FORMAT = "football-os-workspace";
 export const BACKUP_FORMAT_VERSION = 3;
 const SUPPORTED_BACKUP_VERSIONS = [1, 2, 3];
+
+const LEGACY_CATALOG_SOURCES = {
+  "texas-tech-sample": "Texas Tech Style Offensive Attack",
+  "lsu-2019-sample": "2019 LSU Offense Playbook",
+};
+const RESERVED_BOOK_IDS = [MAIN_PLAYBOOK_ID, "air-raid-sample", ...REFERENCE_PLAYBOOK_IDS, ...LEGACY_REFERENCE_PLAYBOOK_IDS];
+export function uniquePlaybookId(name, books) {
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "playbook";
+  const used = new Set([...RESERVED_BOOK_IDS, ...books.map(book => book.id)]);
+  let id = base, suffix = 2;
+  while (used.has(id)) id = `${base}-${suffix++}`;
+  return id;
+}
+
 
 function validPoints(points) {
   return Array.isArray(points)
@@ -143,13 +158,13 @@ export function normalizeWorkspace(value) {
       && (book.concepts === undefined || validConcepts(book.concepts))
     ));
 
-  if (!valid) return null;
+  if (!valid || new Set(value.playbooks.map(book => book.id)).size !== value.playbooks.length) return null;
 
   const migratedPlaybooks = value.playbooks.map((book) => {
     const plays = book.plays.map(normalizePlay);
     return {
       ...book,
-      ...(LEGACY_REFERENCE_PLAYBOOK_IDS.includes(book.id) ? { archived: true } : {}),
+      ...(LEGACY_CATALOG_SOURCES[book.id] === book.source && book.source !== undefined ? { archived: true } : {}),
       concepts: (book.concepts ?? []).map(migrateConcept),
       formations: book.formations?.length
         ? book.formations.map((formation) => ({
@@ -172,18 +187,38 @@ export function normalizeWorkspace(value) {
   const referenceSeeds = createSeedPlaybooks()
     .filter((book) => REFERENCE_PLAYBOOK_IDS.includes(book.id));
   const referenceById = new Map(referenceSeeds.map(book => [book.id, book]));
-  const existingIds = new Set(migratedPlaybooks.map(book => book.id));
-  const playbooks = [
-    ...migratedPlaybooks.map(book => referenceById.get(book.id) ?? book),
-    ...referenceSeeds.filter(book => !existingIds.has(book.id)),
-  ];
+  const remappedIds = new Map();
+  const reserved = [...migratedPlaybooks];
+  const playbooks = migratedPlaybooks.map(book => {
+    const reference = referenceById.get(book.id);
+    const governed = reference && book.readOnly === true && book.source === reference.source;
+    if (governed) return reference;
+    // Older versions allowed these names for personal books. Give the book its
+    // own ID before adding the governed catalog, preserving all of its content.
+    if (reference || (LEGACY_REFERENCE_PLAYBOOK_IDS.includes(book.id) && book.source !== LEGACY_CATALOG_SOURCES[book.id])) {
+      const id = uniquePlaybookId(`${book.id}-personal`, reserved);
+      reserved.push({ id });
+      remappedIds.set(book.id, id);
+      return { ...book, id, migratedFromId: book.id };
+    }
+    return book;
+  });
+  const existingIds = new Set(playbooks.map(book => book.id));
+  playbooks.push(...referenceSeeds.filter(book => !existingIds.has(book.id)));
+  for (const book of playbooks) {
+    book.plays = book.plays.map(play => remappedIds.has(play.importedFrom?.playbookId)
+      ? { ...play, importedFrom: { ...play.importedFrom, playbookId: remappedIds.get(play.importedFrom.playbookId) } }
+      : play);
+  }
+  const desiredMainId = remappedIds.get(value.mainPlaybookId) ?? value.mainPlaybookId;
+  const desiredActiveId = remappedIds.get(value.activePlaybookId) ?? value.activePlaybookId;
 
   const visiblePlaybooks = playbooks.filter((book) => !book.archived);
-  const mainPlaybookId = visiblePlaybooks.some((book) => book.id === value.mainPlaybookId)
-    ? value.mainPlaybookId
+  const mainPlaybookId = visiblePlaybooks.some((book) => book.id === desiredMainId)
+    ? desiredMainId
     : visiblePlaybooks[0].id;
-  const activePlaybookId = visiblePlaybooks.some((book) => book.id === value.activePlaybookId)
-    ? value.activePlaybookId
+  const activePlaybookId = visiblePlaybooks.some((book) => book.id === desiredActiveId)
+    ? desiredActiveId
     : mainPlaybookId;
 
   return { version: WORKSPACE_VERSION, mainPlaybookId, activePlaybookId, playbooks };

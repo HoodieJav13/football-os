@@ -58,3 +58,43 @@ test('corrupt game-day data is retained and does not get deleted by the null-sta
  assert.equal(await page.getByRole('menuitem',{name:'Game Day Adjust'}).isDisabled(),true);
  app.assertNoErrors();await app.close();
 });
+for(const legacy of [false,true])test(`personal retired-catalog name survives creation/edit/reload (${legacy?'migrated':'fresh'})`,async()=>{
+ const workspace=legacy?JSON.parse(readFileSync(new URL('../fixtures/workspace-v9.json',import.meta.url),'utf8')):undefined;
+ const app=await open({workspace}),{page}=app;
+ const archivedBefore=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).playbooks.filter(b=>b.archived),WORKSPACE_KEY);
+ await page.locator('.playbook-trigger').click();await page.getByRole('button',{name:/New playbook/}).click();
+ await page.getByLabel('Playbook name',{exact:true}).fill('Texas Tech Sample');await page.getByRole('button',{name:'Create playbook',exact:true}).click();
+ await token(page,'X').click();await page.keyboard.press('ArrowRight');await page.waitForTimeout(700);
+ const before=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),WORKSPACE_KEY);
+ const current=before.playbooks.find(b=>b.id===before.activePlaybookId);assert.notEqual(current.id,'texas-tech-sample');assert.notEqual(current.archived,true);
+ assert.deepEqual(before.playbooks.filter(b=>b.archived),archivedBefore);
+ await page.reload({waitUntil:'networkidle'});await page.waitForTimeout(700);
+ assert.match(await page.locator('.playbook-trigger').innerText(),/Texas Tech Sample/);
+ const after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),WORKSPACE_KEY);
+ assert.deepEqual(after.playbooks.find(b=>b.id===current.id).plays,current.plays);
+ assert.equal(new Set(after.playbooks.map(b=>b.id)).size,after.playbooks.length);
+ app.assertNoErrors();await app.close();
+});
+test('game-day recovery preserves damaged bytes and enables new adjustments after reload',async()=>{
+ const key='football-os.game-day.v7',raw='{corrupt game-day';
+ const app=await open({storage:{[key]:raw}}),{page}=app;
+ await page.getByRole('button',{name:'Open backup and recovery'}).click();
+ await page.getByRole('button',{name:'Preserve and reset adjustment'}).click();
+ await page.waitForTimeout(500);assert.equal(await page.locator('.storage-recovery').count(),0);
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('football-os.game-day-recovery.v1')).raw),raw);
+ await page.reload({waitUntil:'networkidle'});await page.waitForTimeout(500);
+ assert.equal(await page.locator('.storage-recovery').count(),0);
+ await page.getByRole('button',{name:'More',exact:true}).click();assert.equal(await page.getByRole('menuitem',{name:'Game Day Adjust'}).isDisabled(),false);
+ app.assertNoErrors();await app.close();
+});
+test('failed game-day recovery write leaves damaged bytes and the recovery action available',async()=>{
+ const key='football-os.game-day.v7',raw='{corrupt game-day';
+ const app=await open({storage:{[key]:raw}}),{page}=app;
+ await page.getByRole('button',{name:'Open backup and recovery'}).click();
+ await page.evaluate(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='football-os.game-day-recovery.v1')throw new DOMException('Full','QuotaExceededError');return original.call(this,key,value);};});
+ await page.getByRole('button',{name:'Preserve and reset adjustment'}).click();
+ assert.match(await page.locator('.restore-error').innerText(),/not reset/);
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),raw);
+ assert.equal(await page.getByRole('button',{name:'Preserve and reset adjustment'}).isEnabled(),true);
+ app.assertNoErrors();await app.close();
+});

@@ -207,6 +207,7 @@ export function Inspector({
   unavailableTypes,
   unit,
   reference = false,
+  lockReason,
 }) {
   const [mobileExpanded, setMobileExpanded] = useState(false);
   /*
@@ -270,6 +271,7 @@ export function Inspector({
         <button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button>
       </div>
       {!reference ? <AssignmentStagePicker
+        disabled={locked}
         activeId={route?.id ?? null}
         assignments={assignments}
         onAdd={onAddStage}
@@ -302,7 +304,7 @@ export function Inspector({
           <span>Assignment</span>
           <AssignmentTypePicker unit={unit} value={route?.type ?? ""} onChange={onSetAssignmentType} unavailable={unavailableTypes} />
         </div>
-        {locked ? <div className="locked-layer-note"><LockSimple size={17} />Unlock the {unit} layer to edit assignments.</div> : null}
+        {locked ? <div className="locked-layer-note"><LockSimple size={17} />{lockReason ?? `Unlock the ${unit} layer to edit assignments.`}</div> : null}
         {route ? (
           <details className="inspector-section">
             <summary><span>Timing</span><small>{timingSummary}</small><CaretRight size={16} /></summary>

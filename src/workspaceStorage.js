@@ -31,10 +31,10 @@ export function loadWorkspaceState(storage) {
     return {workspace,sourceKey,raw,writable:true,error:null};
   } catch(error) {
     return {workspace:createDefaultWorkspace(),sourceKey,raw,writable:false,
-      error:`Saved workspace could not be opened: ${error.message}. Editing and autosave are paused. Restore a valid backup to continue; the original data is retained.`};
+      error:`Saved workspace could not be opened: ${error instanceof SyntaxError ? "saved data is damaged or incomplete" : error.message}. Editing and autosave are paused. Restore a valid backup to continue; the original data is retained.`};
   }
 }
-export function loadGameDayState(storage) {
+export function loadGameDayState(storage, workspace) {
   let sourceKey=null,raw=null;
   try {
     ({sourceKey,raw}=firstStored(storage,[GAME_DAY_KEY,...LEGACY_GAME_DAY_KEYS]));
@@ -44,10 +44,11 @@ export function loadGameDayState(storage) {
     if (!saved || typeof saved.playId!=='string' || saved.playId!==saved.snapshot?.id || !validPlays([saved.snapshot])) throw new Error('invalid saved adjustment');
     if (saved.workspaceVersion!==undefined && saved.workspaceVersion!==WORKSPACE_VERSION) throw new Error('unsupported snapshot version');
     validateResponsibilityAreas(saved.snapshot,'game-day snapshot',sourceKey===GAME_DAY_KEY);
-    const gameDay={...saved,workspaceVersion:WORKSPACE_VERSION,playbookId:saved.playbookId??MAIN_PLAYBOOK_ID,snapshot:normalizePlay(saved.snapshot)};
+    const remappedBook = workspace?.playbooks.find(book => book.migratedFromId === saved.playbookId && book.plays.some(play => play.id === saved.playId));
+    const gameDay={...saved,workspaceVersion:WORKSPACE_VERSION,playbookId:remappedBook?.id??saved.playbookId??MAIN_PLAYBOOK_ID,snapshot:normalizePlay(saved.snapshot)};
     return {gameDay,sourceKey,raw,writable:true,error:null};
   } catch(error) {
-    return {gameDay:null,sourceKey,raw,writable:false,error:`Saved game-day adjustment could not be opened: ${error.message}. Its original data is retained; game-day changes are paused.`};
+    return {gameDay:null,sourceKey,raw,writable:false,error:`Saved game-day adjustment could not be opened: ${error instanceof SyntaxError ? "saved data is damaged or incomplete" : error.message}. Its original data is retained; game-day changes are paused.`};
   }
 }
 
@@ -71,3 +72,12 @@ export const browserStorage = {
   setItem: (key,value) => window.localStorage.setItem(key,value),
   removeItem: key => window.localStorage.removeItem(key),
 };
+
+export function recoverGameDay(storage, state) {
+  if (state.writable || !state.sourceKey) throw new Error('No saved adjustment is available for recovery.');
+  const raw=storage.getItem(state.sourceKey);
+  if (raw !== state.raw) throw new Error('The saved adjustment changed. Reload before recovering it.');
+  storage.setItem('football-os.game-day-recovery.v1',JSON.stringify({sourceKey:state.sourceKey,raw,createdAt:new Date().toISOString()}));
+  storage.setItem(GAME_DAY_KEY,JSON.stringify({resolved:true,workspaceVersion:WORKSPACE_VERSION}));
+  return loadGameDayState(storage);
+}

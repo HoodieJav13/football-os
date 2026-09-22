@@ -24,6 +24,8 @@ const noop = () => {};
 
 export function DataToolsDialog({
   writable = true,
+  gameDayRecovery,
+  onRecoverGameDay,
   activePlaybook,
   offlineStatus,
   onBackup,
@@ -71,6 +73,13 @@ export function DataToolsDialog({
         </button>
       </div>
 
+      {gameDayRecovery ? (
+        <section className="game-day-recovery">
+          <strong>Recover saved game-day adjustment</strong>
+          <p>Keep the original adjustment as a local recovery copy, then reset the temporary adjustment so Game Day Adjust is available again.</p>
+          <button type="button" disabled={!gameDayRecovery.sourceKey} onClick={onRecoverGameDay}>Preserve and reset adjustment</button>
+        </section>
+      ) : null}
       {restoreError ? <p className="restore-error">{restoreError}</p> : null}
       {restoreCandidate ? (
         <div className="restore-preview">

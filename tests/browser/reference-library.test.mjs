@@ -31,3 +31,8 @@ test('verified reference is read-only and its active copy is editable',async()=>
  assert.equal(await page.locator('.inspector input[type=number]').first().inputValue(),'17');
  app.assertNoErrors();await app.close();
 });
+test('filmstrip names stay inside the visible card area',async()=>{
+ const app=await open();
+ const clipped=await app.page.evaluate(()=>{const strip=document.querySelector('.filmstrip-scroll').getBoundingClientRect();return [...document.querySelectorAll('.film-card-label')].filter(el=>el.getBoundingClientRect().bottom>strip.bottom+1).length;});
+ assert.equal(clipped,0,'play names cannot be clipped below the filmstrip');await app.close();
+});

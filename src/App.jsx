@@ -1,4 +1,4 @@
-import { browserStorage, loadWorkspaceState, loadGameDayState, restoreWorkspace } from "./workspaceStorage.js";
+import { browserStorage, loadWorkspaceState, loadGameDayState, restoreWorkspace, recoverGameDay } from "./workspaceStorage.js";
 import { createEmptyPlayFilters, createFamilyBases, createPlayFilterOptions, filterPlays } from "./playFilters";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CaretLeft, CornersOut, Play, X } from "@phosphor-icons/react";
@@ -63,7 +63,7 @@ import {
 } from "./playData";
 import { downloadPlayPng, downloadWorkspaceBackup } from "./exportUtils";
 import { refreshOfflineCopy, subscribeOfflineStatus } from "./offline";
-import { parseWorkspaceBackup, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
+import { parseWorkspaceBackup, uniquePlaybookId, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
 
 /** Matches the inspector exit keyframes in styles.css. */
 const INSPECTOR_EXIT_MS = 200;
@@ -81,7 +81,7 @@ export function App() {
   const [workspace, setWorkspace] = useState(storageState.workspace);
   const [saveError, setSaveError] = useState(null);
   const [gameDaySaveError, setGameDaySaveError] = useState(null);
-  const [gameDayStorage] = useState(() => loadGameDayState(browserStorage));
+  const [gameDayStorage, setGameDayStorage] = useState(() => loadGameDayState(browserStorage, storageState.workspace));
   const writable = storageState.writable;
   const [playId, setPlayId] = useState(null);
   const [view, setView] = useState("end");
@@ -502,14 +502,7 @@ export function App() {
 
   const createPlaybook = (name) => {
     if (!writable) return;
-    const idBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "playbook";
-    const existingIds = new Set(playbooks.map((book) => book.id));
-    let id = idBase;
-    let suffix = 2;
-    while (existingIds.has(id)) {
-      id = `${idBase}-${suffix}`;
-      suffix += 1;
-    }
+    const id = uniquePlaybookId(name, workspace.playbooks);
     const firstPlay = starterPlay(id);
     const newBook = {
       id,
@@ -1601,6 +1594,7 @@ export function App() {
             unit={selectedUnit}
             label={selectedPlayerLabel}
             reference={referenceLocked}
+            lockReason={!writable ? "Restore a valid backup to resume editing." : undefined}
             locked={currentLayerLocked}
             unavailableTypes={unavailableTypes}
             copyTargets={copyTargets}
@@ -1658,6 +1652,16 @@ export function App() {
       {applyConceptDialog ? <ApplyConceptDialog concepts={activePlaybook.concepts} currentConceptId={play.conceptTemplateId} onClose={() => setApplyConceptDialog(false)} onApply={applyConcept} /> : null}
       {dataToolsDialog ? (
         <DataToolsDialog
+          gameDayRecovery={gameDayStorage.error ? gameDayStorage : null}
+          onRecoverGameDay={() => {
+            try {
+              const recovered = recoverGameDay(browserStorage, gameDayStorage);
+              setGameDayStorage(recovered);
+              setGameDay(null);
+              setRestoreError("");
+              notify("Original game-day data kept as a recovery copy · adjustments available again");
+            } catch (error) { setRestoreError(`Adjustment was not reset: ${error.message}`); }
+          }}
           writable={writable}
           activePlaybook={activePlaybook}
           offlineStatus={offlineStatus}

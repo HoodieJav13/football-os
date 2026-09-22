@@ -61,7 +61,7 @@ export function useBrowser() {
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    if (storage) await page.addInitScript(entries => { for (const [key,value] of Object.entries(entries)) localStorage.setItem(key,value); }, storage);
+    if (storage) await page.addInitScript(entries => { for (const [key,value] of Object.entries(entries)) if (localStorage.getItem(key) === null) localStorage.setItem(key,value); }, storage);
     if (workspace) await page.addInitScript(({key,workspace}) => {
       if (!localStorage.getItem(key)) localStorage.setItem(key,JSON.stringify(workspace));
     }, {key:WORKSPACE_KEY,workspace});

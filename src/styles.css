@@ -1808,3 +1808,17 @@ button:active { scale: 0.96; }
 .storage-recovery { position: fixed; z-index: 40; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); max-height: 40dvh; overflow: auto; padding: 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--chrome); box-shadow: 0 8px 32px #0008; font-size: 12px; }
 .storage-recovery p { margin: 8px 0; line-height: 1.5; }
 .storage-recovery button { min-height:44px; padding: 8px 12px; border-radius:8px; background:var(--accent-soft); color:var(--accent); }
+.game-day-recovery { margin-top:16px; padding:12px; border:1px solid var(--line-strong); border-radius:10px; font-size:12px; }
+.game-day-recovery p { color:var(--text-mid); line-height:1.5; }
+.game-day-recovery button { min-height:44px; padding:8px 12px; background:var(--accent-soft); color:var(--accent); border-radius:8px; }
+
+/* Bound the implicit grid row so SVG intrinsic height cannot push names out. */
+.filmstrip-scroll { min-height:0; grid-template-rows:minmax(0,1fr); }
+.film-card { min-height:0; }
+.film-card-label strong { white-space:normal; }
+.play-browser-controls { gap:4px; padding:8px 12px; }
+.play-browser-controls .play-search, .play-browser-controls input, .play-browser-controls select, .filter-trigger { min-height:40px; }
+@media (pointer:coarse) {
+  .play-browser-controls .play-search, .play-browser-controls input, .play-browser-controls select, .filter-trigger { min-height:44px; }
+  .play-browser-controls > small { display:none; }
+}
