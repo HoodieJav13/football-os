@@ -1,3 +1,4 @@
+import { WORKSPACE_KEY } from "../../src/workspaceData.js";
 import assert from "node:assert/strict";
 import { after, before } from "node:test";
 import { chromium } from "playwright";
@@ -45,7 +46,7 @@ export function useBrowser() {
     await browser?.close();
   });
 
-  return async function open({ viewport = DESKTOP, touch = false, settle = 1800, serviceWorkers = "allow" } = {}) {
+  return async function open({ viewport = DESKTOP, touch = false, settle = 1800, serviceWorkers = "allow", workspace, storage } = {}) {
     const context = await browser.newContext({
       viewport,
       hasTouch: touch,
@@ -60,6 +61,10 @@ export function useBrowser() {
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
+    if (storage) await page.addInitScript(entries => { for (const [key,value] of Object.entries(entries)) if (localStorage.getItem(key) === null) localStorage.setItem(key,value); }, storage);
+    if (workspace) await page.addInitScript(({key,workspace}) => {
+      if (!localStorage.getItem(key)) localStorage.setItem(key,JSON.stringify(workspace));
+    }, {key:WORKSPACE_KEY,workspace});
     await page.goto(APP_URL, { waitUntil: "networkidle" });
     // Let the first-load entrance (token stagger, then route draw) finish.
     await page.waitForTimeout(settle);

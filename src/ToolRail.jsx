@@ -19,11 +19,13 @@ import {
 export function ToolRail({
   activeTool,
   canAddPlayer,
+  canGameDay = true,
   canRedo,
   canUndo,
   onDelete,
   onDetails,
   onDuplicate,
+  onAddCover3,
   onApplyConcept,
   onApplyFormation,
   onGameDay,
@@ -34,6 +36,7 @@ export function ToolRail({
   onTool,
   onUndo,
   temporary,
+  readOnly = false,
 }) {
   const { open, present, leaving, close, toggle, containerRef } = useDismissable();
   const run = (action) => { close(); action(); };
@@ -45,10 +48,10 @@ export function ToolRail({
         items inside an eleven-item overflow menu.
       */}
       <div className="tool-history" role="group" aria-label="History">
-        <button type="button" disabled={!canUndo} onClick={onUndo} aria-label="Undo" title="Undo (Ctrl+Z)">
+        <button type="button" disabled={readOnly || !canUndo} onClick={onUndo} aria-label="Undo" title="Undo (Ctrl+Z)">
           <ArrowCounterClockwise size={19} />
         </button>
-        <button type="button" disabled={!canRedo} onClick={onRedo} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
+        <button type="button" disabled={readOnly || !canRedo} onClick={onRedo} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
           <ArrowClockwise size={19} />
         </button>
       </div>
@@ -56,6 +59,7 @@ export function ToolRail({
       {toolItems.map(([name, Icon], index) => (
         <div className="tool-slot" key={name} ref={name === "More" ? containerRef : undefined}>
           <button
+            disabled={readOnly}
             className={`tool-button ${activeTool === name ? "active" : ""}`}
             onClick={() => {
               if (name === "More") toggle();
@@ -64,6 +68,7 @@ export function ToolRail({
             aria-pressed={name === "More" ? undefined : activeTool === name}
             aria-expanded={name === "More" ? open : undefined}
             aria-haspopup={name === "More" ? "menu" : undefined}
+            aria-label={name === "More" ? "More" : undefined}
             title={name === "More" ? undefined : `${name} tool (${index + 1})`}
           >
             <span className="tool-icon"><Icon size={23} weight={activeTool === name ? "duotone" : "regular"} /></span>
@@ -71,13 +76,14 @@ export function ToolRail({
           </button>
           {name === "More" && present ? (
             <div className={`tool-menu authoring-menu ${leaving ? "is-leaving" : ""}`} role="menu">
+              {!readOnly ? <button role="menuitem" onClick={() => run(onAddCover3)}><PlusCircle size={19} />Add Cover 3 teaching example</button> : null}
               <button role="menuitem" onClick={() => run(onDuplicate)}><Copy size={19} />Duplicate as variation</button>
               <button role="menuitem" disabled={!canAddPlayer} onClick={() => run(onAddPlayer)}><PlusCircle size={19} />Add player</button>
               <button role="menuitem" onClick={() => run(onApplyFormation)}><UserFocus size={19} />Apply formation</button>
               <button role="menuitem" onClick={() => run(onSaveFormation)}><FloppyDisk size={19} />Save formation</button>
               <button role="menuitem" onClick={() => run(onApplyConcept)}><GitMerge size={19} />Apply concept</button>
               <button role="menuitem" onClick={() => run(onSaveConcept)}><Stack size={19} />Save concept</button>
-              <button role="menuitem" onClick={() => run(onGameDay)}><SlidersHorizontal size={19} />{temporary ? "Resolve adjustment" : "Game Day Adjust"}</button>
+              <button role="menuitem" disabled={!canGameDay} onClick={() => run(onGameDay)}><SlidersHorizontal size={19} />{temporary ? "Resolve adjustment" : "Game Day Adjust"}</button>
               <button role="menuitem" onClick={() => run(onDetails)}><NotePencil size={19} />Play details</button>
               {/*
                 Deleting a play is the one action here that undo cannot reverse,

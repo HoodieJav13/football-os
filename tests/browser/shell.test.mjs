@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PHONE_LANDSCAPE, SMALL_LAPTOP, token, useBrowser } from "./harness.mjs";
@@ -150,7 +151,8 @@ test("presenting never draws the play smaller than editing does", async () => {
 });
 
 test("thumbnails carry assignment colour and mark what each variant changes", async () => {
-  const app = await open();
+  const workspace = JSON.parse(readFileSync(new URL('../fixtures/workspace-v9.json',import.meta.url),'utf8'));
+  const app = await open({workspace});
   const cards = await app.page.evaluate(() =>
     [...document.querySelectorAll(".film-card:not(.create-card)")].map((card) => ({
       name: card.querySelector("strong")?.textContent,

@@ -45,6 +45,7 @@ export function AssignmentTypePicker({ unit, value, onChange, unavailable = {} }
 }
 
 export function AssignmentStagePicker({
+  disabled = false,
   activeId,
   assignments,
   onAdd,
@@ -62,6 +63,7 @@ export function AssignmentStagePicker({
         return (
           <button
             key={phase}
+            disabled={disabled && !assignment}
             type="button"
             className={assignment?.id === activeId ? "active" : ""}
             aria-pressed={assignment?.id === activeId}

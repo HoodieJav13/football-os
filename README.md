@@ -27,20 +27,37 @@ playbook renders at the same scale and is directly comparable.
 
 ## Source playbooks
 
-Personal Active is the working playbook. Alongside it ship three read-only books
-transcribed from published sources, each play carrying the page it came from:
+Personal Active is the working playbook. Three governed reference books provide
+source-labelled plays: Air Raid Reference (4), LSU 2019 Reference (7), and Texas
+Tech Reference (4). They remain read-only; **Add to Active** makes an editable copy.
+The separate Air Raid Passing Game import (48 plays) is also retained. Its
+route vocabulary uses printed call names with conventional, not measured, depths.
+Assignment evidence distinguishes source labels, diagram traces and neutral
+animation geometry. Existing personal edits survive migration.
 
-| Playbook | Plays | Source |
-| --- | --- | --- |
-| Texas Tech Sample | 6 | Texas Tech Style Offensive Attack |
-| LSU 2019 Sample | 6 | 2019 LSU Offense Playbook |
-| Air Raid Passing Game | 48 | Air Raid Offense — Passing Plays |
+## Responsibility areas and teaching
 
-The Air Raid book is transcribed through the route vocabulary in
-`src/routeVocabulary.js`: its pages print a call sheet (`X Slant`, `Y Post`) and
-no yardages at all, so the names are quoted verbatim and the depths come from the
-vocabulary's conventions. Each play states as much in its assignment evidence,
-and any of it can be overruled by editing the play.
+Select a defender's Zone assignment and choose **Add responsibility area**.
+Edit the ellipse's label, color, width, height or field position. **Edit area**
+exposes move/resize handles; arrow keys nudge the area, Escape cancels a drag,
+and Delete removes only the area while that mode is active. Phone controls
+support label, size, color and directional adjustments.
+
+Areas stay in field coordinates when players move or paths mirror. Copies have
+independent geometry and show a reminder to adjust it. Duplicate position labels
+receive ownership keys such as C·1 and C·2. Areas follow both defense and
+assignment visibility, and defense dimming/locking. Ambiguous concept transfers
+are rejected before changing the play.
+
+**More → Add Cover 3 teaching example** adds a generic editable lesson to Personal
+Active, with W and M hook defenders. Nothing is auto-added on upgrade. See the
+[lesson guide](docs/cover3-lesson-guide.md) for the revision exercise and coaching
+prompts. Presentation, PNG and print fit the complete diagram and include a
+wrapping keyed legend. Area-owning defenders and their drop paths match the area color. **Export phone PNG** uses a portrait layout with larger defender labels and a single-column legend. Offense dimming remains a view control. PNG/print omit editor selection, handles and animation.
+
+Storage uses workspace v11, backup v3 and game-day v7. Damaged saved data enters
+read-only recovery; successful restore preserves the original raw data before
+replacement. Downloaded backups remain the portable recovery method.
 
 ## Keyboard
 

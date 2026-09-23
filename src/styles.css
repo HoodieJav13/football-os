@@ -138,6 +138,7 @@ button:active { scale: 0.96; }
 .app-shell:focus { outline: none; }
 .app-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 72px 118px minmax(0, 1fr) 52px;
   width: 100vw;
   height: 100dvh;
@@ -638,8 +639,8 @@ button:active { scale: 0.96; }
 }
 .field-grid { pointer-events: none; }
 /* Lit surface, not vector fill: the gradients are defined in FieldMarkings. */
-.field-grid .field-surface { fill: url(#field-light); }
-.field-vignette { fill: url(#field-vignette); }
+
+
 .los-glow { stroke: oklch(0.95 0.01 180 / 0.1); stroke-width: 9; vector-effect: non-scaling-stroke; }
 @keyframes los-flash {
   0%, 100% { stroke: oklch(0.95 0.01 180 / 0.1); stroke-width: 9; }
@@ -680,7 +681,7 @@ button:active { scale: 0.96; }
  */
 .route { fill: none; stroke: var(--assignment-route); stroke-width: 3.25; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; pointer-events: stroke; vector-effect: non-scaling-stroke; }
 .play-canvas marker path { fill: var(--assignment-route); }
-.play-canvas marker#route-arrow-active path { fill: var(--accent); }
+.play-canvas marker.route-arrow-active path { fill: var(--accent); }
 
 /* Type encoding */
 .assignment-route { stroke: var(--assignment-route); }
@@ -1286,7 +1287,7 @@ button:active { scale: 0.96; }
   .back-control { width: 44px; height: 44px; }
   .top-actions > .segmented { display: none; }
   .run-button { min-width: 52px; width: 52px; font-size: 0; }
-  .run-button svg:last-child { display: none; }
+  .run-button svg { display: block; }
   .filmstrip {
     display: block;
     height: 48px;
@@ -1462,7 +1463,7 @@ button:active { scale: 0.96; }
   /* Only on phones, where the sheet opens under the finger that summoned it. */
   .inspector.is-arming { pointer-events: none; }
   .inspector.mobile-peek { height: 246px; overflow: hidden; }
-  .inspector.mobile-expanded { height: min(680px, calc(100% - 16px)); overflow-y: auto; }
+  .inspector.mobile-expanded { display: block; height: min(680px, calc(100% - 16px)); overflow-y: auto; }
   .mobile-sheet-handle {
     position: sticky;
     z-index: 2;
@@ -1486,7 +1487,7 @@ button:active { scale: 0.96; }
     scroller inside it would swallow that drag. So the desktop model of pinning
     the summaries and scrolling only the open section is deliberately off here.
   */
-  .mobile-expanded .inspector-body { display: block; }
+  .mobile-expanded .inspector-body { display: block; overflow: visible; }
   .inspector-section[open] { display: block; min-height: 0; }
   .inspector-section[open]::details-content { display: block; }
   .section-body { min-height: 0; overflow: visible; }
@@ -1714,3 +1715,160 @@ button:active { scale: 0.96; }
     page-break-after: auto;
   }
 }
+
+
+/* Reference-library port */
+.filmstrip { position: relative; }
+.play-browser-controls .play-search { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 6px; min-height: 38px; padding: 0 9px; border-radius: 8px; color: var(--text-low); background: var(--chrome); box-shadow: inset 0 0 0 1px var(--line); }
+.play-browser-controls input { min-width: 0; height: 36px; padding: 0; border: 0; outline: 0; color: var(--text); background: transparent; font: inherit; font-size: 12px; }
+.play-browser-controls select { width: 100%; min-height: 34px; padding: 0 8px; border: 0; border-radius: 7px; outline: 0; color: var(--text-mid); background: var(--chrome); box-shadow: inset 0 0 0 1px var(--line); font: inherit; font-size: 11px; }
+.play-browser-controls small { color: var(--text-low); font-size: 10px; line-height: 12px; }
+.play-browser-filter-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.filter-trigger { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; padding: 0 9px; border-radius: 7px; color: var(--text-mid); background: var(--chrome); box-shadow: inset 0 0 0 1px var(--line); font-size: 11px; font-weight: 650; }
+.filter-trigger:hover,
+.filter-trigger.active { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-muted); }
+.filter-trigger span { display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; color: var(--chrome); background: var(--accent); font-size: 9px; font-variant-numeric: tabular-nums; }
+.structured-filter-panel {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% - 1px);
+  left: 8px;
+  display: grid;
+  width: min(620px, calc(100vw - 32px));
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  color: var(--text-mid);
+  background: oklch(0.17 0.024 218);
+  box-shadow: 0 20px 48px oklch(0 0 0 / 0.52);
+}
+.structured-filter-heading,
+.structured-filter-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.structured-filter-heading > div { display: grid; gap: 2px; }
+.structured-filter-heading span { color: var(--text); font-size: 13px; font-weight: 700; }
+.structured-filter-heading button { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; color: var(--text-low); background: var(--chrome); }
+.structured-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.structured-filter-grid label { display: grid; gap: 5px; }
+.structured-filter-grid label:last-child { grid-column: 1 / -1; }
+.structured-filter-grid label > span { color: var(--text-low); font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.structured-filter-grid select { min-height: 40px; padding-inline: 10px; font-size: 12px; }
+.structured-filter-footer { padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; }
+.structured-filter-footer button { min-height: 40px; padding: 0 12px; border-radius: 8px; color: var(--accent); background: var(--accent-soft); font-size: 11px; font-weight: 700; }
+.structured-filter-footer button:disabled { color: var(--text-low); background: var(--chrome); opacity: 0.7; }
+
+.film-card-label { display: grid; min-width: 0; max-width: 100%; place-items: center; align-content: center; }
+.film-card-label strong { display: -webkit-box; overflow: hidden; max-width: 100%; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 11px; line-height: 12px; font-weight: 650; text-align: center; }
+.film-card-label small { overflow: hidden; max-width: 100%; color: var(--text-low); font-size: 9px; line-height: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.reference-copy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--chrome-raised));
+  color: var(--text);
+  font-weight: 700;
+}
+
+.reference-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.reference-inspector { display: grid; gap: 14px; }
+.reference-lock-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  color: var(--accent);
+}
+.reference-lock-note span { display: grid; gap: 3px; }
+.reference-lock-note small { color: var(--text-mid); line-height: 1.4; }
+.reference-inspector dl { display: grid; gap: 0; margin: 0; }
+.reference-inspector dl > div { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.reference-inspector dt { color: var(--text-mid); font-size: 12px; font-weight: 700; }
+.reference-inspector dd { margin: 0; color: var(--text); font-size: 13px; line-height: 1.45; }
+
+.route-alternative { display: grid; gap: 6px; color: var(--text-mid); font-size: 12px; font-weight: 700; }
+.route-alternative select { width: 100%; }
+.route-alternative small { color: var(--accent); font-weight: 600; }
+
+.film-card { grid-template-rows: 12px minmax(0,1fr) 38px; }
+@media (pointer: coarse) { .filter-trigger, .structured-filter-grid select, .structured-filter-footer button, .structured-filter-heading button, .reference-copy-button { min-height:44px; min-width:44px; } }
+@media (max-width:700px) {
+ .play-browser-controls .play-search { min-height:44px; }
+ .structured-filter-panel { position:fixed; top:120px; left:8px; width:calc(100vw - 16px); max-height:calc(100dvh - 140px); overflow:auto; }
+ .reference-copy-button { padding:0 8px; }
+ .reference-copy-button span { display:none; }
+}
+
+.storage-recovery { position: fixed; z-index: 40; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); max-height: 40dvh; overflow: auto; padding: 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--chrome); box-shadow: 0 8px 32px #0008; font-size: 12px; }
+.storage-recovery p { margin: 8px 0; line-height: 1.5; }
+.storage-recovery button { min-height:44px; padding: 8px 12px; border-radius:8px; background:var(--accent-soft); color:var(--accent); }
+.game-day-recovery { margin-top:16px; padding:12px; border:1px solid var(--line-strong); border-radius:10px; font-size:12px; }
+.game-day-recovery p { color:var(--text-mid); line-height:1.5; }
+.game-day-recovery button { min-height:44px; padding:8px 12px; background:var(--accent-soft); color:var(--accent); border-radius:8px; }
+
+/* Bound the implicit grid row so SVG intrinsic height cannot push names out. */
+.filmstrip-scroll { min-height:0; grid-template-rows:minmax(0,1fr); }
+.film-card { min-height:0; }
+.film-card-label strong { white-space:normal; }
+.play-browser-controls { gap:4px; padding:8px 12px; }
+.play-browser-controls .play-search, .play-browser-controls input, .play-browser-controls select, .filter-trigger { min-height:40px; }
+@media (pointer:coarse) {
+  .play-browser-controls .play-search, .play-browser-controls input, .play-browser-controls select, .filter-trigger { min-height:44px; }
+  .play-browser-controls > small { display:none; }
+}
+
+.responsibility-controls { margin: 14px 0; padding: 12px; border: 1px solid #49635b; border-radius: 10px; min-width: 0; display: grid; gap: 10px; }
+.responsibility-controls legend { font-size: 12px; color: #b6d8c8; padding: 0 4px; }
+.responsibility-controls label { display: grid; gap: 5px; min-width: 0; font-size: 11px; }
+.responsibility-controls input, .responsibility-controls select { width: 100%; min-width: 0; min-height: 40px; color: var(--text, #e9f1ed); background: #16382f; border: 1px solid #49635b; border-radius: 6px; padding: 7px; }
+.responsibility-controls button { min-height: 40px; padding: 7px; border: 1px solid #49635b; border-radius: 6px; background: #1e4438; color: #e5f2ec; }
+.area-size-row, .area-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.area-nudges { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; }
+.responsibility-controls small { color: #a3b8ad; font-size: 11px; line-height: 1.4; }
+.area-input-error { color: #ffc1b5; font-size: 12px; }
+.responsibility-controls:disabled { opacity: .5; }
+.region-handle { cursor: grab; touch-action: none; }
+.region-owner-key { cursor: pointer; }
+.clean-canvas .region-owner-key { cursor: default; }
+.lesson-export { position: fixed; left: -20000px; top: 0; pointer-events: none; }
+.lesson-export .field-stage { width: 100%; height: 100%; }
+@media (pointer: coarse), (max-width: 700px) {
+  .responsibility-controls button, .responsibility-controls input, .responsibility-controls select { min-height: 44px; }
+}
+@media print { .lesson-export { display: none; } }
+
+/* Authored areas make their owning defenders the teaching subject. */
+.defender.area-owner circle:not(.token-hit) { fill: var(--area-color); stroke: var(--area-color); stroke-width: 2.4; }
+.defender.area-owner text { fill: #08231d; font-weight: 800; }
+.defender.area-owner.focus-player circle:not(.token-hit) { stroke-width: 3.2; }
+.dim-offense .player-label { opacity: 0.3; }
+
+/* Plain teaching diagram: same football geometry, quiet background. */
+.canvas-background { flex: 0 0 auto; width: 92px; height: 44px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--text-mid); background: var(--chrome); font: inherit; font-size: 11px; }
+.background-diagram, .background-diagram .play-canvas { background: #18232b; }
+.background-diagram::after { display: none; }
+.diagram-grid line.line-of-scrimmage { stroke: #80909a; stroke-width: 1; stroke-dasharray: none; }
+
+/* Keep dimmed receivers readable as landmarks in the teaching diagram. */
+.background-diagram.dim-offense .player,
+.background-diagram.dim-offense .player-label,
+.background-diagram.dim-offense .route[data-assignment-unit="offense"] { opacity: 0.55; }

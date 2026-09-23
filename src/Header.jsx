@@ -7,6 +7,7 @@ import {
   CloudCheck,
   Copy,
   DownloadSimple,
+  LockSimple,
   NotePencil,
   Pause,
   Play,
@@ -19,7 +20,7 @@ import {
 } from "@phosphor-icons/react";
 
 /** The top bar: playbook switcher, play identity, camera switch, present and run. */
-function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDataTools, onSwitch, playbooks }) {
+function PlaybookSwitcher({ writable = true, activePlaybook, mainPlaybook, onCopy, onCreate, onDataTools, onSwitch, playbooks }) {
   const { open, present, leaving, setOpen, toggle, containerRef } = useDismissable();
   const canCopy = activePlaybook.id !== mainPlaybook.id;
   return (
@@ -58,11 +59,11 @@ function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDa
           ))}
           <div className="playbook-menu-actions">
             {canCopy ? (
-              <button onClick={() => { onCopy(); setOpen(false); }}>
+              <button disabled={!writable} onClick={() => { onCopy(); setOpen(false); }}>
                 <Copy size={19} /><span><strong>Add this play to {mainPlaybook.name}</strong><small>Creates an independent copy</small></span>
               </button>
             ) : null}
-            <button onClick={() => { onCreate(); setOpen(false); }}>
+            <button disabled={!writable} onClick={() => { onCreate(); setOpen(false); }}>
               <PlusCircle size={19} /><span><strong>New playbook</strong><small>Start a separate collection</small></span>
             </button>
             <button onClick={() => { onDataTools(); setOpen(false); }}>
@@ -76,6 +77,7 @@ function PlaybookSwitcher({ activePlaybook, mainPlaybook, onCopy, onCreate, onDa
 }
 
 export function Header({
+  writable = true,
   activePlaybook,
   formationLegal,
   mainPlaybook,
@@ -94,12 +96,15 @@ export function Header({
   onView,
   temporary,
 }) {
+  const reference = activePlaybook.readOnly === true;
+  const primaryName = reference && play.sourceCall ? play.sourceCall : play.name;
   const running = playback === "running";
   const runLabel = running ? "Pause" : playback === "paused" ? "Resume" : "Run";
   return (
     <header className="topbar">
       <div className="play-heading">
         <PlaybookSwitcher
+          writable={writable}
           activePlaybook={activePlaybook}
           mainPlaybook={mainPlaybook}
           onCopy={onCopy}
@@ -110,15 +115,16 @@ export function Header({
         />
         <span className="heading-rule" aria-hidden="true" />
         <div>
-          <span className="family-label">{play.family} Family</span>
+          <span className="family-label">{reference ? `Concept · ${play.conceptName ?? play.name}` : `${play.family} Family`}</span>
           <div className="title-line">
-            <h1>{play.name}</h1>
-            {temporary ? <span className="temporary-chip">Temporary</span> : <NotePencil size={18} aria-hidden="true" />}
+            <h1>{primaryName}</h1>
+            {temporary ? <span className="temporary-chip">Temporary</span> : reference ? <span className="reference-chip"><LockSimple size={13} />Reference</span> : <NotePencil size={18} aria-hidden="true" />}
           </div>
           <div className="play-meta"><span>{play.personnel}</span><span>{play.formation}</span></div>
         </div>
       </div>
       <div className="top-actions">
+        {reference ? <button disabled={!writable} className="reference-copy-button" aria-label={`Add to ${mainPlaybook.name}`} onClick={onCopy}><Copy size={18} /><span>Add to Active</span></button> : null}
         <span className={`offline-state ${formationLegal ? "" : "draft-state"}`}>
           {!formationLegal ? <Warning size={18} /> : offlineStatus.ready ? <WifiHigh size={18} /> : offlineStatus.online ? <CloudCheck size={18} /> : <WifiSlash size={18} />}
           {!formationLegal

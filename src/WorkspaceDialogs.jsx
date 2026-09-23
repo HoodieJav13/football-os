@@ -23,6 +23,9 @@ const printLayers = {
 const noop = () => {};
 
 export function DataToolsDialog({
+  writable = true,
+  gameDayRecovery,
+  onRecoverGameDay,
   activePlaybook,
   offlineStatus,
   onBackup,
@@ -45,13 +48,13 @@ export function DataToolsDialog({
         {offlineStatus.ready ? <WifiHigh size={24} /> : <WifiSlash size={24} />}
         <div>
           <strong>{offlineStatus.ready ? "Game-day offline copy ready" : offlineStatus.development ? "Offline copy available after production build" : "Offline copy is still preparing"}</strong>
-          <span>{workspace.playbooks.length} playbooks · {playCount} plays stored on this device</span>
+          <span>{writable ? `${workspace.playbooks.length} playbooks · ${playCount} plays in this workspace` : "Recovery view · saved workspace has not been loaded"}</span>
         </div>
         <button type="button" onClick={onRefreshOffline} disabled={offlineStatus.development}><ArrowClockwise size={17} />Refresh</button>
       </div>
 
       <div className="data-action-grid">
-        <button type="button" onClick={onBackup}>
+        <button type="button" disabled={!writable} onClick={onBackup}>
           <DownloadSimple size={22} />
           <span><strong>Download backup</strong><small>Everything in one restorable .footballos file</small></span>
         </button>
@@ -60,9 +63,13 @@ export function DataToolsDialog({
           <span><strong>Choose backup to restore</strong><small>Your current workspace stays safe until confirmation</small></span>
           <input type="file" accept=".footballos,application/json" onChange={onRestoreFile} />
         </label>
-        <button type="button" onClick={onExportPng}>
+        <button type="button" onClick={() => onExportPng("wide")}>
           <DownloadSimple size={22} />
           <span><strong>Export current play as PNG</strong><small>Clean field diagram for sharing or slides</small></span>
+        </button>
+        <button type="button" onClick={() => onExportPng("phone")}>
+          <DownloadSimple size={22} />
+          <span><strong>Export phone PNG</strong><small>Larger labels with a grouped responsibility legend</small></span>
         </button>
         <button type="button" onClick={onOpenPrint}>
           <Printer size={22} />
@@ -70,6 +77,13 @@ export function DataToolsDialog({
         </button>
       </div>
 
+      {gameDayRecovery ? (
+        <section className="game-day-recovery">
+          <strong>Recover saved game-day adjustment</strong>
+          <p>Keep the original adjustment as a local recovery copy, then reset the temporary adjustment so Game Day Adjust is available again.</p>
+          <button type="button" disabled={!gameDayRecovery.sourceKey} onClick={onRecoverGameDay}>Preserve and reset adjustment</button>
+        </section>
+      ) : null}
       {restoreError ? <p className="restore-error">{restoreError}</p> : null}
       {restoreCandidate ? (
         <div className="restore-preview">
@@ -86,7 +100,7 @@ export function DataToolsDialog({
   );
 }
 
-export function PrintCollectionPreview({ playbook, plays, onClose }) {
+export function PrintCollectionPreview({ playbook, plays, onClose, view = "end", background = "field", layers = printLayers }) {
   return createPortal((
     <div className="print-preview" role="dialog" aria-modal="true" aria-label="PDF collection preview">
       <header className="print-preview-toolbar">
@@ -102,7 +116,9 @@ export function PrintCollectionPreview({ playbook, plays, onClose }) {
               <PlayCanvas
                 activeTool="Select"
                 draftAssignment={[]}
-                layers={printLayers}
+                layers={layers}
+                background={background}
+                clean framePlay
                 onPointerDown={noop}
                 onPointerMove={noop}
                 onPointerUp={noop}
@@ -116,7 +132,7 @@ export function PrintCollectionPreview({ playbook, plays, onClose }) {
                 selectedAssignmentId={null}
                 selectedUnit="offense"
                 speed={1}
-                view="end"
+                view={view}
               />
             </div>
             <footer><span>{play.family} Family</span><span>{index + 1} / {plays.length}</span></footer>
@@ -146,7 +162,7 @@ export function SaveConceptDialog({ concepts, play, onClose, onSave }) {
   );
 }
 
-export function ApplyConceptDialog({ concepts, currentConceptId, onApply, onClose }) {
+export function ApplyConceptDialog({ error, concepts, currentConceptId, onApply, onClose }) {
   const [conceptId, setConceptId] = useState(currentConceptId ?? concepts[0]?.id ?? "");
   const concept = concepts.find((item) => item.id === conceptId);
   return (
@@ -165,6 +181,7 @@ export function ApplyConceptDialog({ concepts, currentConceptId, onApply, onClos
           </select>
         </label>
       ) : <div className="empty-concepts"><GitMerge size={25} /><strong>No saved concepts yet</strong><span>Save the assignments from a play first.</span></div>}
+      {error ? <p className="restore-error" role="alert">{error}</p> : null}
       <button className="modal-primary" type="submit" disabled={!concept}>Apply concept</button>
       <button className="modal-close" type="button" onClick={onClose}><X size={18} />Cancel</button>
     </Modal>

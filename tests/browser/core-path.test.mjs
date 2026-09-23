@@ -16,7 +16,7 @@ const open = useBrowser();
  * assertions are load-bearing: a coach who loses this loses the playbook.
  */
 
-const WORKSPACE_KEY = "football-os.playbooks.v9";
+const WORKSPACE_KEY = "football-os.playbooks.v11";
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 const openDataTools = async (page) => {
@@ -35,7 +35,7 @@ test("a coach can open a playbook, pick a play, edit a route, run it and export 
   await page.waitForTimeout(250);
   const books = page.locator(".playbook-menu button[role=menuitem]");
   assert.ok(await books.count() >= 2, "more than one playbook to choose from");
-  const target = books.nth(1);
+  const target = books.filter({ hasText: "Air Raid Passing Game" });
   const targetName = (await target.locator("strong").first().textContent()).trim();
   await target.click();
   await page.waitForTimeout(600);

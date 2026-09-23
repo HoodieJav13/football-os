@@ -64,7 +64,7 @@ function AssignmentKey({ showDepths, onShowDepths }) {
   );
 }
 
-export function LayerBar({ layers, onChange, onView, view, showDepths, onShowDepths }) {
+export function LayerBar({ layers, onChange, onView, view, background, onBackground, showDepths, onShowDepths }) {
   const { open: mobileOpen, setOpen: setMobileOpen, toggle: toggleMobile, containerRef } = useDismissable();
   const update = (name, patch) => onChange((current) => ({
     ...current,
@@ -72,7 +72,7 @@ export function LayerBar({ layers, onChange, onView, view, showDepths, onShowDep
   }));
   return (
     <div className={`layer-bar ${mobileOpen ? "mobile-open" : ""}`} aria-label="Canvas layers" ref={containerRef}>
-      <button type="button" className="mobile-layer-toggle" aria-expanded={mobileOpen} onClick={toggleMobile}>
+      <button type="button" className="mobile-layer-toggle" aria-label="Layers" aria-expanded={mobileOpen} onClick={toggleMobile}>
         <Stack size={18} />
         <strong>Layers</strong>
         <span className="layer-visibility-summary" aria-hidden="true">
@@ -110,6 +110,10 @@ export function LayerBar({ layers, onChange, onView, view, showDepths, onShowDep
             {layers.assignments.visible ? <Eye size={17} /> : <EyeSlash size={17} />}
           </button>
         </div>
+        <select className="canvas-background" aria-label="Canvas background" value={background} onChange={event => onBackground(event.target.value)}>
+          <option value="field">Field</option>
+          <option value="diagram">Diagram</option>
+        </select>
         <AssignmentKey showDepths={showDepths} onShowDepths={onShowDepths} />
       </div>
     </div>

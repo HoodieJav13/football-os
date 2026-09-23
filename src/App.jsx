@@ -1,3 +1,10 @@
+import { normalizeFieldSide } from "./fieldSide";
+import { createCover3Lesson } from './cover3Lesson';
+import { FIELD } from './playData';
+import { copyResponsibilityArea, responsibilityOwnerKeys } from './responsibilityArea';
+import { LessonExport } from './LessonExport';
+import { browserStorage, loadWorkspaceState, loadGameDayState, restoreWorkspace, recoverGameDay } from "./workspaceStorage.js";
+import { createEmptyPlayFilters, createFamilyBases, createPlayFilterOptions, filterPlays } from "./playFilters";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CaretLeft, CornersOut, Play, X } from "@phosphor-icons/react";
 
@@ -32,8 +39,6 @@ import {
   isLinePlayer,
   playerExists,
   preferredAssignment,
-  readGameDay,
-  readWorkspace,
   titleCase,
   toolItems,
   uniqueName,
@@ -46,6 +51,8 @@ import {
   clampPoint,
   clonePlaybook,
   createConceptTemplate,
+  copyAssignmentForPlayer,
+  mirrorAssignmentPath,
   createPlayFromFormation,
   defaultFormations,
   defensiveAssignmentTypes,
@@ -63,7 +70,7 @@ import {
 } from "./playData";
 import { downloadPlayPng, downloadWorkspaceBackup } from "./exportUtils";
 import { refreshOfflineCopy, subscribeOfflineStatus } from "./offline";
-import { parseWorkspaceBackup, RECOVERY_WORKSPACE_KEY, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
+import { parseWorkspaceBackup, uniquePlaybookId, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
 
 /** Matches the inspector exit keyframes in styles.css. */
 const INSPECTOR_EXIT_MS = 200;
@@ -77,15 +84,21 @@ function starterPlay(playbookId) {
 }
 
 export function App() {
-  const [workspace, setWorkspace] = useState(readWorkspace);
+  const [storageState, setStorageState] = useState(() => loadWorkspaceState(browserStorage));
+  const [workspace, setWorkspace] = useState(storageState.workspace);
+  const [saveError, setSaveError] = useState(null);
+  const [gameDaySaveError, setGameDaySaveError] = useState(null);
+  const [gameDayStorage, setGameDayStorage] = useState(() => loadGameDayState(browserStorage, storageState.workspace));
+  const writable = storageState.writable;
   const [playId, setPlayId] = useState(null);
   const [view, setView] = useState("end");
+  const [background, setBackground] = useState("field");
   const [activeTool, setActiveTool] = useState("Select");
   const [speed, setSpeed] = useState(1);
   const [playback, setPlayback] = useState("idle");
   const [runKey, setRunKey] = useState(0);
   const [present, setPresent] = useState(false);
-  const [gameDay, setGameDay] = useState(readGameDay);
+  const [gameDay, setGameDay] = useState(gameDayStorage.gameDay);
   const [gameDayDialog, setGameDayDialog] = useState(false);
   const [detailsDialog, setDetailsDialog] = useState(false);
   const [createPlayDialog, setCreatePlayDialog] = useState(false);
@@ -95,6 +108,7 @@ export function App() {
   const [applyFormationDialog, setApplyFormationDialog] = useState(false);
   const [saveConceptDialog, setSaveConceptDialog] = useState(false);
   const [applyConceptDialog, setApplyConceptDialog] = useState(false);
+  const [applyConceptError, setApplyConceptError] = useState("");
   const [dataToolsDialog, setDataToolsDialog] = useState(false);
   const [printPreview, setPrintPreview] = useState(false);
   const [restoreCandidate, setRestoreCandidate] = useState(null);
@@ -105,6 +119,12 @@ export function App() {
     supported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
     development: true,
   });
+  const [editRegionId, setEditRegionId] = useState(null);
+  const [regionPreview, setRegionPreview] = useState(null);
+  const [frozenRegionProjection, setFrozenRegionProjection] = useState(null);
+  const regionDrag = useRef(null);
+  const [exportJob, setExportJob] = useState(null);
+  const exporting = useRef(false);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState("offense");
@@ -113,8 +133,7 @@ export function App() {
     defense: { visible: true, dimmed: false, locked: false },
     assignments: { visible: true },
   });
-  const [browserQuery, setBrowserQuery] = useState("");
-  const [browserFolder, setBrowserFolder] = useState("all");
+  const [playFilters, setPlayFilters] = useState(createEmptyPlayFilters);
   const [draftAssignment, setDraftAssignment] = useState([]);
   /** Live drag feedback: which player is in hand, and which guides it snapped to. */
   const [dragInfo, setDragInfo] = useState(null);
@@ -136,37 +155,20 @@ export function App() {
   const svgRef = useRef(null);
   const [, setHistoryVersion] = useState(0);
 
-  const playbooks = workspace.playbooks;
+  const playbooks = workspace.playbooks.filter(book => !book.archived);
   const activePlaybook = playbooks.find((book) => book.id === workspace.activePlaybookId) ?? playbooks[0];
   const mainPlaybook = playbooks.find((book) => book.id === workspace.mainPlaybookId) ?? playbooks[0];
   const library = activePlaybook.plays;
+  const referenceLocked = activePlaybook.readOnly === true;
+  const mutationLocked = referenceLocked || !writable;
   /*
    * Each family's base is its first play in full library order -- stable even
    * when search or folder filters hide it, so a filtered strip still diffs
    * against the real base rather than whichever variant happens to be visible.
    */
-  const familyBases = useMemo(() => {
-    const bases = new Map();
-    for (const item of library) if (!bases.has(item.family)) bases.set(item.family, item);
-    return bases;
-  }, [library]);
-  const folders = useMemo(() => [...new Set(library.map((item) => item.folder ?? "Unfiled"))].sort(), [library]);
-  const visibleLibrary = useMemo(() => {
-    const query = browserQuery.trim().toLowerCase();
-    return library.filter((item) => {
-      if (browserFolder !== "all" && (item.folder ?? "Unfiled") !== browserFolder) return false;
-      if (!query) return true;
-      return [
-        item.name,
-        item.family,
-        item.formation,
-        item.personnel,
-        item.protection,
-        item.blockingScheme,
-        item.folder,
-      ].some((value) => value?.toLowerCase().includes(query));
-    });
-  }, [browserFolder, browserQuery, library]);
+  const familyBases = useMemo(() => createFamilyBases(library), [library]);
+  const playFilterOptions = useMemo(() => createPlayFilterOptions(library), [library]);
+  const visibleLibrary = useMemo(() => filterPlays(library, playFilters), [library, playFilters]);
   const playIndex = useMemo(() => Math.max(0, library.findIndex((item) => item.id === playId)), [library, playId]);
   const play = library[playIndex];
   /*
@@ -196,7 +198,41 @@ export function App() {
   const playerAssignments = useMemo(() => selectedPlayerId
     ? play.assignments.filter((item) => item.unit === selectedUnit && item.playerId === selectedPlayerId)
     : [], [play.assignments, selectedPlayerId, selectedUnit]);
-  const currentLayerLocked = layers[selectedUnit]?.locked ?? false;
+  const currentLayerLocked = mutationLocked || (layers[selectedUnit]?.locked ?? false);
+  const areaDisabled = currentLayerLocked || !layers.defense.visible || !layers.assignments.visible || playback !== 'idle' || present;
+  const cancelRegionDrag = () => {
+    regionDrag.current = null;
+    setRegionPreview(null);
+    setFrozenRegionProjection(null);
+  };
+  const leaveRegionEdit = () => { cancelRegionDrag(); setEditRegionId(null); };
+  useEffect(() => {
+    leaveRegionEdit();
+  }, [play.id, view, layers, selectedAssignmentId, playback, present, mutationLocked]);
+  useEffect(() => {
+    if (editRegionId && !route?.definition?.responsibilityArea) leaveRegionEdit();
+  }, [route, editRegionId]);
+  const displayPlay = regionPreview?.playId === play.id ? {...play, assignments: play.assignments.map(a => a.id === regionPreview.assignmentId ? {...a, definition:{...a.definition, responsibilityArea:regionPreview.area}} : a)} : play;
+  const changeResponsibilityArea = (area) => {
+    if (areaDisabled || route?.unit !== 'defense' || route?.type !== 'Zone') return;
+    if (JSON.stringify(area) === JSON.stringify(route.definition.responsibilityArea)) return;
+    const next = area ? copyResponsibilityArea(area) : undefined;
+    updateSelectedAssignment(current => {
+      const definition = {...current.definition};
+      if (next) definition.responsibilityArea = next;
+      else delete definition.responsibilityArea;
+      return {...current, definition};
+    });
+    if (!next) leaveRegionEdit();
+  };
+  const beginRegionDrag = (event, kind, projection) => {
+    if (areaDisabled || editRegionId !== route?.id || pinching()) return;
+    const box = svgRef.current.parentElement.getBoundingClientRect();
+    const area = copyResponsibilityArea(route.definition.responsibilityArea);
+    regionDrag.current = {playId:play.id, assignmentId:route.id, area, next:area, kind, projection, box, start:pointerToField(event,box,projection)};
+    setFrozenRegionProjection(projection);
+    capturePointer(svgRef.current.parentElement,event.pointerId);
+  };
   const copyTargets = useMemo(() => {
     if (!selectedPlayerId) return [];
     const phase = route?.phase ?? "post";
@@ -251,8 +287,14 @@ export function App() {
   workspaceRef.current = workspace;
 
   useEffect(() => {
+    if (!writable) return undefined;
     const flush = () => {
-      window.localStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspaceRef.current));
+      try {
+        browserStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspaceRef.current));
+        setSaveError(null);
+      } catch (error) {
+        setSaveError(`Changes could not be saved: ${error.message}. Keep this page open and download a backup.`);
+      }
     };
     const timer = window.setTimeout(flush, 400);
     const onHide = () => {
@@ -266,14 +308,20 @@ export function App() {
       window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [workspace]);
+  }, [workspace, writable]);
 
   useEffect(() => subscribeOfflineStatus(setOfflineStatus), []);
 
   useEffect(() => {
-    if (gameDay) window.localStorage.setItem(GAME_DAY_KEY, JSON.stringify(gameDay));
-    else window.localStorage.removeItem(GAME_DAY_KEY);
-  }, [gameDay]);
+    if (!writable || !gameDayStorage.writable) return;
+    try {
+      if (gameDay) browserStorage.setItem(GAME_DAY_KEY, JSON.stringify({ ...gameDay, workspaceVersion: WORKSPACE_VERSION }));
+      else if (gameDayStorage.gameDay || browserStorage.getItem(GAME_DAY_KEY) !== null) browserStorage.setItem(GAME_DAY_KEY, JSON.stringify({ resolved: true, workspaceVersion: WORKSPACE_VERSION }));
+      setGameDaySaveError(null);
+    } catch (error) {
+      setGameDaySaveError(`Changes could not be saved: ${error.message}. Keep this page open and download a backup.`);
+    }
+  }, [gameDay, writable, gameDayStorage]);
 
   /*
    * Feedback is scoped to the play it was raised on -- an "Undo" offered for a
@@ -311,10 +359,11 @@ export function App() {
   }, []);
 
   const setLibrary = (nextValue) => {
+    if (!writable) return;
     setWorkspace((current) => ({
       ...current,
       playbooks: current.playbooks.map((book) => {
-        if (book.id !== current.activePlaybookId) return book;
+        if (book.id !== current.activePlaybookId || book.readOnly) return book;
         const nextPlays = typeof nextValue === "function" ? nextValue(book.plays) : nextValue;
         return { ...book, plays: nextPlays };
       }),
@@ -326,7 +375,7 @@ export function App() {
   };
 
   const pushHistory = (targetId, snapshot = library.find((item) => item.id === targetId)) => {
-    if (!snapshot) return;
+    if (!snapshot || mutationLocked) return;
     const entry = historyRef.current.get(targetId) ?? { past: [], future: [] };
     historyRef.current.set(targetId, {
       past: [...entry.past.slice(-39), clonePlaybook([snapshot])[0]],
@@ -336,6 +385,7 @@ export function App() {
   };
 
   const updatePlay = (targetId, updater, { record = true } = {}) => {
+    if (mutationLocked) return;
     if (record) pushHistory(targetId);
     setLibrary((current) => current.map((item) => item.id === targetId ? updater(item) : item));
   };
@@ -410,6 +460,8 @@ export function App() {
   };
 
   const undo = () => {
+    cancelRegionDrag();
+    if (mutationLocked) return;
     const entry = historyRef.current.get(play.id);
     const previous = entry?.past.at(-1);
     if (!previous) return;
@@ -424,6 +476,8 @@ export function App() {
   };
 
   const redo = () => {
+    cancelRegionDrag();
+    if (mutationLocked) return;
     const entry = historyRef.current.get(play.id);
     const next = entry?.future[0];
     if (!next) return;
@@ -464,8 +518,7 @@ export function App() {
     setPlayId(nextPlay.id);
     if (compactViewport()) clearSelection();
     else focusAssignment(nextPlay, defaultAssignmentId(nextPlay));
-    setBrowserQuery("");
-    setBrowserFolder("all");
+    setPlayFilters(createEmptyPlayFilters());
     setDraftAssignment([]);
     setActiveTool("Select");
     setPlayback("idle");
@@ -473,11 +526,14 @@ export function App() {
   };
 
   const copyToMain = () => {
+    if (!writable) return;
     if (activePlaybook.id === mainPlaybook.id) return;
     const copy = {
       ...clonePlaybook([play])[0],
       id: `${mainPlaybook.id}-${play.id}-${Date.now()}`,
-      name: uniqueName(mainPlaybook.plays, play.name),
+      name: uniqueName(mainPlaybook.plays, play.sourceCall || play.name),
+      conceptName: play.conceptName ?? play.name,
+      referenceStatus: "copied-reference",
       variantOf: null,
       importedFrom: {
         playbookId: activePlaybook.id,
@@ -496,14 +552,8 @@ export function App() {
   };
 
   const createPlaybook = (name) => {
-    const idBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "playbook";
-    const existingIds = new Set(playbooks.map((book) => book.id));
-    let id = idBase;
-    let suffix = 2;
-    while (existingIds.has(id)) {
-      id = `${idBase}-${suffix}`;
-      suffix += 1;
-    }
+    if (!writable) return;
+    const id = uniquePlaybookId(name, workspace.playbooks);
     const firstPlay = starterPlay(id);
     const newBook = {
       id,
@@ -528,6 +578,7 @@ export function App() {
   };
 
   const createPlay = ({ formationId, mode, name }) => {
+    if (mutationLocked) return;
     const id = `${activePlaybook.id}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "play"}-${Date.now()}`;
     let created;
 
@@ -568,6 +619,17 @@ export function App() {
     notify(`${created.name} created`);
   };
 
+  const addCover3Lesson = () => {
+    if (mutationLocked || mainPlaybook.readOnly) return;
+    const lesson = createCover3Lesson(`cover3-${crypto.randomUUID()}`,uniqueName(mainPlaybook.plays,'Cover 3 — teaching example'));
+    setWorkspace(current => ({...current,activePlaybookId:current.mainPlaybookId,playbooks:current.playbooks.map(book => book.id === current.mainPlaybookId ? {...book,plays:[...book.plays,lesson]} : book)}));
+    setPlayId(lesson.id);
+    setPlayFilters(createEmptyPlayFilters());
+    clearSelection();
+    setActiveTool('Select'); setPlayback('idle');
+    notify('Editable Cover 3 example added. Adjust it for your teaching.');
+  };
+
   const duplicatePlay = () => {
     createPlay({
       formationId: null,
@@ -577,6 +639,7 @@ export function App() {
   };
 
   const deletePlay = () => {
+    if (mutationLocked) return;
     if (library.length <= 1) return;
     const nextLibrary = library.filter((item) => item.id !== play.id);
     const nextPlay = nextLibrary[Math.min(playIndex, nextLibrary.length - 1)];
@@ -591,6 +654,7 @@ export function App() {
   };
 
   const saveFormation = (name) => {
+    if (mutationLocked) return;
     const saved = {
       id: `${activePlaybook.id}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "formation"}`,
       name,
@@ -600,7 +664,7 @@ export function App() {
     setWorkspace((current) => ({
       ...current,
       playbooks: current.playbooks.map((book) => {
-        if (book.id !== current.activePlaybookId) return book;
+        if (book.id !== current.activePlaybookId || book.readOnly) return book;
         const existing = book.formations.findIndex((item) => item.name.toLowerCase() === name.toLowerCase());
         const formations = existing >= 0
           ? book.formations.map((item, index) => index === existing ? { ...saved, id: item.id } : item)
@@ -614,6 +678,7 @@ export function App() {
   };
 
   const applyFormation = (formationId) => {
+    if (mutationLocked) return;
     const formation = activePlaybook.formations.find((item) => item.id === formationId);
     if (!formation || !formationStatus(formation.players).legal) {
       notifyProblem("Choose a legal saved formation");
@@ -631,6 +696,7 @@ export function App() {
   };
 
   const saveConcept = (name) => {
+    if (mutationLocked) return;
     const existing = activePlaybook.concepts.find((concept) => concept.name.toLowerCase() === name.toLowerCase());
     const idBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "concept";
     const concept = createConceptTemplate(play, {
@@ -640,7 +706,7 @@ export function App() {
     setWorkspace((current) => ({
       ...current,
       playbooks: current.playbooks.map((book) => {
-        if (book.id !== current.activePlaybookId) return book;
+        if (book.id !== current.activePlaybookId || book.readOnly) return book;
         return {
           ...book,
           concepts: existing
@@ -654,9 +720,14 @@ export function App() {
   };
 
   const applyConcept = (conceptId) => {
+    if (mutationLocked) return;
     const concept = activePlaybook.concepts.find((item) => item.id === conceptId);
     if (!concept) return;
-    updatePlay(play.id, (current) => applyConceptTemplateToPlay(current, concept));
+    let candidate;
+    try { candidate = applyConceptTemplateToPlay(play, concept); }
+    catch (error) { setApplyConceptError(error.message); return; }
+    setApplyConceptError("");
+    updatePlay(play.id, () => candidate);
     clearSelection();
     setSelectedUnit("offense");
     setApplyConceptDialog(false);
@@ -678,12 +749,15 @@ export function App() {
 
   const confirmRestore = () => {
     if (!restoreCandidate) return;
-    window.localStorage.setItem(RECOVERY_WORKSPACE_KEY, JSON.stringify({
-      version: WORKSPACE_VERSION,
-      createdAt: new Date().toISOString(),
-      workspace,
-    }));
-    const restored = restoreCandidate.workspace;
+    let restored;
+    try {
+      restored = restoreWorkspace(browserStorage, restoreCandidate.workspace, { ...storageState, workspace });
+    } catch (error) {
+      setRestoreError(`Backup was not restored: ${error.message}. The current workspace is unchanged.`);
+      return;
+    }
+    setStorageState({ workspace: restored, writable: true, error: null, sourceKey: WORKSPACE_KEY, raw: null });
+    setSaveError(null);
     const restoredBook = restored.playbooks.find((book) => book.id === restored.activePlaybookId) ?? restored.playbooks[0];
     setWorkspace(restored);
     setPlayId(restoredBook.plays[0].id);
@@ -695,13 +769,20 @@ export function App() {
     notify(`Backup restored · previous workspace kept as a recovery copy`);
   };
 
-  const exportCurrentPng = async () => {
+  const exportCurrentPng = async (format = "wide") => {
+    if (exporting.current || exportJob) return;
+    await document.fonts.ready;
+    setExportJob({play:clonePlaybook([play])[0],view,layers:structuredClone(layers),background,format});
+  };
+  const exportReady = async (svg) => {
+    if (!svg || !exportJob || exporting.current) return;
+    exporting.current = true;
     try {
-      await downloadPlayPng(svgRef.current, play.name);
-      notify(`${play.name} PNG downloaded`);
+      await downloadPlayPng(svg, exportJob.play.name + (exportJob.format === "phone" ? " phone" : ""));
+      notify(`${exportJob.play.name} PNG downloaded`);
     } catch (error) {
-      notifyProblem(error instanceof Error ? error.message : "PNG export failed");
-    }
+      notifyProblem(error instanceof Error ? error.message : 'PNG export failed');
+    } finally { setExportJob(null); exporting.current = false; }
   };
 
   const refreshOffline = async () => {
@@ -870,37 +951,23 @@ export function App() {
 
   const copyAssignment = (targetId) => {
     if (!route || currentLayerLocked) return;
-    const sourceStart = playerLocation(play, selectedUnit, selectedPlayerId);
-    const targetStart = playerLocation(play, selectedUnit, targetId);
-    if (!sourceStart || !targetStart || assignmentFor(play, selectedUnit, targetId, route.phase)) return;
-    const dx = targetStart[0] - sourceStart[0];
-    const dy = targetStart[1] - sourceStart[1];
-    const copy = {
-      ...clonePlaybook([route])[0],
-      id: `${play.id}-${selectedUnit}-${targetId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${route.phase}-${Date.now()}`,
-      playerId: targetId,
-      points: route.points.map(([x, y]) => clampPoint([x + dx, y + dy])),
-      evidence: route.evidence ? { ...route.evidence, coachEdited: true, method: "coach-copied" } : route.evidence,
-      templateOverride: route.inheritedFrom ? true : route.templateOverride,
-    };
+    let copy;
+    try {
+      copy = copyAssignmentForPlayer(play, route.id, targetId, `${play.id}-${selectedUnit}-${targetId}-${route.phase}-${Date.now()}`);
+    } catch (error) { notifyProblem(error.message); return; }
     updatePlay(play.id, (current) => ({ ...current, assignments: [...current.assignments, copy] }));
     setSelectedPlayerId(targetId);
     setSelectedAssignmentId(copy.id);
-    notify(`Assignment copied to ${playerLabel(play, selectedUnit, targetId)}`);
+    notify(copy.definition?.responsibilityArea
+      ? `Assignment and responsibility area copied. Adjust the area for ${playerLabel(play, selectedUnit, targetId)}.`
+      : `Assignment copied to ${playerLabel(play, selectedUnit, targetId)}`);
   };
 
   const mirrorAssignment = () => {
     if (!route || currentLayerLocked) return;
-    const start = playerLocation(play, selectedUnit, selectedPlayerId);
-    if (!start) return;
-    updateSelectedAssignment((current) => ({
-      ...current,
-      preset: `${current.preset ?? current.type} Mirror`,
-      geometryMode: "manual",
-      points: current.points.map(([x, y]) => clampPoint([start[0] - (x - start[0]), y])),
-      evidence: current.evidence ? { ...current.evidence, coachEdited: true } : current.evidence,
-    }));
-    notify(`${selectedPlayerLabel} assignment mirrored`);
+    const mirrored = mirrorAssignmentPath(play, route.id);
+    updateSelectedAssignment(() => mirrored);
+    notify(`${selectedPlayerLabel} path mirrored`);
   };
 
   const toggleRun = () => {
@@ -1016,7 +1083,7 @@ export function App() {
 
   const startDraw = (event) => {
     // Two fingers are a camera gesture, never a stroke or a player drag.
-    if (pinching()) return;
+    if (pinching()) { leaveRegionEdit(); return; }
     if (activeTool === "Select") {
       // Zoomed in, an empty-field drag pans the camera; at base framing the
       // same gesture keeps its old meaning, a swipe between plays.
@@ -1079,11 +1146,24 @@ export function App() {
 
   const movePointer = (event) => {
     if (pinching()) {
+      leaveRegionEdit();
       // A drag that turns into a pinch must not keep moving whatever it grabbed.
       playerDrag.current = null;
       routePointDrag.current = null;
       drawing.current = false;
       setDragInfo(null);
+      return;
+    }
+    if (regionDrag.current) {
+      const drag = regionDrag.current;
+      const point = pointerToField(event, drag.box, drag.projection);
+      const dx = point[0] - drag.start[0], dy = point[1] - drag.start[1];
+      const next = copyResponsibilityArea(drag.area);
+      if (drag.kind === 'center') next.center = clampPoint([next.center[0]+dx,next.center[1]+dy]);
+      else if (drag.kind === 'radiusX') next.radiusX = Math.max(.5,Math.min((FIELD.bounds.maxX-FIELD.bounds.minX)/2,next.radiusX+dx));
+      else next.radiusY = Math.max(.5,Math.min((FIELD.bounds.maxY-FIELD.bounds.minY)/2,next.radiusY+dy));
+      drag.next = next;
+      setRegionPreview({playId:drag.playId,assignmentId:drag.assignmentId,area:next});
       return;
     }
     if (panning()) {
@@ -1138,6 +1218,12 @@ export function App() {
   };
 
   const finishPointer = (event) => {
+    if (regionDrag.current) {
+      const drag = regionDrag.current;
+      if (drag.playId === play.id && drag.assignmentId === route?.id) changeResponsibilityArea(drag.next);
+      cancelRegionDrag();
+      return;
+    }
     if (panning()) {
       endPan();
       return;
@@ -1202,7 +1288,7 @@ export function App() {
 
     if (activeTool === "Select") {
       setSelectedAssignmentId(existing?.id ?? null);
-      if (!layers[unit].locked && !pinching()) {
+      if (!mutationLocked && !layers[unit].locked && !pinching()) {
         playerDrag.current = {
           id: playerId,
           unit,
@@ -1316,6 +1402,7 @@ export function App() {
   };
 
   const openGameDay = () => {
+    if (mutationLocked || !gameDayStorage.writable) return;
     if (gameDay && (gameDay.playbookId !== activePlaybook.id || gameDay.playId !== play.id)) {
       const targetBook = playbooks.find((book) => book.id === gameDay.playbookId);
       if (targetBook) {
@@ -1327,12 +1414,16 @@ export function App() {
   };
 
   const startGameDay = () => {
+    if (mutationLocked || !gameDayStorage.writable) return;
+    if (mutationLocked) return;
     setGameDay({ playbookId: activePlaybook.id, playId: play.id, snapshot: clonePlaybook([play])[0], startedAt: new Date().toISOString() });
     setGameDayDialog(false);
     notify("Temporary game-day variation started");
   };
 
   const resolveGameDay = (resolution) => {
+    if (!gameDayStorage.writable) return;
+    if (mutationLocked) return;
     if (!gameDay) return;
     if (gameDay.playbookId !== activePlaybook.id) {
       notifyProblem("Open the adjusted playbook before resolving this change");
@@ -1393,6 +1484,7 @@ export function App() {
 
     const onKeyDown = (event) => {
       if (anyDialogOpen || isTyping(event.target)) return;
+      if (mutationLocked && !["Escape", " ", "[", "]"].includes(event.key)) return;
       const accel = event.metaKey || event.ctrlKey;
 
       if (accel && event.key.toLowerCase() === "z") {
@@ -1411,6 +1503,7 @@ export function App() {
       switch (event.key) {
         case "Escape":
           event.preventDefault();
+          if (editRegionId) { leaveRegionEdit(); return; }
           // Step back out: drop a drawing tool first, then the selection.
           if (activeTool !== "Select") setActiveTool("Select");
           else if (present) setPresent(false);
@@ -1420,7 +1513,8 @@ export function App() {
         case "Backspace":
           if (!route) return;
           event.preventDefault();
-          deleteAssignment();
+          if (editRegionId) changeResponsibilityArea(undefined);
+          else deleteAssignment();
           return;
         case " ":
           event.preventDefault();
@@ -1438,7 +1532,12 @@ export function App() {
             ArrowUp: [0, step],
             ArrowDown: [0, -step],
           }[event.key];
-          if (nudgeSelection(dx, dy)) event.preventDefault();
+          if (editRegionId && !areaDisabled && route?.definition.responsibilityArea) {
+            const area = route.definition.responsibilityArea;
+            cancelRegionDrag();
+            changeResponsibilityArea({...area,center:clampPoint([area.center[0]+dx,area.center[1]+dy])});
+            event.preventDefault();
+          } else if (nudgeSelection(dx, dy)) event.preventDefault();
           return;
         }
         case "[":
@@ -1470,7 +1569,15 @@ export function App() {
 
   return (
     <main className={`app-shell ${present ? "is-presenting" : ""} ${playback === "running" ? "is-running" : ""}`} tabIndex={-1}>
+      {(storageState.error || gameDayStorage.error || gameDaySaveError || saveError) ? (
+        <aside className="storage-recovery" role="alert">
+          <strong>{!writable ? "Read-only recovery view" : "Storage needs attention"}</strong>
+          <p>{storageState.error || gameDayStorage.error || gameDaySaveError || saveError}</p>
+          <button onClick={() => setDataToolsDialog(true)}>Open backup and recovery</button>
+        </aside>
+      ) : null}
       <Header
+        writable={writable}
         activePlaybook={activePlaybook}
         formationLegal={currentFormationStatus.legal}
         mainPlaybook={mainPlaybook}
@@ -1495,33 +1602,28 @@ export function App() {
       />
       {(
         <Filmstrip
-          family={activePlaybook.name}
-          familyBases={familyBases}
-          library={visibleLibrary}
-          fullCount={library.length}
-          folders={folders}
-          folder={browserFolder}
-          query={browserQuery}
-          activeId={play.id}
-          onChange={selectPlay}
-          onCreate={() => setCreatePlayDialog(true)}
-          onFolder={setBrowserFolder}
-          onQuery={setBrowserQuery}
+          allPlays={library} family={activePlaybook.name} familyBases={familyBases}
+          filters={playFilters} filterOptions={playFilterOptions} plays={visibleLibrary}
+          canCreate={!mutationLocked} activeId={play.id} onChange={selectPlay}
+          onCreate={() => setCreatePlayDialog(true)} onFilters={setPlayFilters}
         />
       )}
       <section className={`editor-shell ${inspectorOpen ? "" : "inspector-closed"}`}>
         {(
           <ToolRail
             activeTool={activeTool}
+            readOnly={mutationLocked}
             canAddPlayer={play.players.length < 11}
             canRedo={canRedo}
             canUndo={canUndo}
             onAddPlayer={addPlayer}
             onDelete={() => setDeletePlayDialog(true)}
             onDetails={() => setDetailsDialog(true)}
+            onAddCover3={addCover3Lesson}
             onDuplicate={duplicatePlay}
-            onApplyConcept={() => setApplyConceptDialog(true)}
+            onApplyConcept={() => { setApplyConceptError(""); setApplyConceptDialog(true); }}
             onApplyFormation={() => setApplyFormationDialog(true)}
+            canGameDay={gameDayStorage.writable}
             onGameDay={openGameDay}
             onRedo={redo}
             onSaveConcept={() => setSaveConceptDialog(true)}
@@ -1532,9 +1634,15 @@ export function App() {
           />
         )}
         <div className="canvas-workspace">
-          <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} />
+          <LayerBar background={background} onBackground={setBackground} layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} />
           <PlayCanvas
             ref={svgRef}
+            background={background}
+            editable={!mutationLocked}
+            editRegionId={editRegionId}
+            projectionOverride={frozenRegionProjection}
+            onBeginRegionDrag={beginRegionDrag}
+            onPointerCancel={() => { cancelRegionDrag(); playerDrag.current=null; routePointDrag.current=null; drawing.current=false; setDraftAssignment([]); setDragInfo(null); }}
             activeTool={activeTool}
             draftAssignment={draftAssignment}
             onPointerDown={startDraw}
@@ -1543,7 +1651,7 @@ export function App() {
             onStartPointDrag={startPointDrag}
             onSelectPlayer={selectPlayer}
             onSelectAssignment={selectAssignment}
-            play={play}
+            play={displayPlay}
             /*
               Deliberately NOT keyed by play id: switching plays keeps the same
               SVG so tokens can morph between formations. Every play switch
@@ -1572,11 +1680,18 @@ export function App() {
         </div>
         {!present && selectedPlayerId ? (
           <Inspector
+            areaDisabled={areaDisabled}
+            areaOwner={responsibilityOwnerKeys(play).get(selectedPlayerId) ?? selectedPlayerLabel}
+            editingArea={editRegionId === route?.id}
+            onResponsibilityArea={changeResponsibilityArea}
+            onEditArea={() => { cancelRegionDrag(); setEditRegionId(editRegionId === route?.id ? null : route?.id); }}
             assignments={playerAssignments}
             leaving={inspectorLeaving}
             route={route}
             unit={selectedUnit}
             label={selectedPlayerLabel}
+            reference={referenceLocked}
+            lockReason={!writable ? "Restore a valid backup to resume editing." : undefined}
             locked={currentLayerLocked}
             unavailableTypes={unavailableTypes}
             copyTargets={copyTargets}
@@ -1624,21 +1739,35 @@ export function App() {
         />
       )}
       {gameDayDialog ? <GameDayDialog active={Boolean(gameDay)} play={gameDay ? playbooks.find((book) => book.id === gameDay.playbookId)?.plays.find((item) => item.id === gameDay.playId) ?? play : play} onClose={() => setGameDayDialog(false)} onStart={startGameDay} onResolve={resolveGameDay} /> : null}
-      {detailsDialog ? <PlayDetailsDialog play={play} onClose={() => setDetailsDialog(false)} onSave={(details) => { updatePlay(play.id, (current) => ({ ...current, ...details })); setDetailsDialog(false); notify("Play details saved"); }} /> : null}
+      {detailsDialog ? <PlayDetailsDialog play={play} onClose={() => setDetailsDialog(false)} onSave={(details) => { updatePlay(play.id, (current) => ({ ...current, ...details, fieldSide: normalizeFieldSide(details.fieldSide) })); setDetailsDialog(false); notify("Play details saved"); }} /> : null}
       {createPlayDialog ? <CreatePlayDialog currentPlay={play} formations={activePlaybook.formations} onClose={() => setCreatePlayDialog(false)} onCreate={createPlay} /> : null}
       {deletePlayDialog ? <DeletePlayDialog canDelete={library.length > 1} play={play} onClose={() => setDeletePlayDialog(false)} onDelete={deletePlay} /> : null}
       {newPlaybookDialog ? <NewPlaybookDialog onClose={() => setNewPlaybookDialog(false)} onCreate={createPlaybook} /> : null}
       {saveFormationDialog ? <SaveFormationDialog play={play} onClose={() => setSaveFormationDialog(false)} onSave={saveFormation} /> : null}
       {applyFormationDialog ? <ApplyFormationDialog currentFormation={play.formation} formations={activePlaybook.formations} onClose={() => setApplyFormationDialog(false)} onApply={applyFormation} /> : null}
       {saveConceptDialog ? <SaveConceptDialog concepts={activePlaybook.concepts} play={play} onClose={() => setSaveConceptDialog(false)} onSave={saveConcept} /> : null}
-      {applyConceptDialog ? <ApplyConceptDialog concepts={activePlaybook.concepts} currentConceptId={play.conceptTemplateId} onClose={() => setApplyConceptDialog(false)} onApply={applyConcept} /> : null}
+      {applyConceptDialog ? <ApplyConceptDialog error={applyConceptError} concepts={activePlaybook.concepts} currentConceptId={play.conceptTemplateId} onClose={() => setApplyConceptDialog(false)} onApply={applyConcept} /> : null}
       {dataToolsDialog ? (
         <DataToolsDialog
+          gameDayRecovery={gameDayStorage.error ? gameDayStorage : null}
+          onRecoverGameDay={() => {
+            try {
+              const recovered = recoverGameDay(browserStorage, gameDayStorage);
+              setGameDayStorage(recovered);
+              setGameDay(null);
+              setRestoreError("");
+              notify("Original game-day data kept as a recovery copy · adjustments available again");
+            } catch (error) { setRestoreError(`Adjustment was not reset: ${error.message}`); }
+          }}
+          writable={writable}
           activePlaybook={activePlaybook}
           offlineStatus={offlineStatus}
           onBackup={() => {
-            downloadWorkspaceBackup(workspace);
-            notify("Football OS backup downloaded");
+            if (!writable) return;
+            try {
+              downloadWorkspaceBackup(workspace);
+              notify("Football OS backup downloaded");
+            } catch (error) { notifyProblem(error.message); }
           }}
           onClose={() => setDataToolsDialog(false)}
           onConfirmRestore={confirmRestore}
@@ -1654,7 +1783,8 @@ export function App() {
           workspace={workspace}
         />
       ) : null}
-      {printPreview ? <PrintCollectionPreview playbook={activePlaybook} plays={visibleLibrary.length ? visibleLibrary : library} onClose={() => setPrintPreview(false)} /> : null}
+      {exportJob ? <LessonExport {...exportJob} onReady={exportReady} /> : null}
+      {printPreview ? <PrintCollectionPreview background={background} view={view} layers={layers} playbook={activePlaybook} plays={visibleLibrary.length ? visibleLibrary : library} onClose={() => setPrintPreview(false)} /> : null}
       <Feedback
         feedback={feedback}
         onAction={() => {

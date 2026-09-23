@@ -156,6 +156,10 @@ test("routes reveal as one drawing stroke, not a marching dash pattern", async (
 
 test("dashed assignments keep their pattern after animating", async () => {
   const app = await open();
+  await app.page.locator('.playbook-trigger').click();
+  await app.page.getByRole('menuitem').filter({hasText:'Texas Tech Reference'}).click();
+  await app.page.locator('.film-card').filter({hasText:'Crack-and-Go Motion'}).click();
+  await app.page.waitForTimeout(1800);
   const dash = await app.page.evaluate(() =>
     getComputedStyle(document.querySelector('.route[data-assignment-type="Motion"]')).strokeDasharray);
   assert.ok(dash && dash !== "none", `motion stays dashed: ${dash}`);
