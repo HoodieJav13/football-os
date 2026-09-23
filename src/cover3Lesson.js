@@ -5,10 +5,10 @@ const coverage = [
  ['cl','C',-19,8,-18,26,8,11,'Deep left','blue'],
  ['fs','FS',0,15,0,27,10,11,'Deep middle','violet'],
  ['cr','C',19,8,18,26,8,11,'Deep right','rose'],
- ['wl','OLB',-14,5.5,-20,9,7,6,'Left flat','teal'],
+ ['wl','B',-14,5.5,-20,9,7,6,'Left flat','teal'],
  ['ml','W',-5,5.5,-7,12,8,7,'Left hook','amber'],
  ['mr','M',5,5.5,7,12,8,7,'Right hook','amber'],
- ['sr','S',14,5.5,20,9,7,6,'Right flat','teal'],
+ ['sr','A',14,5.5,20,9,7,6,'Right flat','teal'],
 ];
 export function createCover3Lesson(id,name='Cover 3 — teaching example') {
  const players=clonePlaybook(basePlayers).map(p=>({...p,id:`${id}-${p.id}`}));

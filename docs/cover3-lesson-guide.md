@@ -2,7 +2,7 @@
 
 Open **More → Add Cover 3 teaching example**. This adds an independent editable
 play to Personal Active. W and M are the two hook defenders; C·1 and C·2 distinguish
-the corners. Colors support the labels; they do not define a player's rules.
+the corners. B is Bandit (left flat); A is Alpha (right flat). These are lesson labels, not KB promotions. Colors support the labels; they do not define a player's rules.
 The geometry is an illustrative starting point, not a program-specific scheme.
 
 Select a coverage defender, then edit its responsibility area. Try renaming W's
@@ -12,7 +12,7 @@ on a phone. Undo restores a committed change; Escape cancels an unfinished drag.
 A copied assignment retains independent area geometry and asks you to adjust it.
 
 Reopen the saved play, then use **Backup and export** in the playbook menu to
-save a restorable backup, export PNG, or print the collection. The selected view
+save a restorable backup and export PNG. The current review uses digital plus the board; no printer or new print checks are required. The selected view
 and intentional layers carry into the output. Full labels appear in the keyed
 legend. Revise the same saved play and regenerate these outputs; there is no
 second drawing to maintain.
@@ -38,7 +38,9 @@ so no labor reduction or time savings are claimed.
 
 Saved rehearsal play: `cover3-462e344f-a3d9-476b-9447-b04797fba80f`.
 
-Backup SHA-256: `bc2a0decf2a4867e729b46b83334111928db0ebb1f002c174fffe78d50a1e6fe`.
+Backup SHA-256: `668ddcd99677cd913c1a7fdb223753858bcc691028a74ea6f6c41cc9755f2698`.
 
-[Restorable rehearsal backup](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/cover3-rehearsal.footballos).
+[Restorable rehearsal backup](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/labels-ba/cover3-review.footballos).
 [Completion and verification report](reports/2026-09-22-responsibility-areas.md).
+
+Current [review PNG](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/labels-ba/cover3-review.png) uses B/A and restores W’s area label to “Left hook”; prior rehearsal geometry is retained. At 390px portrait fit width the legend is too small for comfortable reading. Zoom is needed; physical-phone review remains outstanding.

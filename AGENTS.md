@@ -94,3 +94,5 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Region-only edits must never regenerate drop paths. Handle previews do not autosave; one committed drag is one undo entry; cancellation discards it. Phone quick adjustments stay available.
 - PNG and print use measured clean fitted canvases with current view/layers and an SVG legend. Preserve unique SVG definition IDs and non-scaling strokes when inlining export styles. Inspect actual PNG/PDF artifacts, not only markup.
 - Local work follows the approved Tasks 0–5 plan in `docs/superpowers/plans/2026-09-22-responsibility-areas.md`; release/merge authority is separate. Film research remains paused.
+
+- Owner label clarification (2026-09-22): the generic lesson uses B = Bandit for left flat and A = Alpha for right flat; W area text is Left hook. This does not promote draft KB terms. Current review prioritizes PNG on a phone and the board; skip print checks when refreshing these review artifacts.
