@@ -38,9 +38,9 @@ so no labor reduction or time savings are claimed.
 
 Saved rehearsal play: `cover3-462e344f-a3d9-476b-9447-b04797fba80f`.
 
-Backup SHA-256: `668ddcd99677cd913c1a7fdb223753858bcc691028a74ea6f6c41cc9755f2698`.
+Backup SHA-256: `9eb1f9f9de5ea751fe53e0a9aef45b15f163e4ec2f20f08baba1771f03e5630e`.
 
-[Restorable rehearsal backup](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/labels-ba/cover3-review.footballos).
+[Restorable rehearsal backup](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/visual-phone/cover3-review.footballos).
 [Completion and verification report](reports/2026-09-22-responsibility-areas.md).
 
-Current [review PNG](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/labels-ba/cover3-review.png) uses B/A and restores W’s area label to “Left hook”; prior rehearsal geometry is retained. At 390px portrait fit width the legend is too small for comfortable reading. Zoom is needed; physical-phone review remains outstanding.
+Current [review PNG](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/visual-phone/cover3-review.png) uses B/A and restores W’s area label to “Left hook”; prior rehearsal geometry is retained. Use **Export phone PNG** for a 390px portrait layout with larger defender labels and a readable one-column legend. Tokens and drop arrows match their areas; bubble tags remain unchanged. The review PNG uses the existing **Dim offense** view setting. No dimming or export setting is saved on the play. Physical-phone review remains outstanding.

@@ -1,5 +1,5 @@
 import { ResponsibilityAreas, ResponsibilityLegend, regionLegendLayout } from "./ResponsibilityAreas.jsx";
-import { responsibilityOwnerKeys } from "./responsibilityArea.js";
+import { responsibilityOwnerKeys, responsibilityEntries, REGION_COLORS } from "./responsibilityArea.js";
 import { forwardRef, useId, useLayoutEffect, useRef, useState } from "react";
 import { assignmentStartSeconds, FIELD, isLineLabel, morphKeys, routeDuration } from "./playData";
 import {
@@ -379,6 +379,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   onPointerCancel,
   projectionOverride,
   onReady,
+  phoneOutput = false,
 }, ref) {
   const [stageRef, size] = useElementSize();
   const canvasRef = useRef(null);
@@ -386,6 +387,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   const suppressEditing = clean || present;
   const legend = (clean || present) ? regionLegendLayout(play, layers, size.width) : {height:0,entries:[]};
   const ownerKeys = responsibilityOwnerKeys(play);
+  const areaColors = new Map(responsibilityEntries(play).map(({assignment,area}) => [assignment.playerId, REGION_COLORS[area.color]]));
   const rememberFocusedToken = useRestoreTokenFocus(playKey);
   /*
    * The projection is a pure function of (box size, view, zoom), so App
@@ -465,6 +467,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
         aria-label={`${play.name} play diagram`}
       >
         <defs>
+          {Object.entries(REGION_COLORS).map(([key,color]) => <marker key={key} id={`${prefix}-area-arrow-${key}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" style={{fill:color}} /></marker>)}
           <marker className="route-arrow" id={`${prefix}-route-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" />
           </marker>
@@ -518,7 +521,8 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
                   projection,
                 )}
                 className={`route assignment-${item.type.toLowerCase()} ${!suppressEditing && item.id === selectedAssignmentId ? "selected" : ""} ${layers[item.unit].visible ? "" : "layer-hidden"}`}
-                markerEnd={`url(#${prefix}-${!suppressEditing && item.id === selectedAssignmentId ? "route-arrow-active" : "route-arrow"})`}
+                style={item.unit === 'defense' && item.definition?.responsibilityArea ? {stroke:REGION_COLORS[item.definition.responsibilityArea.color]} : undefined}
+                markerEnd={item.unit === 'defense' && item.definition?.responsibilityArea ? `url(#${prefix}-area-arrow-${item.definition.responsibilityArea.color})` : `url(#${prefix}-${!suppressEditing && item.id === selectedAssignmentId ? "route-arrow-active" : "route-arrow"})`}
                 onPointerDown={(event) => {
                   event.stopPropagation();
                   suppressGhostClick(event);
@@ -619,8 +623,8 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               data-player={player.id}
               data-unit="defense"
               data-morph={defenseMorph.get(player.id)}
-              className={`defender ${!suppressEditing && selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""} ${entering ? "token-enter" : ""}`}
-              style={enterStyle(play.players.length + playerIndex)}
+              className={`defender ${areaColors.has(player.id) ? "area-owner" : ""} ${!suppressEditing && selectedUnit === "defense" && selectedPlayerId === player.id ? "focus-player" : ""} ${entering ? "token-enter" : ""}`}
+              style={{...enterStyle(play.players.length + playerIndex), "--area-color":areaColors.get(player.id)}}
               tabIndex={suppressEditing || layers.defense.locked || !layers.defense.visible ? -1 : 0}
               role={suppressEditing ? undefined : "button"}
               aria-label={tokenLabel(player, "defense", assignments)}
@@ -634,8 +638,8 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
               }}
             >
               {!suppressEditing ? <circle className="token-hit" cx={screenX} cy={screenY} r={hitRadius} /> : null}
-              <circle cx={screenX} cy={screenY} r={defenderRadius} />
-              <text x={screenX} y={screenY + defenderLabelSize * 0.35} fontSize={defenderLabelSize}>
+              <circle cx={screenX} cy={screenY} r={phoneOutput && areaColors.has(player.id) ? projection.pixels(11) : defenderRadius} />
+              <text x={screenX} y={screenY + (phoneOutput && areaColors.has(player.id) ? projection.pixels(10.5) : defenderLabelSize) * 0.35} fontSize={phoneOutput && areaColors.has(player.id) ? projection.pixels(10.5) : defenderLabelSize}>
                 {ownerKeys.get(player.id) ?? player.label}
               </text>
               {runAnimations(player)}

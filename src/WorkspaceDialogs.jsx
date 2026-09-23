@@ -63,9 +63,13 @@ export function DataToolsDialog({
           <span><strong>Choose backup to restore</strong><small>Your current workspace stays safe until confirmation</small></span>
           <input type="file" accept=".footballos,application/json" onChange={onRestoreFile} />
         </label>
-        <button type="button" onClick={onExportPng}>
+        <button type="button" onClick={() => onExportPng("wide")}>
           <DownloadSimple size={22} />
           <span><strong>Export current play as PNG</strong><small>Clean field diagram for sharing or slides</small></span>
+        </button>
+        <button type="button" onClick={() => onExportPng("phone")}>
+          <DownloadSimple size={22} />
+          <span><strong>Export phone PNG</strong><small>Portrait layout with larger labels and a single-column legend</small></span>
         </button>
         <button type="button" onClick={onOpenPrint}>
           <Printer size={22} />

@@ -1,3 +1,5 @@
+> Current visual follow-up: [phone PNG and ownership-color evidence](2026-09-22-responsibility-visual-followup.md) supersede the phone-readability limitation and earlier review links below. Historical verification remains dated evidence.
+
 > Label-only follow-up: B (Bandit, left flat) and A (Alpha, right flat) replace OLB/S in new examples. The refreshed review restores W’s “Left hook” label. [Current PNG](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/labels-ba/cover3-review.png) and [backup](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/labels-ba/cover3-review.footballos) supersede the review artifacts linked in the historical completion below. Factory test and production build pass; actual app exports round-trip exactly and preserve geometry. Phone-fit inspection finds the portrait legend too small without zoom. Print checks skipped at owner request; KB untouched. Backup SHA-256: `668ddcd99677cd913c1a7fdb223753858bcc691028a74ea6f6c41cc9755f2698`. No new full-suite or independent-review pass is claimed for this two-label content update.
 
 # Responsibility areas — local completion

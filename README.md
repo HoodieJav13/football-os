@@ -53,7 +53,7 @@ are rejected before changing the play.
 Active, with W and M hook defenders. Nothing is auto-added on upgrade. See the
 [lesson guide](docs/cover3-lesson-guide.md) for the revision exercise and coaching
 prompts. Presentation, PNG and print fit the complete diagram and include a
-wrapping keyed legend. PNG/print omit editor selection, handles and animation.
+wrapping keyed legend. Area-owning defenders and their drop paths match the area color. **Export phone PNG** uses a portrait layout with larger defender labels and a single-column legend. Offense dimming remains a view control. PNG/print omit editor selection, handles and animation.
 
 Storage uses workspace v11, backup v3 and game-day v7. Damaged saved data enters
 read-only recovery; successful restore preserves the original raw data before

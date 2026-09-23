@@ -1843,3 +1843,9 @@ button:active { scale: 0.96; }
   .responsibility-controls button, .responsibility-controls input, .responsibility-controls select { min-height: 44px; }
 }
 @media print { .lesson-export { display: none; } }
+
+/* Authored areas make their owning defenders the teaching subject. */
+.defender.area-owner circle:not(.token-hit) { fill: var(--area-color); stroke: var(--area-color); stroke-width: 2.4; }
+.defender.area-owner text { fill: #08231d; font-weight: 800; }
+.defender.area-owner.focus-player circle:not(.token-hit) { stroke-width: 3.2; }
+.dim-offense .player-label { opacity: 0.3; }

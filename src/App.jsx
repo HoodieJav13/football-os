@@ -767,16 +767,16 @@ export function App() {
     notify(`Backup restored · previous workspace kept as a recovery copy`);
   };
 
-  const exportCurrentPng = async () => {
+  const exportCurrentPng = async (format = "wide") => {
     if (exporting.current || exportJob) return;
     await document.fonts.ready;
-    setExportJob({play:clonePlaybook([play])[0],view,layers:structuredClone(layers)});
+    setExportJob({play:clonePlaybook([play])[0],view,layers:structuredClone(layers),format});
   };
   const exportReady = async (svg) => {
     if (!svg || !exportJob || exporting.current) return;
     exporting.current = true;
     try {
-      await downloadPlayPng(svg, exportJob.play.name);
+      await downloadPlayPng(svg, exportJob.play.name + (exportJob.format === "phone" ? " phone" : ""));
       notify(`${exportJob.play.name} PNG downloaded`);
     } catch (error) {
       notifyProblem(error instanceof Error ? error.message : 'PNG export failed');

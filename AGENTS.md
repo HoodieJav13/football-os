@@ -96,3 +96,6 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Local work follows the approved Tasks 0–5 plan in `docs/superpowers/plans/2026-09-22-responsibility-areas.md`; release/merge authority is separate. Film research remains paused.
 
 - Owner label clarification (2026-09-22): the generic lesson uses B = Bandit for left flat and A = Alpha for right flat; W area text is Left hook. This does not promote draft KB terms. Current review prioritizes PNG on a phone and the board; skip print checks when refreshing these review artifacts.
+
+- Approved responsibility-area styling exception: area-owning defenders use their area palette color for the token fill/outline and drop path/arrowhead, in editor and clean output. Keep existing bubble tags and C·1/C·2 keys; other defenders retain the flat style. Selection emphasizes weight without replacing ownership color.
+- Phone PNG is an explicit export choice (390px layout at 2× resolution, larger area-owner tokens, one-column legend). Offense dimming uses the existing view layer only; never add a saved play field or per-play default for this review.
