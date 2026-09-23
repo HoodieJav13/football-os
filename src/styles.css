@@ -1855,3 +1855,8 @@ button:active { scale: 0.96; }
 .background-diagram, .background-diagram .play-canvas { background: #18232b; }
 .background-diagram::after { display: none; }
 .diagram-grid line.line-of-scrimmage { stroke: #80909a; stroke-width: 1; stroke-dasharray: none; }
+
+/* Keep dimmed receivers readable as landmarks in the teaching diagram. */
+.background-diagram.dim-offense .player,
+.background-diagram.dim-offense .player-label,
+.background-diagram.dim-offense .route[data-assignment-unit="offense"] { opacity: 0.55; }

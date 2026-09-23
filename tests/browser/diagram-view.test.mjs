@@ -40,12 +40,17 @@ test('diagram PNG removes field clutter, fits full lesson, and leaves saved work
   const box=svg.getBoundingClientRect();
   const bounds=svg.querySelector('.diagram-surface').getBoundingClientRect();
   const areas=[...svg.querySelectorAll('.responsibility-area-fill')];
-  window.__diagram={width:box.width,height:box.height,clutter:svg.querySelectorAll('.yard-line,.hash,.field-grid text,radialGradient').length,legend:svg.querySelectorAll('.responsibility-legend text').length,contained:areas.length===7&&areas.every(e=>{const r=e.getBoundingClientRect();return r.left>=bounds.left&&r.right<=bounds.right&&r.top>=bounds.top&&r.bottom<=bounds.bottom;}),offense:svg.querySelectorAll('g.player').length};
+  window.__diagram={width:box.width,height:box.height,clutter:svg.querySelectorAll('.yard-line,.hash,.field-grid text,radialGradient').length,legend:svg.querySelectorAll('.responsibility-legend text').length,contained:areas.length===7&&areas.every(e=>{const r=e.getBoundingClientRect();return r.left>=bounds.left&&r.right<=bounds.right&&r.top>=bounds.top&&r.bottom<=bounds.bottom;}),offense:svg.querySelectorAll('g.player').length,
+   legendColumns:new Set([...svg.querySelectorAll('.responsibility-legend text')].map(e=>e.getAttribute('x'))).size,
+   sameBackground:getComputedStyle(svg.querySelector('.diagram-surface')).fill===getComputedStyle(svg.querySelector('.responsibility-legend rect')).fill,
+   offenseOpacity:Number(getComputedStyle(svg.querySelector('g.player')).opacity),
+   labelsFit:[...svg.querySelectorAll('.responsibility-legend text')].every(e=>e.getBoundingClientRect().width<box.width/2-20)};
  }).observe(document.body,{childList:true,subtree:true,attributes:true});});
  const download=page.waitForEvent('download'); await page.getByRole('button',{name:/Export phone PNG/}).click();
  await mkdir('/private/tmp/football-diagram-review',{recursive:true}); await (await download).saveAs('/private/tmp/football-diagram-review/test-phone.png');
  const result=await page.evaluate(()=>window.__diagram);
- assert.equal(result.width,390); assert.ok(result.height<650); assert.equal(result.clutter,0);assert.equal(result.legend,7); assert.equal(result.contained,true);assert.equal(result.offense,11);
+ assert.equal(result.width,390); assert.ok(result.height<500); assert.equal(result.clutter,0);assert.equal(result.legend,7); assert.equal(result.contained,true);assert.equal(result.offense,11);
+ assert.equal(result.legendColumns,2); assert.equal(result.sameBackground,true); assert.equal(result.labelsFit,true); assert.ok(result.offenseOpacity>=0.5 && result.offenseOpacity<0.7);
  const bytes=await readFile('/private/tmp/football-diagram-review/test-phone.png');assert.equal(bytes.readUInt32BE(16),780);
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),WORKSPACE_KEY),before);
  app.assertNoErrors();await app.close();

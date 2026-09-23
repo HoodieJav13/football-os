@@ -394,7 +394,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   const canvasRef = useRef(null);
   const prefix = `canvas-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const suppressEditing = clean || present;
-  const legend = (clean || present) ? regionLegendLayout(play, layers, size.width) : {height:0,entries:[]};
+  const legend = (clean || present) ? regionLegendLayout(play, layers, size.width, background) : {height:0,entries:[]};
   const ownerKeys = responsibilityOwnerKeys(play);
   const areaColors = new Map(responsibilityEntries(play).map(({assignment,area}) => [assignment.playerId, REGION_COLORS[area.color]]));
   const rememberFocusedToken = useRestoreTokenFocus(playKey);
@@ -703,7 +703,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
           </g>
         ) : null}
         {ready && editable && editRegionId && playback === "idle" ? <ResponsibilityAreas play={play} projection={projection} layers={layers} selectedAssignmentId={editRegionId} editing controls clean={suppressEditing} onBeginDrag={onBeginRegionDrag} /> : null}
-        {ready ? <ResponsibilityLegend layout={legend} projection={projection} /> : null}
+        {ready ? <ResponsibilityLegend layout={legend} projection={projection} background={background} /> : null}
       </svg>
 
       {/*
