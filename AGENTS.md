@@ -99,3 +99,5 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 
 - Approved responsibility-area styling exception: area-owning defenders use their area palette color for the token fill/outline and drop path/arrowhead, in editor and clean output. Keep existing bubble tags and C·1/C·2 keys; other defenders retain the flat style. Selection emphasizes weight without replacing ownership color.
 - Phone PNG is an explicit export choice (390px layout at 2× resolution, larger area-owner tokens, one-column legend). Offense dimming uses the existing view layer only; never add a saved play field or per-play default for this review.
+
+- Approved plain diagram view (2026-09-23): Canvas background offers Field and Diagram. Diagram uses a flat dark surface with a thin LOS and no yard lines, numbers, hashes, gradient, or grain. It preserves all football geometry, ownership styling, and tags; the background is session view state, never a saved play field. PNG follows the choice and fits the complete lesson with bounded output dimensions.

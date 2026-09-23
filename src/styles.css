@@ -1849,3 +1849,9 @@ button:active { scale: 0.96; }
 .defender.area-owner text { fill: #08231d; font-weight: 800; }
 .defender.area-owner.focus-player circle:not(.token-hit) { stroke-width: 3.2; }
 .dim-offense .player-label { opacity: 0.3; }
+
+/* Plain teaching diagram: same football geometry, quiet background. */
+.canvas-background { flex: 0 0 auto; width: 92px; height: 44px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--text-mid); background: var(--chrome); font: inherit; font-size: 11px; }
+.background-diagram, .background-diagram .play-canvas { background: #18232b; }
+.background-diagram::after { display: none; }
+.diagram-grid line.line-of-scrimmage { stroke: #80909a; stroke-width: 1; stroke-dasharray: none; }

@@ -115,6 +115,14 @@ function orient(view, window) {
       };
 }
 
+/** Match clean diagram output to the fitted play, with bounded raster dimensions.
+ * Extreme imported geometry still fits through the normal isotropic projection.
+ */
+export function fittedOutputHeight(play, width, view = "end") {
+  const { windowWidth, windowHeight } = orient(view, windowFor(play, width, view, true));
+  return Math.round(width * Math.max(0.5, Math.min(1.5, windowHeight / windowWidth)));
+}
+
 /** How far the camera may magnify past the base framing. */
 export const ZOOM_MAX = 6;
 

@@ -17,7 +17,7 @@ and intentional layers carry into the output. Full labels appear in the keyed
 legend. Revise the same saved play and regenerate these outputs; there is no
 second drawing to maintain.
 
-Use these prompts with a coach observing:
+Optional prompts for later player-learning work (not prerequisites for diagram acceptance or release):
 
 1. Point to your defender and identify the responsibility shown.
 2. Explain that responsibility in your own words; the coach checks it against
@@ -26,7 +26,7 @@ Use these prompts with a coach observing:
    No second-look answer key has been invented for this generic example.
 
 A correct response is evidence for that prompt, not a claim of overall mastery.
-Coach/player usefulness has not yet been observed. Varsity match concepts and
+The owner has judged the diagram clear; player-learning assessment is separate. Varsity match concepts and
 film research remain outside this lesson.
 
 ## Rehearsal evidence
@@ -43,4 +43,6 @@ Backup SHA-256: `9eb1f9f9de5ea751fe53e0a9aef45b15f163e4ec2f20f08baba1771f03e5630
 [Restorable rehearsal backup](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/visual-phone/cover3-review.footballos).
 [Completion and verification report](reports/2026-09-22-responsibility-areas.md).
 
-Current [review PNG](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/visual-phone/cover3-review.png) uses B/A and restores W’s area label to “Left hook”; prior rehearsal geometry is retained. Use **Export phone PNG** for a 390px portrait layout with larger defender labels and a readable one-column legend. Tokens and drop arrows match their areas; bubble tags remain unchanged. The review PNG uses the existing **Dim offense** view setting. No dimming or export setting is saved on the play. Physical-phone review remains outstanding.
+Current [plain diagram phone PNG](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-23/diagram/cover3-diagram-phone.png) preserves the same saved rehearsal geometry, B/A labels, and W’s “Left hook” area label. [Previous Field PNG](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-22/visual-phone/cover3-review.png) remains available for comparison.
+
+Choose **Diagram** in the **Canvas background** dropdown beside Key (inside **Layers** on phones). This removes field markings except a thin LOS; **Field** restores them. Use **Export phone PNG** for larger defender labels and a single-column legend. Diagram exports fit the complete lesson more tightly. Tokens and drop arrows match their areas; bubble tags remain unchanged. The review uses **Dim offense**. Background, dimming, and export format are view choices, not saved play fields. The owner accepted ownership clarity in the colored Field version; the new plain view is ready for their visual comparison. No timed-edit or third-party understanding check is required.

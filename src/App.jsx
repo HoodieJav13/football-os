@@ -91,6 +91,7 @@ export function App() {
   const writable = storageState.writable;
   const [playId, setPlayId] = useState(null);
   const [view, setView] = useState("end");
+  const [background, setBackground] = useState("field");
   const [activeTool, setActiveTool] = useState("Select");
   const [speed, setSpeed] = useState(1);
   const [playback, setPlayback] = useState("idle");
@@ -770,7 +771,7 @@ export function App() {
   const exportCurrentPng = async (format = "wide") => {
     if (exporting.current || exportJob) return;
     await document.fonts.ready;
-    setExportJob({play:clonePlaybook([play])[0],view,layers:structuredClone(layers),format});
+    setExportJob({play:clonePlaybook([play])[0],view,layers:structuredClone(layers),background,format});
   };
   const exportReady = async (svg) => {
     if (!svg || !exportJob || exporting.current) return;
@@ -1632,9 +1633,10 @@ export function App() {
           />
         )}
         <div className="canvas-workspace">
-          <LayerBar layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} />
+          <LayerBar background={background} onBackground={setBackground} layers={layers} onChange={setLayers} view={view} onView={(nextView) => { setView(nextView); setPlayback("idle"); }} showDepths={showDepths} onShowDepths={setShowDepths} />
           <PlayCanvas
             ref={svgRef}
+            background={background}
             editable={!mutationLocked}
             editRegionId={editRegionId}
             projectionOverride={frozenRegionProjection}
@@ -1781,7 +1783,7 @@ export function App() {
         />
       ) : null}
       {exportJob ? <LessonExport {...exportJob} onReady={exportReady} /> : null}
-      {printPreview ? <PrintCollectionPreview view={view} layers={layers} playbook={activePlaybook} plays={visibleLibrary.length ? visibleLibrary : library} onClose={() => setPrintPreview(false)} /> : null}
+      {printPreview ? <PrintCollectionPreview background={background} view={view} layers={layers} playbook={activePlaybook} plays={visibleLibrary.length ? visibleLibrary : library} onClose={() => setPrintPreview(false)} /> : null}
       <Feedback
         feedback={feedback}
         onAction={() => {

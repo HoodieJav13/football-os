@@ -238,7 +238,7 @@ function useElementSize() {
   return [ref, size];
 }
 
-function FieldMarkings({ projection, prefix }) {
+function FieldMarkings({ projection, prefix, background }) {
   const half = FIELD.halfWidthYards;
   const hash = FIELD.hashFromCentreYards;
   const [nearDepth, farDepth] = projection.depthRange;
@@ -252,6 +252,14 @@ function FieldMarkings({ projection, prefix }) {
     const [x2, y2] = projection.project(to);
     return <line key={key} className={className} x1={x1} y1={y1} x2={x2} y2={y2} />;
   };
+
+  if (background === "diagram") {
+    const { minX, minY, maxX, maxY } = projection.bounds;
+    return <g className="field-grid diagram-grid" aria-hidden="true">
+      <rect className="diagram-surface" x={minX} y={minY} width={maxX-minX} height={maxY-minY} fill="#18232b" />
+      {line([projection.lateralRange[0], 0], [projection.lateralRange[1], 0], "los", "line-of-scrimmage")}
+    </g>;
+  }
 
   // The playable surface, so the extra lateral room reads as out of bounds.
   const corners = [projection.project([-half, nearDepth]), projection.project([half, farDepth])];
@@ -380,6 +388,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   projectionOverride,
   onReady,
   phoneOutput = false,
+  background = "field",
 }, ref) {
   const [stageRef, size] = useElementSize();
   const canvasRef = useRef(null);
@@ -403,7 +412,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   const assignmentVisible = (item) => layers.assignments.visible && layers[item.unit].visible;
   const selected = suppressEditing ? null : assignments.find((item) => item.id === selectedAssignmentId) ?? null;
   const ready = size.width > 0 && size.height > legend.height;
-  useLayoutEffect(() => { onReady?.(ready ? canvasRef.current : null); }, [ready,play,view,layers,legend.height,onReady]);
+  useLayoutEffect(() => { onReady?.(ready ? canvasRef.current : null); }, [ready,play,view,layers,legend.height,background,onReady]);
 
   const defenderRadius = sizeOf(TOKEN.defense, projection);
   const defenderLabelSize = sizeOf(TOKEN.defenseLabel, projection);
@@ -449,7 +458,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   return (
     <div
       ref={stageRef}
-      className={`field-stage ${view} tool-${activeTool.toLowerCase()} ${dragInfo ? "is-dragging" : ""} ${projection.zoomFactor > 1 ? "is-zoomed" : ""} ${layers.offense.dimmed ? "dim-offense" : ""} ${layers.defense.dimmed ? "dim-defense" : ""}`}
+      className={`field-stage background-${background} ${view} tool-${activeTool.toLowerCase()} ${dragInfo ? "is-dragging" : ""} ${projection.zoomFactor > 1 ? "is-zoomed" : ""} ${layers.offense.dimmed ? "dim-offense" : ""} ${layers.defense.dimmed ? "dim-defense" : ""}`}
       onPointerDown={clean ? undefined : onPointerDown}
       onPointerMove={clean ? undefined : onPointerMove}
       onPointerUp={clean ? undefined : onPointerUp}
@@ -476,7 +485,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
           </marker> : null}
         </defs>
 
-        {ready ? <FieldMarkings projection={projection} prefix={prefix} /> : null}
+        {ready ? <FieldMarkings projection={projection} prefix={prefix} background={background} /> : null}
         {ready ? <ResponsibilityAreas play={play} projection={projection} layers={layers} clean={suppressEditing} editable={editable} onSelect={onSelectAssignment} /> : null}
         <title>{`${play.name}, ${play.formation}, ${play.personnel}`}</title>
 
