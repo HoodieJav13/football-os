@@ -43,6 +43,17 @@ test('diagram PNG removes field clutter, fits full lesson, and leaves saved work
   window.__diagram={width:box.width,height:box.height,clutter:svg.querySelectorAll('.yard-line,.hash,.field-grid text,radialGradient').length,legend:svg.querySelectorAll('.responsibility-legend text').length,contained:areas.length===7&&areas.every(e=>{const r=e.getBoundingClientRect();return r.left>=bounds.left&&r.right<=bounds.right&&r.top>=bounds.top&&r.bottom<=bounds.bottom;}),offense:svg.querySelectorAll('g.player').length,
    legendEntries:[...svg.querySelectorAll('.responsibility-legend text')].map(e=>({text:e.textContent,x:Number(e.getAttribute('x')),y:Number(e.getAttribute('y'))})),
    fieldSide:svg.querySelector('.field-side-indicator')?.textContent,
+   fieldOnRight:svg.querySelector('.field-side-indicator').getBoundingClientRect().left>bounds.left+bounds.width/2,
+   unbrokenLegend:[...svg.querySelectorAll('.responsibility-legend text')].every(e=>e.querySelectorAll('tspan').length===1),
+   tagClearance:[...svg.querySelectorAll('.region-owner-key rect')].every(tag=>{
+    const a=tag.getBoundingClientRect();return [...svg.querySelectorAll('g.defender circle')].every(token=>{
+     const b=token.getBoundingClientRect(),cx=b.x+b.width/2,cy=b.y+b.height/2;
+     return Math.hypot(Math.max(a.left-cx,0,cx-a.right),Math.max(a.top-cy,0,cy-a.bottom))>b.width/2;
+    });
+   }),
+   legendFont:parseFloat(getComputedStyle(svg.querySelector('.responsibility-legend text')).fontSize),
+   tagFont:parseFloat(getComputedStyle(svg.querySelector('.region-owner-key text')).fontSize),
+   offenseLabels:[...svg.querySelectorAll('.player-label')].map(e=>e.textContent.trim()),
    sameBackground:getComputedStyle(svg.querySelector('.diagram-surface')).fill===getComputedStyle(svg.querySelector('.responsibility-legend rect')).fill,
    offenseOpacity:Number(getComputedStyle(svg.querySelector('g.player')).opacity),
    labelsFit:[...svg.querySelectorAll('.responsibility-legend text')].every(e=>e.getBoundingClientRect().width<box.width/2-20)};
@@ -53,9 +64,14 @@ test('diagram PNG removes field clutter, fits full lesson, and leaves saved work
  assert.equal(result.width,390); assert.ok(result.height<500); assert.equal(result.clutter,0);assert.equal(result.legend,7); assert.equal(result.contained,true);assert.equal(result.offense,11);
  assert.deepEqual(result.legendEntries.map(e=>e.text),['BC — Deep left','S — Deep middle','FC — Deep right','B — Left flat','W — Left hook','M — Right hook','A — Right flat']);
  assert.ok(result.legendEntries.slice(0,3).every(e=>e.y===result.legendEntries[0].y));
- assert.ok(result.legendEntries.slice(3).every(e=>e.y>result.legendEntries[0].y && e.y===result.legendEntries[3].y));
+ assert.ok(result.legendEntries.slice(3).every(e=>e.y>result.legendEntries[2].y));
+ assert.equal(result.legendEntries[3].y,result.legendEntries[4].y);
+ assert.equal(result.legendEntries[5].y,result.legendEntries[6].y);
+ assert.ok(result.legendEntries[5].y>result.legendEntries[3].y);
  assert.ok(result.legendEntries.slice(1,3).every((e,i)=>e.x>result.legendEntries[i].x));
- assert.ok(result.legendEntries.slice(4).every((e,i)=>e.x>result.legendEntries[i+3].x));
+ assert.equal(result.fieldOnRight,true); assert.equal(result.unbrokenLegend,true); assert.equal(result.tagClearance,true);
+ assert.ok(result.legendFont>=result.tagFont);
+ assert.deepEqual(result.offenseLabels.sort(),['F','H','Q','X','Y','Z']);
  assert.equal(result.fieldSide,'FIELD →'); assert.equal(result.sameBackground,true); assert.equal(result.labelsFit,true); assert.ok(result.offenseOpacity>=0.5 && result.offenseOpacity<0.7);
  const bytes=await readFile('/private/tmp/football-diagram-review/test-phone.png');assert.equal(bytes.readUInt32BE(16),780);
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),WORKSPACE_KEY),before);
@@ -82,6 +98,9 @@ test('field side is editable play metadata, undoable, and survives reload withou
  await page.getByLabel('Canvas background').selectOption('diagram');
  assert.equal(await page.locator('.field-side-indicator').textContent(),'FIELD →');
  await setSide('left');
+ const leftIndicator=await page.locator('.field-side-indicator').boundingBox();
+ const stage=await page.locator('.play-canvas').first().boundingBox();
+ assert.ok(leftIndicator.x+leftIndicator.width<stage.x+stage.width/2);
  assert.equal(await page.locator('.field-side-indicator').textContent(),'← FIELD');
  await page.waitForTimeout(650);await page.reload({waitUntil:'networkidle'});
  assert.equal(await page.locator('.field-side-indicator').textContent(),'← FIELD');
@@ -102,5 +121,30 @@ test('field side control is reachable on phone landscape',async()=>{
  assert.ok(box.y>=0 && box.y+box.height<=390);
  await page.getByRole('button',{name:'Save details',exact:true}).click();
  assert.equal(await page.locator('.field-side-indicator').textContent(),'← FIELD');
+ app.assertNoErrors();await app.close();
+});
+
+
+test('exceptional long labels remain complete and tiny-area tags avoid their owner',async()=>{
+ const workspace=fixture(),play=workspace.playbooks[0].plays[0];
+ const assignment=play.assignments.find(a=>a.definition?.responsibilityArea);
+ const owner=play.defenders.find(p=>p.id===assignment.playerId);
+ Object.assign(assignment.definition.responsibilityArea,{center:[owner.x,owner.y],radiusX:.5,radiusY:.5,label:'W'.repeat(48)});
+ const app=await open({workspace}),{page}=app;
+ await page.getByLabel('Canvas background').selectOption('diagram');
+ await page.locator('.playbook-trigger').click();await page.getByRole('button',{name:/Backup and export/}).click();
+ await page.evaluate(id=>{new MutationObserver(()=>{
+  const svg=document.querySelector('.lesson-export svg[data-ready="true"]');if(!svg)return;
+  const box=svg.getBoundingClientRect();
+  const legend=svg.querySelector(`[data-legend-owner="${id}"]`);
+  const tag=svg.querySelector(`[data-region-owner="${id}"] .region-owner-key rect`).getBoundingClientRect();
+  const token=svg.querySelector(`g.defender[data-player="${id}"] circle`).getBoundingClientRect();
+  window.__edge={text:legend.textContent.replace(/\s/g,''),inside:[...legend.querySelectorAll('tspan')].every(e=>{
+    const b=e.getBoundingClientRect();return b.left>=box.left&&b.right<=box.right;
+  }),clear:tag.right<token.left||tag.left>token.right||tag.bottom<token.top||tag.top>token.bottom};
+ }).observe(document.body,{childList:true,subtree:true,attributes:true});},owner.id);
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:/Export phone PNG/}).click();await download;
+ const result=await page.evaluate(()=>window.__edge);
+ assert.equal(result.text,'BC—'+'W'.repeat(48));assert.equal(result.inside,true);assert.equal(result.clear,true);
  app.assertNoErrors();await app.close();
 });

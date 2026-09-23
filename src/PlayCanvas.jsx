@@ -1,6 +1,6 @@
 import { fieldSideText } from "./fieldSide.js";
 import { ResponsibilityAreas, ResponsibilityLegend, regionLegendLayout } from "./ResponsibilityAreas.jsx";
-import { responsibilityOwnerKeys, responsibilityEntries, REGION_COLORS } from "./responsibilityArea.js";
+import { responsibilityOwnerKeys, responsibilityEntries, projectResponsibilityArea, REGION_COLORS } from "./responsibilityArea.js";
 import { forwardRef, useId, useLayoutEffect, useRef, useState } from "react";
 import { assignmentStartSeconds, FIELD, isLineLabel, morphKeys, routeDuration } from "./playData";
 import {
@@ -242,11 +242,19 @@ function useElementSize() {
 function FieldSideIndicator({ play, projection, background }) {
   const text = fieldSideText(play.fieldSide, projection.view);
   if (!text) return null;
-  const { minX, minY } = projection.bounds;
+  const { minX, minY, maxX } = projection.bounds;
   const px = projection.pixels;
+  const width=px(80),height=px(24),y=minY+px(4);
+  const corner=play.fieldSide==='right'?maxX-width-px(6):minX+px(6);
+  const collides=x=>responsibilityEntries(play).some(({area})=>{
+    const {cx,cy,rx,ry}=projectResponsibilityArea(area,projection);
+    const nearX=Math.max(x,Math.min(cx,x+width)),nearY=Math.max(y,Math.min(cy,y+height));
+    return ((nearX-cx)/rx)**2+((nearY-cy)/ry)**2<=1;
+  });
+  const x=collides(corner)?(minX+maxX-width)/2:corner;
   return <g className="field-side-indicator" role="img" aria-label={`Field side: ${play.fieldSide}`} pointerEvents="none">
-    <rect x={minX+px(6)} y={minY+px(4)} width={px(80)} height={px(24)} rx={px(4)} fill={background === "diagram" ? "#18232b" : "#12352c"} />
-    <text x={minX+px(12)} y={minY+px(20)} fill="#c1cacf" style={{fontFamily:'Arial, sans-serif',fontSize:px(11),fontWeight:700,textAnchor:'start'}}>{text}</text>
+    <rect x={x} y={y} width={width} height={height} rx={px(4)} fill={background === "diagram" ? "#18232b" : "#12352c"} />
+    <text x={x+px(6)} y={y+px(16)} fill="#c1cacf" style={{fontFamily:'Arial, sans-serif',fontSize:px(11),fontWeight:700,textAnchor:'start'}}>{text}</text>
   </g>;
 }
 
@@ -618,6 +626,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
         */}
         {ready ? <g className={`unit-layer ${layers.offense.visible ? "" : "layer-hidden"}`}>{play.players.map((player, playerIndex) => {
           const [screenX, screenY] = projection.project([player.x, player.y]);
+          if(background === "diagram" && isLineLabel(player.label)) return null;
           const labelSize = sizeOf(isLineLabel(player.label) ? TOKEN.lineLabel : TOKEN.skillLabel, projection);
           return (
             <text
