@@ -42,3 +42,9 @@ Local raw evidence: `/private/tmp/football-pr-review/` (unit/build/sites/browser
 - No branch/worktree deletion or work in other repositories.
 
 Measurements: full browser run573s; other elapsed/manual review time not separately tracked; model/tool cost unavailable; machine pressure low with no observed constraint. No failed checks or additional runtime findings. One owner decision gate preceded this stage (origin/main had advanced); current stage has zero further decision gates, transport steps or corrections. Independent review was bounded code review, not a blind review or physical-device claim. Judgment call1: retain all integration commits with a merge as explicitly requested. Judgment call2: use a documentation-only closeout commit without repeating unchanged runtime tests; GitHub CI will test the pushed head.
+
+## CI portability correction
+
+PR #9's first GitHub run (`35930984805`) passed setup, unit tests, Sites tests and build, then reported 84/94 browser tests passing. All ten failures were test-artifact filesystem errors: four test files used macOS-specific `/private/tmp`, which cannot be created by the Ubuntu runner. This is an introduced test portability defect, not an Actions quota block or a demonstrated product assertion failure.
+
+The test-only correction uses Node's `os.tmpdir()` plus `path.join()` and ensures each viewport test creates its own required output directory. Assertions, app code, workflows and branch protection are unchanged. All 20 tests in the four affected files pass locally after the correction. Independent diff review confirmed matching save/read/restore paths and no weakened assertions. A new GitHub full-suite result is required on the corrected pushed head; the original 94/94 local pass remains dated evidence for the unchanged app implementation. Judgment call3: fix this bounded test portability issue within the authorized PR-validation work; no new product behavior, dependency or external-setting change.

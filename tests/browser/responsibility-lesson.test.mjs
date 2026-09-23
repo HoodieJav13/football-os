@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
@@ -5,7 +7,7 @@ import {createHash} from 'node:crypto';
 import {createDefaultWorkspace,WORKSPACE_KEY} from '../../src/workspaceData.js';
 import {createCover3Lesson} from '../../src/cover3Lesson.js';
 import {useBrowser} from './harness.mjs';
-const open=useBrowser(),out='/private/tmp/football-qa';
+const open=useBrowser(),out=join(tmpdir(),'football-qa');
 const saved=page=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),WORKSPACE_KEY);
 async function dataTools(page){await page.locator('.playbook-trigger').click();await page.getByRole('button',{name:/Backup and export/}).click();}
 test('rehearse example add, revision, reopen, backup/restore, presentation and outputs',async()=>{
@@ -34,6 +36,7 @@ test('rehearse example add, revision, reopen, backup/restore, presentation and o
  app.assertNoErrors();await app.close();
 });
 for(const [width,height,touch]of[[1440,900,false],[1280,720,false],[1024,768,true],[390,844,true],[844,390,true]])test(`lesson controls and presentation at ${width}x${height}`,async()=>{
+ await mkdir(out,{recursive:true});
  const w=createDefaultWorkspace(),lesson=createCover3Lesson('viewport-lesson');w.playbooks[0].plays=[lesson];const app=await open({workspace:w,viewport:{width,height},touch}),{page}=app;
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.locator('g.defender[data-player="viewport-lesson-ml"]').click();

@@ -1,10 +1,12 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdir,readFile} from 'node:fs/promises';
 import {createDefaultWorkspace,WORKSPACE_KEY} from '../../src/workspaceData.js';
 import {useBrowser} from './harness.mjs';
 const open=useBrowser();
-const out='/private/tmp/football-qa';
+const out=join(tmpdir(),'football-qa');
 function fixture(){const w=createDefaultWorkspace(),p=w.playbooks[0].plays[0];w.playbooks[0].plays=[p];p.name='Responsibility output stress';p.assignments=p.defenders.filter(d=>d.label==='C').map((d,i)=>({id:`area-${i}`,playerId:d.id,unit:'defense',type:'Zone',phase:'post',templateOverride:false,pace:1,delay:0,points:[[d.x,d.y],[0,20]],definition:{area:'deep-third',landmark:'',responsibilityArea:{version:1,shape:'ellipse',center:[0,45],radiusX:12,radiusY:10,label:i?'Deep right and overlap — coach editable label':'Deep left and overlap — coach editable label',color:i?'rose':'blue'}}}));return{w,p};}
 async function dataTools(page){await page.locator('.playbook-trigger').click();await page.getByRole('button',{name:/Backup and export/}).click();}
 for(const view of ['end','side'])test(`clean ${view} output retains complete areas, keyed legends, and actual PNG/PDF`,async()=>{

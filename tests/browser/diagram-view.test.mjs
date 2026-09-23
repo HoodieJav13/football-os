@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -5,6 +7,7 @@ import { createDefaultWorkspace, WORKSPACE_KEY } from '../../src/workspaceData.j
 import { createCover3Lesson } from '../../src/cover3Lesson.js';
 import { useBrowser } from './harness.mjs';
 const open = useBrowser();
+const out = join(tmpdir(), 'football-diagram-review');
 function fixture() { const w=createDefaultWorkspace(); w.playbooks[0].plays=[createCover3Lesson('plain')]; return w; }
 async function controls(page) {
  const layers=page.getByRole('button',{name:/^Layers/});
@@ -59,7 +62,7 @@ test('diagram PNG removes field clutter, fits full lesson, and leaves saved work
    labelsFit:[...svg.querySelectorAll('.responsibility-legend text')].every(e=>e.getBoundingClientRect().width<box.width/2-20)};
  }).observe(document.body,{childList:true,subtree:true,attributes:true});});
  const download=page.waitForEvent('download'); await page.getByRole('button',{name:/Export phone PNG/}).click();
- await mkdir('/private/tmp/football-diagram-review',{recursive:true}); await (await download).saveAs('/private/tmp/football-diagram-review/test-phone.png');
+ await mkdir(out,{recursive:true}); await (await download).saveAs(join(out, 'test-phone.png'));
  const result=await page.evaluate(()=>window.__diagram);
  assert.equal(result.width,390); assert.ok(result.height<500); assert.equal(result.clutter,0);assert.equal(result.legend,7); assert.equal(result.contained,true);assert.equal(result.offense,11);
  assert.deepEqual(result.legendEntries.map(e=>e.text),['BC — Deep left','S — Deep middle','FC — Deep right','W — Left hook','M — Right hook','B — Left flat','A — Right flat']);
@@ -73,7 +76,7 @@ test('diagram PNG removes field clutter, fits full lesson, and leaves saved work
  assert.ok(result.legendFont>=result.tagFont);
  assert.deepEqual(result.offenseLabels.sort(),['F','H','Q','X','Y','Z']);
  assert.equal(result.fieldSide,'FIELD →'); assert.equal(result.sameBackground,true); assert.equal(result.labelsFit,true); assert.ok(result.offenseOpacity>=0.5 && result.offenseOpacity<0.7);
- const bytes=await readFile('/private/tmp/football-diagram-review/test-phone.png');assert.equal(bytes.readUInt32BE(16),780);
+ const bytes=await readFile(join(out, 'test-phone.png'));assert.equal(bytes.readUInt32BE(16),780);
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),WORKSPACE_KEY),before);
  app.assertNoErrors();await app.close();
 });
