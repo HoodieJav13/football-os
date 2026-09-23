@@ -68,6 +68,7 @@ export function ToolRail({
             aria-pressed={name === "More" ? undefined : activeTool === name}
             aria-expanded={name === "More" ? open : undefined}
             aria-haspopup={name === "More" ? "menu" : undefined}
+            aria-label={name === "More" ? "More" : undefined}
             title={name === "More" ? undefined : `${name} tool (${index + 1})`}
           >
             <span className="tool-icon"><Icon size={23} weight={activeTool === name ? "duotone" : "regular"} /></span>

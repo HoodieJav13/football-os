@@ -69,7 +69,7 @@ export function DataToolsDialog({
         </button>
         <button type="button" onClick={() => onExportPng("phone")}>
           <DownloadSimple size={22} />
-          <span><strong>Export phone PNG</strong><small>Portrait layout with larger labels and a single-column legend</small></span>
+          <span><strong>Export phone PNG</strong><small>Larger labels with a grouped responsibility legend</small></span>
         </button>
         <button type="button" onClick={onOpenPrint}>
           <Printer size={22} />

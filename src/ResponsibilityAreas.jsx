@@ -57,17 +57,21 @@ function wrap(text,width){
   }
   if(line)lines.push(line);return lines;
 }
-export function regionLegendLayout(play,layers,width,background="field"){
+export function regionLegendLayout(play,layers,width){
   const entries=responsibilityEntries(play,layers);if(!entries.length)return {height:0,entries:[]};
-  // Diagram phone output keeps full descriptions without a tall one-column band.
-  // Narrower views fall back to one column; long labels still wrap naturally.
-  const compact = background === "diagram" && width < 600;
-  const columns=Math.max(1,Math.min(compact ? 2 : 3,Math.floor(width/(compact ? 180 : 300)))),columnWidth=(width-32)/columns;
+  const isDeep = entry => ['deep-third','deep-half','quarter'].includes(entry.assignment.definition.area);
+  // Layout only: never reorder the saved roster or assignments.
+  const groups=[entries.filter(isDeep),entries.filter(entry=>!isDeep(entry))]
+    .filter(group=>group.length).map(group=>group.sort((a,b)=>a.area.center[0]-b.area.center[0]));
+  const maxColumns=Math.max(1,Math.min(4,Math.floor((width-32)/85)));
   let y=28;const laidOut=[];
-  for(let start=0;start<entries.length;start+=columns){
-    const row=entries.slice(start,start+columns).map(entry=>({...entry,lines:wrap(`${entry.ownerKey} — ${entry.area.label}`,Math.max(60,columnWidth-24))}));
-    row.forEach((entry,index)=>laidOut.push({...entry,x:16+index*columnWidth,y}));
-    y+=Math.max(...row.map(entry=>entry.lines.length))*18+12;
+  for(const group of groups){
+    const columns=Math.min(maxColumns,group.length),columnWidth=(width-32)/columns;
+    for(let start=0;start<group.length;start+=columns){
+      const row=group.slice(start,start+columns).map(entry=>({...entry,lines:wrap(`${entry.ownerKey} — ${entry.area.label}`,Math.max(48,columnWidth-12))}));
+      row.forEach((entry,index)=>laidOut.push({...entry,x:16+index*columnWidth,y}));
+      y+=Math.max(...row.map(entry=>entry.lines.length))*18+12;
+    }
   }
   return {height:y+8,entries:laidOut};
 }
@@ -77,7 +81,7 @@ export function ResponsibilityLegend({layout,projection,background="field"}){
   return <g className="responsibility-legend" transform={`translate(${x} ${y+height})`}>
     <rect width={width} height={projection.pixels(layout.height)} fill={background === "diagram" ? "#18232b" : "#10231f"} />
     {layout.entries.map(({assignment,area,lines,x:px,y:py})=><text key={assignment.id} data-legend-owner={assignment.playerId} x={projection.pixels(px)} y={projection.pixels(py)} fill={REGION_COLORS[area.color]} style={{fontFamily:'Arial, sans-serif',fontSize:projection.pixels(14),fontWeight:500,textAnchor:'start'}}>
-      {lines.map((line,index)=><tspan key={index} x={projection.pixels(px)} dy={index?projection.pixels(18):0}>{line}</tspan>)}
+      {lines.map((line,index)=><tspan key={index} x={projection.pixels(px)} dy={index?projection.pixels(18):0}>{line}{index<lines.length-1?' ':''}</tspan>)}
     </text>)}
   </g>;
 }

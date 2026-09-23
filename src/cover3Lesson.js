@@ -2,9 +2,9 @@ import {basePlayers,clonePlaybook,normalizePlay} from './playData.js';
 
 // Illustrative starting content; coaches define the responsibilities they teach.
 const coverage = [
- ['cl','C',-19,8,-18,26,8,11,'Deep left','blue'],
- ['fs','FS',0,15,0,27,10,11,'Deep middle','violet'],
- ['cr','C',19,8,18,26,8,11,'Deep right','rose'],
+ ['cl','BC',-19,8,-18,26,8,11,'Deep left','blue'],
+ ['fs','S',0,15,0,27,10,11,'Deep middle','violet'],
+ ['cr','FC',19,8,18,26,8,11,'Deep right','rose'],
  ['wl','B',-14,5.5,-20,9,7,6,'Left flat','teal'],
  ['ml','W',-5,5.5,-7,12,8,7,'Left hook','amber'],
  ['mr','M',5,5.5,7,12,8,7,'Right hook','amber'],
@@ -20,5 +20,5 @@ export function createCover3Lesson(id,name='Cover 3 — teaching example') {
    definition:{area:i<3?'deep-third':key==='wl'||key==='sr'?'flat':'hook',landmark:'Illustrative teaching area; adjust for your lesson.',
      responsibilityArea:{version:1,shape:'ellipse',center:[cx,cy],radiusX:rx,radiusY:ry,label:title,color}}
  }));
- return normalizePlay({id,name,family:'Cover 3 teaching',folder:'Teaching',formation:'Trips Right Open',personnel:'10 Personnel',players,defenders,assignments});
+ return normalizePlay({id,name,fieldSide:'right',family:'Cover 3 teaching',folder:'Teaching',formation:'Trips Right Open',personnel:'10 Personnel',players,defenders,assignments});
 }

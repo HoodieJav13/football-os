@@ -41,7 +41,8 @@ test('diagram PNG removes field clutter, fits full lesson, and leaves saved work
   const bounds=svg.querySelector('.diagram-surface').getBoundingClientRect();
   const areas=[...svg.querySelectorAll('.responsibility-area-fill')];
   window.__diagram={width:box.width,height:box.height,clutter:svg.querySelectorAll('.yard-line,.hash,.field-grid text,radialGradient').length,legend:svg.querySelectorAll('.responsibility-legend text').length,contained:areas.length===7&&areas.every(e=>{const r=e.getBoundingClientRect();return r.left>=bounds.left&&r.right<=bounds.right&&r.top>=bounds.top&&r.bottom<=bounds.bottom;}),offense:svg.querySelectorAll('g.player').length,
-   legendColumns:new Set([...svg.querySelectorAll('.responsibility-legend text')].map(e=>e.getAttribute('x'))).size,
+   legendEntries:[...svg.querySelectorAll('.responsibility-legend text')].map(e=>({text:e.textContent,x:Number(e.getAttribute('x')),y:Number(e.getAttribute('y'))})),
+   fieldSide:svg.querySelector('.field-side-indicator')?.textContent,
    sameBackground:getComputedStyle(svg.querySelector('.diagram-surface')).fill===getComputedStyle(svg.querySelector('.responsibility-legend rect')).fill,
    offenseOpacity:Number(getComputedStyle(svg.querySelector('g.player')).opacity),
    labelsFit:[...svg.querySelectorAll('.responsibility-legend text')].every(e=>e.getBoundingClientRect().width<box.width/2-20)};
@@ -50,8 +51,56 @@ test('diagram PNG removes field clutter, fits full lesson, and leaves saved work
  await mkdir('/private/tmp/football-diagram-review',{recursive:true}); await (await download).saveAs('/private/tmp/football-diagram-review/test-phone.png');
  const result=await page.evaluate(()=>window.__diagram);
  assert.equal(result.width,390); assert.ok(result.height<500); assert.equal(result.clutter,0);assert.equal(result.legend,7); assert.equal(result.contained,true);assert.equal(result.offense,11);
- assert.equal(result.legendColumns,2); assert.equal(result.sameBackground,true); assert.equal(result.labelsFit,true); assert.ok(result.offenseOpacity>=0.5 && result.offenseOpacity<0.7);
+ assert.deepEqual(result.legendEntries.map(e=>e.text),['BC — Deep left','S — Deep middle','FC — Deep right','B — Left flat','W — Left hook','M — Right hook','A — Right flat']);
+ assert.ok(result.legendEntries.slice(0,3).every(e=>e.y===result.legendEntries[0].y));
+ assert.ok(result.legendEntries.slice(3).every(e=>e.y>result.legendEntries[0].y && e.y===result.legendEntries[3].y));
+ assert.ok(result.legendEntries.slice(1,3).every((e,i)=>e.x>result.legendEntries[i].x));
+ assert.ok(result.legendEntries.slice(4).every((e,i)=>e.x>result.legendEntries[i+3].x));
+ assert.equal(result.fieldSide,'FIELD →'); assert.equal(result.sameBackground,true); assert.equal(result.labelsFit,true); assert.ok(result.offenseOpacity>=0.5 && result.offenseOpacity<0.7);
  const bytes=await readFile('/private/tmp/football-diagram-review/test-phone.png');assert.equal(bytes.readUInt32BE(16),780);
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),WORKSPACE_KEY),before);
+ app.assertNoErrors();await app.close();
+});
+
+test('field side is editable play metadata, undoable, and survives reload without moving any geometry',async()=>{
+ const workspace=fixture();workspace.playbooks[0].plays[0].fieldSide='none';
+ const original=structuredClone(workspace.playbooks[0].plays[0]);
+ const app=await open({workspace}),{page}=app;
+ assert.equal(await page.locator('.field-side-indicator').count(),0);
+ const setSide=async side=>{
+  await page.getByRole('button',{name:'More',exact:true}).click();
+  await page.getByRole('menuitem',{name:'Play details',exact:true}).click();
+  await page.getByLabel('Field side',{exact:true}).selectOption(side);
+  await page.getByRole('button',{name:'Save details',exact:true}).click();
+ };
+ await setSide('right');
+ assert.equal(await page.locator('.field-side-indicator').textContent(),'FIELD →');
+ await page.locator('.tool-history').getByRole('button',{name:'Undo',exact:true}).click();
+ assert.equal(await page.locator('.field-side-indicator').count(),0);
+ await page.locator('.tool-history').getByRole('button',{name:'Redo',exact:true}).click();
+ assert.equal(await page.locator('.field-side-indicator').textContent(),'FIELD →');
+ await page.getByLabel('Canvas background').selectOption('diagram');
+ assert.equal(await page.locator('.field-side-indicator').textContent(),'FIELD →');
+ await setSide('left');
+ assert.equal(await page.locator('.field-side-indicator').textContent(),'← FIELD');
+ await page.waitForTimeout(650);await page.reload({waitUntil:'networkidle'});
+ assert.equal(await page.locator('.field-side-indicator').textContent(),'← FIELD');
+ const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).playbooks[0].plays[0],WORKSPACE_KEY);
+ assert.deepEqual(saved,{...original,fieldSide:'left'});
+ await page.getByRole('button',{name:'Sideline',exact:true}).click();
+ assert.equal(await page.locator('.field-side-indicator').textContent(),'FIELD ↑');
+ app.assertNoErrors();await app.close();
+});
+
+test('field side control is reachable on phone landscape',async()=>{
+ const app=await open({workspace:fixture(),viewport:{width:844,height:390}}),{page}=app;
+ await page.getByRole('button',{name:'More',exact:true}).click();
+ await page.getByRole('menuitem',{name:'Play details',exact:true}).click();
+ await page.getByLabel('Field side',{exact:true}).scrollIntoViewIfNeeded();
+ await page.getByLabel('Field side',{exact:true}).selectOption('left');
+ const box=await page.getByLabel('Field side',{exact:true}).boundingBox();
+ assert.ok(box.y>=0 && box.y+box.height<=390);
+ await page.getByRole('button',{name:'Save details',exact:true}).click();
+ assert.equal(await page.locator('.field-side-indicator').textContent(),'← FIELD');
  app.assertNoErrors();await app.close();
 });

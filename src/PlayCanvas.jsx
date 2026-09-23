@@ -1,3 +1,4 @@
+import { fieldSideText } from "./fieldSide.js";
 import { ResponsibilityAreas, ResponsibilityLegend, regionLegendLayout } from "./ResponsibilityAreas.jsx";
 import { responsibilityOwnerKeys, responsibilityEntries, REGION_COLORS } from "./responsibilityArea.js";
 import { forwardRef, useId, useLayoutEffect, useRef, useState } from "react";
@@ -238,6 +239,17 @@ function useElementSize() {
   return [ref, size];
 }
 
+function FieldSideIndicator({ play, projection, background }) {
+  const text = fieldSideText(play.fieldSide, projection.view);
+  if (!text) return null;
+  const { minX, minY } = projection.bounds;
+  const px = projection.pixels;
+  return <g className="field-side-indicator" role="img" aria-label={`Field side: ${play.fieldSide}`} pointerEvents="none">
+    <rect x={minX+px(6)} y={minY+px(4)} width={px(80)} height={px(24)} rx={px(4)} fill={background === "diagram" ? "#18232b" : "#12352c"} />
+    <text x={minX+px(12)} y={minY+px(20)} fill="#c1cacf" style={{fontFamily:'Arial, sans-serif',fontSize:px(11),fontWeight:700,textAnchor:'start'}}>{text}</text>
+  </g>;
+}
+
 function FieldMarkings({ projection, prefix, background }) {
   const half = FIELD.halfWidthYards;
   const hash = FIELD.hashFromCentreYards;
@@ -394,7 +406,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
   const canvasRef = useRef(null);
   const prefix = `canvas-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const suppressEditing = clean || present;
-  const legend = (clean || present) ? regionLegendLayout(play, layers, size.width, background) : {height:0,entries:[]};
+  const legend = (clean || present) ? regionLegendLayout(play, layers, size.width) : {height:0,entries:[]};
   const ownerKeys = responsibilityOwnerKeys(play);
   const areaColors = new Map(responsibilityEntries(play).map(({assignment,area}) => [assignment.playerId, REGION_COLORS[area.color]]));
   const rememberFocusedToken = useRestoreTokenFocus(playKey);
@@ -703,6 +715,7 @@ export const PlayCanvas = forwardRef(function PlayCanvas({
           </g>
         ) : null}
         {ready && editable && editRegionId && playback === "idle" ? <ResponsibilityAreas play={play} projection={projection} layers={layers} selectedAssignmentId={editRegionId} editing controls clean={suppressEditing} onBeginDrag={onBeginRegionDrag} /> : null}
+        {ready ? <FieldSideIndicator play={play} projection={projection} background={background} /> : null}
         {ready ? <ResponsibilityLegend layout={legend} projection={projection} background={background} /> : null}
       </svg>
 

@@ -46,6 +46,7 @@ export function PlayDetailsDialog({ play, onClose, onSave }) {
   const [personnel, setPersonnel] = useState(play.personnel ?? "");
   const [protection, setProtection] = useState(play.protection ?? "");
   const [blockingScheme, setBlockingScheme] = useState(play.blockingScheme ?? "");
+  const [fieldSide, setFieldSide] = useState(play.fieldSide ?? "none");
   const status = formationStatus(play.players ?? basePlayers);
   const canSave = name.trim().length > 0 && status.legal;
   return (
@@ -58,6 +59,7 @@ export function PlayDetailsDialog({ play, onClose, onSave }) {
         personnel: personnel.trim() || play.personnel,
         protection: protection.trim(),
         blockingScheme: blockingScheme.trim(),
+        fieldSide,
       });
       }}>
       <span className="modal-label">Play details</span>
@@ -71,6 +73,11 @@ export function PlayDetailsDialog({ play, onClose, onSave }) {
         <label className="details-field">Protection<input value={protection} onChange={(event) => setProtection(event.target.value)} placeholder="Texas" /></label>
         <label className="details-field">Blocking scheme<input value={blockingScheme} onChange={(event) => setBlockingScheme(event.target.value)} placeholder="Inside zone" /></label>
       </div>
+      <label className="details-field">Field side
+        <select aria-label="Field side" value={fieldSide} onChange={event => setFieldSide(event.target.value)}>
+          <option value="none">None</option><option value="left">Left</option><option value="right">Right</option>
+        </select>
+      </label>
       <div className={`formation-check ${status.legal ? "legal" : "illegal"}`}>
         <CheckCircle size={22} weight="fill" />
         <div><strong>{status.legal ? "Legal formation" : "Formation needs attention"}</strong><span>{status.onLine} on the line · {status.inBackfield} in the backfield · {status.playerCount} players</span></div>

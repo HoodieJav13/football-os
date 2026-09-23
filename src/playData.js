@@ -1,3 +1,4 @@
+import { normalizeFieldSide } from "./fieldSide.js";
 import { copyResponsibilityArea, hasResponsibilityArea, validateResponsibilityAreas } from "./responsibilityArea.js";
 import { routeFromVocabulary, routePace } from "./routeVocabulary.js";
 export const MAIN_PLAYBOOK_ID = "personal-active";
@@ -1413,6 +1414,7 @@ export function normalizePlay(playData) {
 
   return {
     ...migrated,
+    fieldSide: normalizeFieldSide(migrated.fieldSide),
     folder: migrated.folder ?? (migrated.sourcePage ? "Source Plays" : "Offense"),
     protection: migrated.protection ?? "",
     blockingScheme: migrated.blockingScheme ?? "",
@@ -1549,6 +1551,7 @@ export function createSeedPlaybooks(personalPlays = plays) {
 export function createPlayFromFormation({ formation, id, name }) {
   return {
     id,
+    fieldSide: "none",
     name,
     conceptName: name,
     family: "Unsorted",
