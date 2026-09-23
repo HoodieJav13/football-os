@@ -62,7 +62,7 @@ test('diagram PNG removes field clutter, fits full lesson, and leaves saved work
  await mkdir('/private/tmp/football-diagram-review',{recursive:true}); await (await download).saveAs('/private/tmp/football-diagram-review/test-phone.png');
  const result=await page.evaluate(()=>window.__diagram);
  assert.equal(result.width,390); assert.ok(result.height<500); assert.equal(result.clutter,0);assert.equal(result.legend,7); assert.equal(result.contained,true);assert.equal(result.offense,11);
- assert.deepEqual(result.legendEntries.map(e=>e.text),['BC — Deep left','S — Deep middle','FC — Deep right','B — Left flat','W — Left hook','M — Right hook','A — Right flat']);
+ assert.deepEqual(result.legendEntries.map(e=>e.text),['BC — Deep left','S — Deep middle','FC — Deep right','W — Left hook','M — Right hook','B — Left flat','A — Right flat']);
  assert.ok(result.legendEntries.slice(0,3).every(e=>e.y===result.legendEntries[0].y));
  assert.ok(result.legendEntries.slice(3).every(e=>e.y>result.legendEntries[2].y));
  assert.equal(result.legendEntries[3].y,result.legendEntries[4].y);

@@ -95,8 +95,9 @@ function overflowLines(text,width){
 export function regionLegendLayout(play,layers,width){
   const entries=responsibilityEntries(play,layers);if(!entries.length)return {height:0,entries:[]};
   const isDeep = entry => ['deep-third','deep-half','quarter'].includes(entry.assignment.definition.area);
-  // Layout only: never reorder the saved roster or assignments.
-  const groups=[entries.filter(isDeep),entries.filter(entry=>!isDeep(entry))]
+  const isFlat = entry => entry.assignment.definition.area === 'flat';
+  // Layout only: deep zones, interior underneath zones, then flats; left to right.
+  const groups=[entries.filter(isDeep),entries.filter(entry=>!isDeep(entry)&&!isFlat(entry)),entries.filter(isFlat)]
     .filter(group=>group.length).map(group=>group.sort((a,b)=>a.area.center[0]-b.area.center[0]));
   const available=width-32;
   let y=20;const laidOut=[];
