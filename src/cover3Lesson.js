@@ -3,8 +3,8 @@ import {basePlayers,clonePlaybook,normalizePlay} from './playData.js';
 // Illustrative starting content; coaches define the responsibilities they teach.
 const coverage = [
  ['cl','BC',-19,8,-18,26,8,11,'Deep left','blue'],
- ['fs','S',0,15,0,27,10,11,'Deep middle','violet'],
- ['cr','FC',19,8,18,26,8,11,'Deep right','rose'],
+ ['fs','S',0,15,0,27,10,11,'Deep middle','blue'],
+ ['cr','FC',19,8,18,26,8,11,'Deep right','blue'],
  ['wl','B',-14,5.5,-20,9,7,6,'Left flat','teal'],
  ['ml','W',-5,5.5,-7,12,8,7,'Left hook','amber'],
  ['mr','M',5,5.5,7,12,8,7,'Right hook','amber'],

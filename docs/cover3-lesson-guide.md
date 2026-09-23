@@ -1,7 +1,7 @@
 # Cover 3 teaching example
 
 Open **More → Add Cover 3 teaching example**. This adds an independent editable
-play to Personal Active. W and M are the two hook defenders. BC is boundary corner (deep left), S is the middle safety, and FC is field corner (deep right); no numeric suffixes. B is Bandit (left flat); A is Alpha (right flat). These are lesson labels, not KB promotions. Colors support the labels; they do not define a player's rules.
+play to Personal Active. W and M are the two hook defenders. BC is boundary corner (deep left), S is the middle safety, and FC is field corner (deep right); no numeric suffixes. B is Bandit (left flat); A is Alpha (right flat). These are lesson labels, not KB promotions. In this example, blue identifies deep thirds, amber hooks, and teal flats; tags identify the player. Colors support the written responsibilities and do not replace them.
 The geometry is an illustrative starting point, not a program-specific scheme.
 
 Select a coverage defender, then edit its responsibility area. Try renaming W's
@@ -37,7 +37,7 @@ so no labor reduction or time savings are claimed.
 
 Saved rehearsal play: `cover3-462e344f-a3d9-476b-9447-b04797fba80f`.
 
-Backup SHA-256: `d299e0160b983c485f42c311bcc683044788454be1c64622f9720b7f4cb9cac3`.
+Backup SHA-256: `ef7e89ba40856717eba8b3e794226c568f570e64cd66fc592f174b71f400f85b`.
 
 [Restorable rehearsal backup](/Users/jav/Projects/coaching/responsibility-area-review-2026-09-23/field-side/cover3-review.footballos).
 [Completion and verification report](reports/2026-09-22-responsibility-areas.md).
