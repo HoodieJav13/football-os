@@ -4,3 +4,17 @@ dist/
 *.log
 playwright-report/
 test-results/
+
+# local environment and secrets
+.env
+.env.*
+!.env.example
+
+# coverage output
+coverage/
+
+# editor folders
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -2,7 +2,7 @@
 
 ## Source of truth
 
-- Selected visual: `../football-os-redesign-audit/option-2-field-focus.png`
+- Selected visual: [`docs/audits/football-os-redesign-audit/option-2-field-focus.png`](docs/audits/football-os-redesign-audit/option-2-field-focus.png)
 - Approved modification: apply the dark theme character from the original Football OS drafts while preserving the selected visual's layout and interaction model.
 
 ## Visible copy inventory
