@@ -15,7 +15,7 @@ Football OS is an iPad-first football play designer and coach-facing playbook wo
 - Production offline copy for game-day use
 - Restorable workspace backup, current-play PNG export, and printable PDF collections
 
-All playbook data is stored locally in the browser in this release. Download a Football OS backup regularly if the browser profile or device may be cleared.
+All playbook data is stored locally in the browser in this release. Download a Football OS backup regularly if the browser profile or device may be cleared. The backup file and the PNG export are documented in [`docs/export-format.md`](docs/export-format.md), with a JSON Schema that CI checks against real output.
 
 ## Field model
 
@@ -80,7 +80,7 @@ npm run preview
 ## Verify
 
 ```bash
-npm run test:unit      # football model, projection, workspace migration
+npm run test:unit      # football model, projection, workspace migration, export contract
 npm run test:sites     # the Sites worker handoff
 npm run test:browser   # the real app in a browser (build first)
 npm test               # all of the above, in order
