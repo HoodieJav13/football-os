@@ -2,9 +2,9 @@
 
 ## Comparison target
 
-- Source visual truth: `/Users/javienchavez/Documents/Codex/2026-07-21/referenced-chatgpt-conversation-this-is-untrusted-3/outputs/football-os-redesign-audit/field-focus-dark-v2-functional-foundation.png`
+- Source visual truth: `docs/audits/football-os-redesign-audit/field-focus-dark-v2-functional-foundation.png`
 - Rendered implementation: `http://127.0.0.1:5173/`
-- Final implementation screenshot: `/private/tmp/football-os-final-ipad-1194x834.png`
+- Final implementation screenshot: a 1194 × 834 iPad capture of the final build, taken during the QA session and not kept in the repository.
 - Intended CSS viewport: `1194 × 834`
 - State: dark theme, end-zone view, Mesh Wheel selected, Z Corner route selected, inspector open, animation idle, clean six-play library
 - Source pixels: `1501 × 1048` at 1× density
@@ -38,7 +38,7 @@ No separate focused crop was required: at the 1194 × 834 capture, the header me
 
 ### Iteration 1 — blocked
 
-- Earlier implementation evidence: `/Users/javienchavez/Documents/Codex/2026-07-21/referenced-chatgpt-conversation-this-is-untrusted-3/outputs/football-os-prototype/implementation-dark-field-focus-1194x834.png`
+- Earlier implementation evidence: `implementation-dark-field-focus-1194x834.png` (repository root)
 - [P1] The photographic/perspective field made alignments muddy and undermined the end-zone editor. Fixed by replacing it with a flat orthographic field surface and football markings.
 - [P1] Play-family cards repeated schematic placeholders rather than representing the saved plays. Fixed by giving all six plays distinct structured route data and rendering their real routes and eleven offensive positions in each thumbnail.
 - [P1] Visible controls did not reliably change persisted play data or support the complete game-day resolution workflow. Fixed with structured route objects, local offline persistence, real preset geometry, per-player delay, temporary adjustments, replace/discard/save-as-variation/save-as-new resolution, and play-name/legal-formation validation.
@@ -46,13 +46,13 @@ No separate focused crop was required: at the 1194 × 834 capture, the header me
 
 ### Iteration 2 — passed with P3 polish
 
-- Evidence before final polish: `/private/tmp/football-os-qa-ipad-1194x834.png`
+- Evidence before final polish: a 1194 × 834 iPad capture taken during the QA session and not kept in the repository.
 - Post-fix evidence showed the flat field, truthful play cards, complete inspector, and balanced shell at 1194 × 834 with no P0/P1/P2 mismatch.
 - P3 polish applied afterward: personnel metadata became a compact blue chip, every tool gained a consistent icon container, and filmstrip diagrams gained the full offensive formation while retaining real route geometry.
 
 ### Final comparison — passed
 
-- Evidence: `/private/tmp/football-os-final-ipad-1194x834.png`
+- Evidence: the final 1194 × 834 iPad capture described under Comparison target, taken during the QA session and not kept in the repository.
 - The final comparison retained the complete layout and functionality with no regression after the polish pass.
 
 ## Primary interactions tested
