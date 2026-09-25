@@ -2,28 +2,37 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/HoodieJav13/football-os/blob/main/docs/export-format.schema.json",
   "title": "Football OS workspace backup (.footballos)",
-  "description": "The envelope written by createWorkspaceBackup in src/workspaceData.js: backup format 2 wrapping a workspace at schema version 9. Every coordinate is in yards: x is yards right of the field's centre line, y is yards downfield of the line of scrimmage. Objects may carry extra keys; consumers must ignore keys they do not know.",
+  "description": "The envelope written by createWorkspaceBackup in src/workspaceData.js. Two branches: backup format 2 wrapping workspace version 9 (what main writes today, starting SHA 8d8ce69) and backup format 3 wrapping workspace version 11 (written only if PR #9, feat/responsibility-areas at cc7af9a, merges). Every coordinate is in yards: x is yards right of the field's centre line, y is yards downfield of the line of scrimmage. Objects may carry extra keys; consumers must ignore keys they do not know.",
   "type": "object",
-  "required": ["format", "formatVersion", "exportedAt", "workspace"],
+  "required": [
+    "format",
+    "formatVersion",
+    "exportedAt",
+    "workspace"
+  ],
   "properties": {
-    "format": { "const": "football-os-workspace" },
-    "formatVersion": {
-      "description": "2 wraps a version-9 workspace. Format 1 (a version 5-8 percent-space workspace) is still accepted on import but is not described by this schema.",
-      "const": 2
+    "format": {
+      "const": "football-os-workspace"
     },
     "exportedAt": {
       "type": "string",
       "format": "date-time",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
-    },
-    "workspace": { "$ref": "#/$defs/workspace" }
+    }
   },
   "$defs": {
     "workspace": {
       "type": "object",
-      "required": ["version", "mainPlaybookId", "activePlaybookId", "playbooks"],
+      "required": [
+        "version",
+        "mainPlaybookId",
+        "activePlaybookId",
+        "playbooks"
+      ],
       "properties": {
-        "version": { "const": 9 },
+        "version": {
+          "const": 9
+        },
         "mainPlaybookId": {
           "description": "The id of the coach's working playbook (Personal Active). Always the id of one of `playbooks`.",
           "type": "string",
@@ -37,19 +46,35 @@
         "playbooks": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/playbook" }
+          "items": {
+            "$ref": "#/$defs/playbook"
+          }
         }
       }
     },
-
     "playbook": {
       "type": "object",
-      "required": ["id", "name", "plays", "formations", "concepts"],
+      "required": [
+        "id",
+        "name",
+        "plays",
+        "formations",
+        "concepts"
+      ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "isMain": { "type": "boolean" },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "isMain": {
+          "type": "boolean"
+        },
         "source": {
           "description": "\"personal\" for the working playbook; otherwise the title of the published source the book was transcribed from.",
           "type": "string"
@@ -57,125 +82,242 @@
         "formations": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/formation" }
+          "items": {
+            "$ref": "#/$defs/formation"
+          }
         },
         "concepts": {
           "type": "array",
-          "items": { "$ref": "#/$defs/concept" }
+          "items": {
+            "$ref": "#/$defs/concept"
+          }
         },
         "plays": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/play" }
+          "items": {
+            "$ref": "#/$defs/play"
+          }
         }
       }
     },
-
     "play": {
       "type": "object",
       "required": [
-        "id", "name", "players", "defenders", "assignments",
-        "folder", "protection", "blockingScheme", "variantOf", "conceptTemplateId"
+        "id",
+        "name",
+        "players",
+        "defenders",
+        "assignments",
+        "folder",
+        "protection",
+        "blockingScheme",
+        "variantOf",
+        "conceptTemplateId"
       ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string", "minLength": 1 },
-        "family": { "type": "string" },
-        "personnel": { "type": "string" },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "type": "string"
+        },
+        "personnel": {
+          "type": "string"
+        },
         "formation": {
           "description": "The formation's display name, not a formation id. It is a label on the play; the roster below is the play's own copy.",
           "type": "string"
         },
-        "folder": { "type": "string" },
-        "protection": { "type": "string" },
-        "blockingScheme": { "type": "string" },
+        "folder": {
+          "type": "string"
+        },
+        "protection": {
+          "type": "string"
+        },
+        "blockingScheme": {
+          "type": "string"
+        },
         "variantOf": {
           "description": "The id of the play this one was duplicated from as a variation, or null. Ids are unique within a playbook, not globally.",
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "conceptTemplateId": {
           "description": "The id of the concept last applied to this play (in the same playbook's `concepts`), or null.",
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "sourcePage": {
           "description": "Page number in the published source this play was transcribed from, or null for a coach-authored play.",
-          "type": ["integer", "null"]
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "sourceLabel": {
           "description": "Title of the published source, or null.",
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "importedFrom": {
           "description": "Present on a play copied into the working playbook from another book: where it came from. The copy is independent; this is a record, not a link.",
           "type": "object",
-          "required": ["playbookId", "playbookName", "playId"],
+          "required": [
+            "playbookId",
+            "playbookName",
+            "playId"
+          ],
           "properties": {
-            "playbookId": { "type": "string" },
-            "playbookName": { "type": "string" },
-            "playId": { "type": "string" },
-            "sourcePage": { "type": ["integer", "null"] }
+            "playbookId": {
+              "type": "string"
+            },
+            "playbookName": {
+              "type": "string"
+            },
+            "playId": {
+              "type": "string"
+            },
+            "sourcePage": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
           }
         },
         "players": {
           "description": "Offensive roster. A legal formation has exactly eleven, but a draft may not.",
           "type": "array",
-          "items": { "$ref": "#/$defs/player" }
+          "items": {
+            "$ref": "#/$defs/player"
+          }
         },
         "defenders": {
           "description": "The opponent look.",
           "type": "array",
-          "items": { "$ref": "#/$defs/player" }
+          "items": {
+            "$ref": "#/$defs/player"
+          }
         },
         "assignments": {
           "type": "array",
           "items": {
             "allOf": [
-              { "$ref": "#/$defs/assignment" },
-              { "type": "object", "required": ["templateOverride"] }
+              {
+                "$ref": "#/$defs/assignment"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "templateOverride"
+                ]
+              }
             ]
           }
         }
       }
     },
-
     "player": {
       "description": "Offence and defence share one shape. `id` is the stable identity that assignments reference; `label` is coach-visible and may be duplicated on a unit (two defensive `T`s are legal).",
       "type": "object",
-      "required": ["id", "label", "x", "y"],
+      "required": [
+        "id",
+        "label",
+        "x",
+        "y"
+      ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "label": { "type": "string" },
-        "x": { "$ref": "#/$defs/yards" },
-        "y": { "$ref": "#/$defs/yards" }
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "x": {
+          "$ref": "#/$defs/yards"
+        },
+        "y": {
+          "$ref": "#/$defs/yards"
+        }
       }
     },
-
-    "yards": { "type": "number" },
-
+    "yards": {
+      "type": "number"
+    },
     "point": {
       "description": "[x, y] in yards.",
       "type": "array",
-      "prefixItems": [{ "$ref": "#/$defs/yards" }, { "$ref": "#/$defs/yards" }],
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/yards"
+        },
+        {
+          "$ref": "#/$defs/yards"
+        }
+      ],
       "items": false,
       "minItems": 2,
       "maxItems": 2
     },
-
     "assignmentBase": {
       "type": "object",
-      "required": ["id", "playerId", "unit", "type", "phase", "pace", "delay", "points", "definition"],
+      "required": [
+        "id",
+        "playerId",
+        "unit",
+        "type",
+        "phase",
+        "pace",
+        "delay",
+        "points",
+        "definition"
+      ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
         "playerId": {
           "description": "The `id` of a player in this play's `players` (offense) or `defenders` (defense). Never a label.",
           "type": "string",
           "minLength": 1
         },
-        "unit": { "enum": ["offense", "defense"] },
-        "type": { "enum": ["Route", "Block", "Motion", "Rush", "Man", "Zone", "Fit"] },
+        "unit": {
+          "enum": [
+            "offense",
+            "defense"
+          ]
+        },
+        "type": {
+          "enum": [
+            "Route",
+            "Block",
+            "Motion",
+            "Rush",
+            "Man",
+            "Zone",
+            "Fit"
+          ]
+        },
         "phase": {
           "description": "The slot the assignment occupies: Motion is pre-snap, everything else post-snap.",
-          "enum": ["pre", "post"]
+          "enum": [
+            "pre",
+            "post"
+          ]
         },
         "preset": {
           "description": "Coach-facing name for the assignment (\"Corner\", \"Jet\", \"Structured\", \"Custom\"). Display only; the geometry is in `points` and `definition`.",
@@ -194,9 +336,13 @@
           "description": "The path the player runs, in yards, starting at the player's alignment. This is the rendered geometry and the only thing a consumer needs to draw the assignment.",
           "type": "array",
           "minItems": 2,
-          "items": { "$ref": "#/$defs/point" }
+          "items": {
+            "$ref": "#/$defs/point"
+          }
         },
-        "definition": { "type": "object" },
+        "definition": {
+          "type": "object"
+        },
         "templateOverride": {
           "description": "True when the coach edited this assignment after a concept supplied it, so a later reapplication of the concept must leave it alone. Always present on a play's assignments; absent from a concept's.",
           "type": "boolean"
@@ -204,60 +350,118 @@
         "inheritedFrom": {
           "description": "Present when a concept supplied the assignment.",
           "type": "object",
-          "required": ["conceptId", "conceptName", "assignmentId"],
+          "required": [
+            "conceptId",
+            "conceptName",
+            "assignmentId"
+          ],
           "properties": {
-            "conceptId": { "type": "string" },
-            "conceptName": { "type": "string" },
-            "assignmentId": { "type": "string" }
+            "conceptId": {
+              "type": "string"
+            },
+            "conceptName": {
+              "type": "string"
+            },
+            "assignmentId": {
+              "type": "string"
+            }
           }
         }
       }
     },
-
     "assignment": {
       "allOf": [
-        { "$ref": "#/$defs/assignmentBase" },
+        {
+          "$ref": "#/$defs/assignmentBase"
+        },
         {
           "oneOf": [
-            { "$ref": "#/$defs/routeAssignment" },
-            { "$ref": "#/$defs/blockAssignment" },
-            { "$ref": "#/$defs/motionAssignment" },
-            { "$ref": "#/$defs/rushAssignment" },
-            { "$ref": "#/$defs/manAssignment" },
-            { "$ref": "#/$defs/zoneAssignment" },
-            { "$ref": "#/$defs/fitAssignment" }
+            {
+              "$ref": "#/$defs/routeAssignment"
+            },
+            {
+              "$ref": "#/$defs/blockAssignment"
+            },
+            {
+              "$ref": "#/$defs/motionAssignment"
+            },
+            {
+              "$ref": "#/$defs/rushAssignment"
+            },
+            {
+              "$ref": "#/$defs/manAssignment"
+            },
+            {
+              "$ref": "#/$defs/zoneAssignment"
+            },
+            {
+              "$ref": "#/$defs/fitAssignment"
+            }
           ]
         }
       ]
     },
-
     "routeAssignment": {
       "type": "object",
-      "required": ["type", "definition", "geometryMode", "evidence"],
+      "required": [
+        "type",
+        "definition",
+        "geometryMode",
+        "evidence"
+      ],
       "properties": {
-        "type": { "const": "Route" },
-        "unit": { "const": "offense" },
-        "definition": { "$ref": "#/$defs/routeDefinition" },
+        "type": {
+          "const": "Route"
+        },
+        "unit": {
+          "const": "offense"
+        },
+        "definition": {
+          "$ref": "#/$defs/routeDefinition"
+        },
         "geometryMode": {
           "description": "How `points` relate to `definition`: `structured` means the points were generated from the definition; `detected` means the definition was inferred from points traced off a diagram; `manual` means the coach dragged a landmark and the points are the truth.",
-          "enum": ["structured", "detected", "manual"]
+          "enum": [
+            "structured",
+            "detected",
+            "manual"
+          ]
         },
-        "evidence": { "$ref": "#/$defs/routeEvidence" }
+        "evidence": {
+          "$ref": "#/$defs/routeEvidence"
+        }
       }
     },
-
     "routeDefinition": {
       "description": "The football definition of a receiver route. `points` is generated from it unless `geometryMode` is `manual`.",
       "type": "object",
-      "required": ["release", "stemYards", "breaks", "condition"],
+      "required": [
+        "release",
+        "stemYards",
+        "breaks",
+        "condition"
+      ],
       "properties": {
-        "release": { "enum": ["none", "inside", "outside", "best"] },
-        "stemYards": { "type": "number", "minimum": 0, "maximum": 40 },
+        "release": {
+          "enum": [
+            "none",
+            "inside",
+            "outside",
+            "best"
+          ]
+        },
+        "stemYards": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        },
         "breaks": {
           "description": "Ordered break segments after the stem. A double move is two entries.",
           "type": "array",
           "maxItems": 4,
-          "items": { "$ref": "#/$defs/routeBreak" }
+          "items": {
+            "$ref": "#/$defs/routeBreak"
+          }
         },
         "condition": {
           "description": "A conversion rule kept as prose (\"Read man/zone\"), never collapsed into one path.",
@@ -265,183 +469,407 @@
         }
       }
     },
-
     "routeBreak": {
       "type": "object",
-      "required": ["direction", "angle", "distanceYards"],
+      "required": [
+        "direction",
+        "angle",
+        "distanceYards"
+      ],
       "properties": {
-        "direction": { "enum": ["inside", "outside", "vertical"] },
+        "direction": {
+          "enum": [
+            "inside",
+            "outside",
+            "vertical"
+          ]
+        },
         "angle": {
           "description": "Degrees off vertical; always 0 for a vertical break.",
           "type": "number",
           "minimum": 0,
           "maximum": 135
         },
-        "distanceYards": { "type": "number", "minimum": 0, "maximum": 40 }
+        "distanceYards": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        }
       }
     },
-
     "routeEvidence": {
       "description": "Where the route came from and how much to trust it. Known `method` values: existing-diagram, diagram-geometry, labels-and-geometry, coach-authored, coach-copied. Known `confidence` values: medium, medium-high, high. Both are open strings because a coach edit carries the previous evidence forward.",
       "type": "object",
-      "required": ["method", "confidence", "coachEdited"],
+      "required": [
+        "method",
+        "confidence",
+        "coachEdited"
+      ],
       "properties": {
-        "method": { "type": "string", "minLength": 1 },
-        "confidence": { "type": "string", "minLength": 1 },
-        "sourceLabel": { "type": ["string", "null"] },
-        "sourcePage": { "type": ["integer", "null"] },
-        "note": { "type": "string" },
-        "coachEdited": { "type": "boolean" }
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceLabel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourcePage": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "note": {
+          "type": "string"
+        },
+        "coachEdited": {
+          "type": "boolean"
+        }
       }
     },
-
     "blockAssignment": {
       "type": "object",
-      "required": ["type", "definition"],
+      "required": [
+        "type",
+        "definition"
+      ],
       "properties": {
-        "type": { "const": "Block" },
-        "unit": { "const": "offense" },
+        "type": {
+          "const": "Block"
+        },
+        "unit": {
+          "const": "offense"
+        },
         "definition": {
           "type": "object",
-          "required": ["technique", "direction", "target", "climb"],
+          "required": [
+            "technique",
+            "direction",
+            "target",
+            "climb"
+          ],
           "properties": {
-            "technique": { "enum": ["drive", "reach", "down", "double", "pull", "wrap", "kick-out", "pass-set", "combo"] },
-            "direction": { "enum": ["left", "right"] },
+            "technique": {
+              "enum": [
+                "drive",
+                "reach",
+                "down",
+                "double",
+                "pull",
+                "wrap",
+                "kick-out",
+                "pass-set",
+                "combo"
+              ]
+            },
+            "direction": {
+              "enum": [
+                "left",
+                "right"
+              ]
+            },
             "target": {
               "description": "A defender label the block aims at, as coach-entered prose. Not an id.",
               "type": "string"
             },
-            "climb": { "type": "boolean" }
+            "climb": {
+              "type": "boolean"
+            }
           }
         }
       }
     },
-
     "motionAssignment": {
       "type": "object",
-      "required": ["type", "definition"],
+      "required": [
+        "type",
+        "definition"
+      ],
       "properties": {
-        "type": { "const": "Motion" },
-        "unit": { "const": "offense" },
-        "phase": { "const": "pre" },
+        "type": {
+          "const": "Motion"
+        },
+        "unit": {
+          "const": "offense"
+        },
+        "phase": {
+          "const": "pre"
+        },
         "definition": {
           "type": "object",
-          "required": ["motionType", "direction", "distanceYards"],
+          "required": [
+            "motionType",
+            "direction",
+            "distanceYards"
+          ],
           "properties": {
-            "motionType": { "enum": ["jet", "orbit", "return", "shift", "trade"] },
-            "direction": { "enum": ["left", "right"] },
-            "distanceYards": { "type": "number", "minimum": 2, "maximum": 40 }
+            "motionType": {
+              "enum": [
+                "jet",
+                "orbit",
+                "return",
+                "shift",
+                "trade"
+              ]
+            },
+            "direction": {
+              "enum": [
+                "left",
+                "right"
+              ]
+            },
+            "distanceYards": {
+              "type": "number",
+              "minimum": 2,
+              "maximum": 40
+            }
           }
         }
       }
     },
-
     "rushAssignment": {
       "type": "object",
-      "required": ["type", "definition"],
+      "required": [
+        "type",
+        "definition"
+      ],
       "properties": {
-        "type": { "const": "Rush" },
-        "unit": { "const": "defense" },
+        "type": {
+          "const": "Rush"
+        },
+        "unit": {
+          "const": "defense"
+        },
         "definition": {
           "type": "object",
-          "required": ["technique", "gap", "direction"],
+          "required": [
+            "technique",
+            "gap",
+            "direction"
+          ],
           "properties": {
-            "technique": { "enum": ["rush", "contain", "blitz", "stunt"] },
-            "gap": { "enum": ["A", "B", "C", "D"] },
-            "direction": { "enum": ["left", "right"] }
+            "technique": {
+              "enum": [
+                "rush",
+                "contain",
+                "blitz",
+                "stunt"
+              ]
+            },
+            "gap": {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D"
+              ]
+            },
+            "direction": {
+              "enum": [
+                "left",
+                "right"
+              ]
+            }
           }
         }
       }
     },
-
     "manAssignment": {
       "type": "object",
-      "required": ["type", "definition"],
+      "required": [
+        "type",
+        "definition"
+      ],
       "properties": {
-        "type": { "const": "Man" },
-        "unit": { "const": "defense" },
+        "type": {
+          "const": "Man"
+        },
+        "unit": {
+          "const": "defense"
+        },
         "definition": {
           "type": "object",
-          "required": ["targetId", "leverage"],
+          "required": [
+            "targetId",
+            "leverage"
+          ],
           "properties": {
             "targetId": {
               "description": "The `id` of the offensive player being covered, or an empty string when unassigned.",
               "type": "string"
             },
-            "leverage": { "enum": ["inside", "outside", "head-up"] }
+            "leverage": {
+              "enum": [
+                "inside",
+                "outside",
+                "head-up"
+              ]
+            }
           }
         }
       }
     },
-
     "zoneAssignment": {
       "type": "object",
-      "required": ["type", "definition"],
+      "required": [
+        "type",
+        "definition"
+      ],
       "properties": {
-        "type": { "const": "Zone" },
-        "unit": { "const": "defense" },
+        "type": {
+          "const": "Zone"
+        },
+        "unit": {
+          "const": "defense"
+        },
         "definition": {
           "type": "object",
-          "required": ["area", "landmark"],
+          "required": [
+            "area",
+            "landmark"
+          ],
           "properties": {
-            "area": { "enum": ["flat", "hook", "curl", "deep-third", "deep-half", "quarter"] },
-            "landmark": { "type": "string" }
+            "area": {
+              "enum": [
+                "flat",
+                "hook",
+                "curl",
+                "deep-third",
+                "deep-half",
+                "quarter"
+              ]
+            },
+            "landmark": {
+              "type": "string"
+            }
           }
         }
       }
     },
-
     "fitAssignment": {
       "type": "object",
-      "required": ["type", "definition"],
+      "required": [
+        "type",
+        "definition"
+      ],
       "properties": {
-        "type": { "const": "Fit" },
-        "unit": { "const": "defense" },
+        "type": {
+          "const": "Fit"
+        },
+        "unit": {
+          "const": "defense"
+        },
         "definition": {
           "type": "object",
-          "required": ["responsibility", "technique"],
+          "required": [
+            "responsibility",
+            "technique"
+          ],
           "properties": {
-            "responsibility": { "enum": ["A", "B", "C", "D", "force", "cutback"] },
-            "technique": { "enum": ["spill", "box", "lever"] }
+            "responsibility": {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "force",
+                "cutback"
+              ]
+            },
+            "technique": {
+              "enum": [
+                "spill",
+                "box",
+                "lever"
+              ]
+            }
           }
         }
       }
     },
-
     "formation": {
       "description": "A reusable offensive alignment: labels and positions only, never assignments.",
       "type": "object",
-      "required": ["id", "name", "players"],
+      "required": [
+        "id",
+        "name",
+        "players"
+      ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string" },
-        "personnel": { "type": "string" },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "personnel": {
+          "type": "string"
+        },
         "players": {
           "type": "array",
-          "items": { "$ref": "#/$defs/player" }
+          "items": {
+            "$ref": "#/$defs/player"
+          }
         }
       }
     },
-
     "concept": {
       "description": "A reusable set of assignments keyed by position label, with the roster it was captured from so landmarks can be translated onto another play.",
       "type": "object",
-      "required": ["id", "name", "players", "defenders", "assignments"],
+      "required": [
+        "id",
+        "name",
+        "players",
+        "defenders",
+        "assignments"
+      ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string", "minLength": 1 },
-        "sourceFormation": { "type": "string" },
-        "sourcePersonnel": { "type": "string" },
-        "players": { "type": "array", "items": { "$ref": "#/$defs/player" } },
-        "defenders": { "type": "array", "items": { "$ref": "#/$defs/player" } },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceFormation": {
+          "type": "string"
+        },
+        "sourcePersonnel": {
+          "type": "string"
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/player"
+          }
+        },
+        "defenders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/player"
+          }
+        },
         "assignments": {
           "type": "array",
           "items": {
             "allOf": [
-              { "$ref": "#/$defs/assignment" },
+              {
+                "$ref": "#/$defs/assignment"
+              },
               {
                 "type": "object",
-                "required": ["positionLabel"],
+                "required": [
+                  "positionLabel"
+                ],
                 "properties": {
                   "positionLabel": {
                     "description": "The label the assignment transfers by. `playerId` still names the player in the concept's own roster.",
@@ -454,6 +882,440 @@
           }
         }
       }
+    },
+    "format2": {
+      "description": "Backup format 2: the current format on main. Wraps a version-9 workspace.",
+      "type": "object",
+      "required": [
+        "formatVersion",
+        "workspace"
+      ],
+      "properties": {
+        "formatVersion": {
+          "const": 2
+        },
+        "workspace": {
+          "$ref": "#/$defs/workspace"
+        }
+      }
+    },
+    "format3": {
+      "description": "Backup format 3: PENDING. Written by PR #9 (feat/responsibility-areas, cc7af9a) and current only if that PR merges. Wraps a version-11 workspace.",
+      "type": "object",
+      "required": [
+        "formatVersion",
+        "workspace"
+      ],
+      "properties": {
+        "formatVersion": {
+          "const": 3
+        },
+        "workspace": {
+          "$ref": "#/$defs/workspace11"
+        }
+      }
+    },
+    "workspace11": {
+      "description": "Workspace version 11 (PR #9). Same top level as version 9; playbook ids must be unique and the three governed reference catalogs are always present.",
+      "type": "object",
+      "required": [
+        "version",
+        "mainPlaybookId",
+        "activePlaybookId",
+        "playbooks"
+      ],
+      "properties": {
+        "version": {
+          "const": 11
+        },
+        "mainPlaybookId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activePlaybookId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "playbooks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/playbook11"
+          }
+        }
+      }
+    },
+    "playbook11": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/playbook"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "readOnly": {
+              "description": "True on a governed reference catalog, whose content is refreshed from the app's seeds on every normalise.",
+              "type": "boolean"
+            },
+            "archived": {
+              "description": "True on a superseded sample catalog (texas-tech-sample, lsu-2019-sample) kept for recovery and hidden from the switcher.",
+              "type": "boolean"
+            },
+            "migratedFromId": {
+              "description": "Present when the normaliser had to re-id a personal book whose id collided with a reference catalog id.",
+              "type": "string"
+            },
+            "plays": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/play11"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "play11": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/play"
+        },
+        {
+          "type": "object",
+          "required": [
+            "fieldSide",
+            "conceptName"
+          ],
+          "properties": {
+            "fieldSide": {
+              "description": "Which sideline the field is on for this play, or none. Display metadata only; it never changes geometry.",
+              "enum": [
+                "left",
+                "right",
+                "none"
+              ]
+            },
+            "conceptName": {
+              "description": "The concept this play teaches; defaults to the play name.",
+              "type": "string"
+            },
+            "sourceDocumentId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sourceCall": {
+              "description": "The call name as printed in the source.",
+              "type": "string"
+            },
+            "sourceVerified": {
+              "type": "boolean"
+            },
+            "referenceStatus": {
+              "description": "\"verified-reference\" on governed catalog plays, otherwise null.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "players": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/player11"
+              }
+            },
+            "assignments": {
+              "type": "array",
+              "items": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/assignment11"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "templateOverride"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "player11": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/player"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sourceLabel": {
+              "description": "The position label the source document used, when it differs from the app's label. Seeded reference content only.",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "assignment11": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/assignmentBase"
+        },
+        {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/routeAssignment11"
+            },
+            {
+              "$ref": "#/$defs/blockAssignment"
+            },
+            {
+              "$ref": "#/$defs/motionAssignment"
+            },
+            {
+              "$ref": "#/$defs/rushAssignment"
+            },
+            {
+              "$ref": "#/$defs/manAssignment"
+            },
+            {
+              "$ref": "#/$defs/zoneAssignment11"
+            },
+            {
+              "$ref": "#/$defs/fitAssignment"
+            }
+          ]
+        }
+      ]
+    },
+    "routeAssignment11": {
+      "type": "object",
+      "required": [
+        "type",
+        "definition",
+        "geometryMode",
+        "evidence"
+      ],
+      "properties": {
+        "type": {
+          "const": "Route"
+        },
+        "unit": {
+          "const": "offense"
+        },
+        "definition": {
+          "$ref": "#/$defs/routeDefinition11"
+        },
+        "geometryMode": {
+          "enum": [
+            "structured",
+            "detected",
+            "manual"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/routeEvidence11"
+        }
+      }
+    },
+    "routeDefinition11": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/routeDefinition"
+        },
+        {
+          "type": "object",
+          "required": [
+            "alternatives",
+            "activeAlternativeId"
+          ],
+          "properties": {
+            "alternatives": {
+              "description": "Up to four named alternative shapes (conversions), each a complete release/stem/breaks set.",
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/$defs/routeAlternative"
+              }
+            },
+            "activeAlternativeId": {
+              "description": "The id of the alternative whose geometry is currently shown, or null for the base route. Always resolves to an entry of `alternatives`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "routeAlternative": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "when",
+        "release",
+        "stemYards",
+        "breaks"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "when": {
+          "description": "The condition under which this shape is run, as prose.",
+          "type": "string"
+        },
+        "release": {
+          "enum": [
+            "none",
+            "inside",
+            "outside",
+            "best"
+          ]
+        },
+        "stemYards": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "breaks": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/routeBreak"
+          }
+        }
+      }
+    },
+    "routeEvidence11": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/routeEvidence"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "geometryBasis": {
+              "description": "Where the drawn geometry came from. Known values: source-explicit, diagram-traced, neutral-animation, existing-diagram. Present on every non-coach-edited route.",
+              "type": "string"
+            },
+            "sourcePositionLabel": {
+              "description": "The position label in the source document, or null.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "zoneAssignment11": {
+      "type": "object",
+      "required": [
+        "type",
+        "definition"
+      ],
+      "properties": {
+        "type": {
+          "const": "Zone"
+        },
+        "unit": {
+          "const": "defense"
+        },
+        "definition": {
+          "type": "object",
+          "required": [
+            "area",
+            "landmark"
+          ],
+          "properties": {
+            "area": {
+              "enum": [
+                "flat",
+                "hook",
+                "curl",
+                "deep-third",
+                "deep-half",
+                "quarter"
+              ]
+            },
+            "landmark": {
+              "type": "string"
+            },
+            "responsibilityArea": {
+              "$ref": "#/$defs/responsibilityArea"
+            }
+          }
+        }
+      }
+    },
+    "responsibilityArea": {
+      "description": "A defender-owned responsibility ellipse in field yards, separate from the drop path. Only on a defensive Zone assignment; a format-2 envelope may not contain one.",
+      "type": "object",
+      "required": [
+        "version",
+        "shape",
+        "center",
+        "radiusX",
+        "radiusY",
+        "label",
+        "color"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "shape": {
+          "const": "ellipse"
+        },
+        "center": {
+          "$ref": "#/$defs/point"
+        },
+        "radiusX": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "radiusY": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "color": {
+          "enum": [
+            "blue",
+            "teal",
+            "amber",
+            "violet",
+            "rose"
+          ]
+        }
+      }
     }
-  }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/format2"
+    },
+    {
+      "$ref": "#/$defs/format3"
+    }
+  ]
 }

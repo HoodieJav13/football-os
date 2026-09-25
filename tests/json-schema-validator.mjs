@@ -19,7 +19,7 @@ export const SUPPORTED_KEYWORDS = new Set([
   "$schema", "$id", "$ref", "$defs", "title", "description", "examples", "format",
   "type", "const", "enum", "properties", "required", "additionalProperties",
   "items", "prefixItems", "minItems", "maxItems",
-  "minimum", "maximum", "exclusiveMinimum", "minLength", "pattern",
+  "minimum", "maximum", "exclusiveMinimum", "minLength", "maxLength", "pattern",
   "allOf", "anyOf", "oneOf", "not",
 ]);
 
@@ -81,6 +81,9 @@ export function validate(value, schema, root = schema, path = "") {
     if (schema.minLength !== undefined && value.length < schema.minLength) {
       fail(`expected at least ${schema.minLength} characters`);
     }
+    if (schema.maxLength !== undefined && value.length > schema.maxLength) {
+      fail(`expected at most ${schema.maxLength} characters`);
+    }
     if (schema.pattern !== undefined && !new RegExp(schema.pattern, "u").test(value)) {
       fail(`${JSON.stringify(value)} does not match /${schema.pattern}/`);
     }
@@ -130,8 +133,12 @@ export function validate(value, schema, root = schema, path = "") {
     fail("matched none of the anyOf alternatives");
   }
   if (schema.oneOf) {
-    const matches = schema.oneOf.filter((subschema) => validate(value, subschema, root, path).length === 0).length;
+    const attempts = schema.oneOf.map((subschema) => validate(value, subschema, root, path));
+    const matches = attempts.filter((attempt) => attempt.length === 0).length;
     if (matches !== 1) fail(`expected exactly one oneOf alternative to match, ${matches} did`);
+    // When nothing matched, the branch that got furthest is the one the author
+    // meant; its errors say what is actually wrong, where "0 matched" does not.
+    if (matches === 0) errors.push(...attempts.reduce((best, attempt) => (attempt.length < best.length ? attempt : best)));
   }
   if (schema.not && validate(value, schema.not, root, path).length === 0) {
     fail("matched a forbidden schema");

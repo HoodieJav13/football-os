@@ -8,6 +8,7 @@ import {
   normalizePlay,
 } from "../src/playData.js";
 import {
+  BACKUP_FORMAT_VERSION,
   createDefaultWorkspace,
   createWorkspaceBackup,
   parseWorkspaceBackup,
@@ -22,6 +23,7 @@ import { keywordsIn, SUPPORTED_KEYWORDS, validate } from "./json-schema-validato
  */
 const schema = JSON.parse(readFileSync(new URL("../docs/export-format.schema.json", import.meta.url), "utf8"));
 const example = JSON.parse(readFileSync(new URL("../docs/export-format.example.json", import.meta.url), "utf8"));
+const exampleV3 = JSON.parse(readFileSync(new URL("../docs/export-format.example-v3.json", import.meta.url), "utf8"));
 
 const describe = (errors) => errors.slice(0, 8).map((error) => `${error.path}: ${error.message}`).join("\n");
 const assertValid = (value, label) => {
@@ -119,4 +121,26 @@ test("the documented example is valid, restorable, and stable through a restore/
   const reExported = createWorkspaceBackup(restored.workspace, example.exportedAt);
   assertValid(reExported, "re-exported example");
   assert.deepEqual(reExported.workspace, example.workspace, "normalising the example changes nothing, so it shows the real stored shape");
+});
+
+/**
+ * Backup format 3 / workspace 11 is PENDING: it is written by PR #9
+ * (feat/responsibility-areas, cc7af9a) and becomes current only if that PR
+ * merges. The example was produced by that branch's own createWorkspaceBackup
+ * (personal playbook only; the governed reference catalogs it appends are PR #9
+ * content). On main the app must refuse it, and this test pins both facts so
+ * the merge dependency cannot silently drift.
+ */
+test("the pending format-3 example validates, and main still refuses it as newer", () => {
+  assertValid(exampleV3, "docs/export-format.example-v3.json");
+  assert.equal(exampleV3.formatVersion, BACKUP_FORMAT_VERSION + 1, "format 3 is exactly one ahead of main");
+  assert.equal(exampleV3.workspace.version, 11);
+  assert.throws(() => parseWorkspaceBackup(JSON.stringify(exampleV3)), /newer version of Football OS/);
+
+  // The format decides the branch: a version-11 body cannot hide inside a format-2 envelope.
+  const disguised = { ...clonePlaybook(exampleV3), formatVersion: 2 };
+  assert.notEqual(validate(disguised, schema).length, 0);
+  // ...and a version-9 body cannot claim to be format 3.
+  const overstated = { ...clonePlaybook(example), formatVersion: 3 };
+  assert.notEqual(validate(overstated, schema).length, 0);
 });
