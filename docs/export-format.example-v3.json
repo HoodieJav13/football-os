@@ -1,0 +1,568 @@
+{
+  "format": "football-os-workspace",
+  "formatVersion": 3,
+  "exportedAt": "2026-09-25T00:30:00.000Z",
+  "workspace": {
+    "version": 11,
+    "mainPlaybookId": "personal-active",
+    "activePlaybookId": "personal-active",
+    "playbooks": [
+      {
+        "id": "personal-active",
+        "name": "Personal Active",
+        "description": "Your working playbook",
+        "isMain": true,
+        "source": "personal",
+        "formations": [
+          {
+            "id": "trips-right-open",
+            "name": "Trips Right Open",
+            "personnel": "11 Personnel",
+            "players": [
+              {
+                "id": "o-x",
+                "label": "X",
+                "x": -20,
+                "y": 0
+              },
+              {
+                "id": "o-lt",
+                "label": "LT",
+                "x": -4.8,
+                "y": -0.5
+              },
+              {
+                "id": "o-lg",
+                "label": "LG",
+                "x": -2.4,
+                "y": -0.5
+              },
+              {
+                "id": "o-c",
+                "label": "C",
+                "x": 0,
+                "y": 0
+              },
+              {
+                "id": "o-rg",
+                "label": "RG",
+                "x": 2.4,
+                "y": -0.5
+              },
+              {
+                "id": "o-rt",
+                "label": "RT",
+                "x": 4.8,
+                "y": -0.5
+              },
+              {
+                "id": "o-y",
+                "label": "Y",
+                "x": -11,
+                "y": -1.5
+              },
+              {
+                "id": "o-f",
+                "label": "F",
+                "x": 9,
+                "y": -1.5
+              },
+              {
+                "id": "o-h",
+                "label": "H",
+                "x": 1.5,
+                "y": -6.5
+              },
+              {
+                "id": "o-q",
+                "label": "Q",
+                "x": 0,
+                "y": -5
+              },
+              {
+                "id": "o-z",
+                "label": "Z",
+                "x": 17,
+                "y": 0
+              }
+            ]
+          }
+        ],
+        "concepts": [
+          {
+            "id": "concept-z-corner",
+            "name": "Z Corner",
+            "sourceFormation": "Trips Right Open",
+            "sourcePersonnel": "11 Personnel",
+            "players": [
+              {
+                "id": "o-z",
+                "label": "Z",
+                "x": 17,
+                "y": 0
+              }
+            ],
+            "defenders": [],
+            "assignments": [
+              {
+                "id": "concept-z-corner-route",
+                "playerId": "o-z",
+                "positionLabel": "Z",
+                "unit": "offense",
+                "type": "Route",
+                "phase": "post",
+                "preset": "Corner",
+                "pace": 1.1,
+                "delay": 0,
+                "points": [
+                  [
+                    17,
+                    0
+                  ],
+                  [
+                    17,
+                    12
+                  ],
+                  [
+                    22.7,
+                    20.2
+                  ]
+                ],
+                "definition": {
+                  "release": "outside",
+                  "stemYards": 12,
+                  "breaks": [
+                    {
+                      "direction": "outside",
+                      "angle": 35,
+                      "distanceYards": 10
+                    }
+                  ],
+                  "condition": ""
+                },
+                "geometryMode": "structured",
+                "evidence": {
+                  "method": "coach-authored",
+                  "confidence": "high",
+                  "sourceLabel": null,
+                  "sourcePage": null,
+                  "note": "",
+                  "coachEdited": true
+                }
+              }
+            ]
+          }
+        ],
+        "plays": [
+          {
+            "id": "example-mesh-corner",
+            "name": "Mesh Corner",
+            "family": "Mesh",
+            "personnel": "11 Personnel",
+            "formation": "Trips Right Open",
+            "folder": "Offense",
+            "protection": "60",
+            "blockingScheme": "Slide left",
+            "variantOf": null,
+            "conceptTemplateId": null,
+            "sourcePage": 41,
+            "sourceLabel": "2019 LSU Offense Playbook",
+            "players": [
+              {
+                "id": "o-x",
+                "label": "X",
+                "x": -20,
+                "y": 0
+              },
+              {
+                "id": "o-lt",
+                "label": "LT",
+                "x": -4.8,
+                "y": -0.5
+              },
+              {
+                "id": "o-lg",
+                "label": "LG",
+                "x": -2.4,
+                "y": -0.5
+              },
+              {
+                "id": "o-c",
+                "label": "C",
+                "x": 0,
+                "y": 0
+              },
+              {
+                "id": "o-rg",
+                "label": "RG",
+                "x": 2.4,
+                "y": -0.5
+              },
+              {
+                "id": "o-rt",
+                "label": "RT",
+                "x": 4.8,
+                "y": -0.5
+              },
+              {
+                "id": "o-y",
+                "label": "Y",
+                "x": -11,
+                "y": -1.5
+              },
+              {
+                "id": "o-f",
+                "label": "F",
+                "x": 9,
+                "y": -1.5
+              },
+              {
+                "id": "o-h",
+                "label": "H",
+                "x": 1.5,
+                "y": -6.5
+              },
+              {
+                "id": "o-q",
+                "label": "Q",
+                "x": 0,
+                "y": -5
+              },
+              {
+                "id": "o-z",
+                "label": "Z",
+                "x": 17,
+                "y": 0
+              }
+            ],
+            "defenders": [
+              {
+                "id": "d-e-l",
+                "label": "E",
+                "x": -6.3,
+                "y": 2.5
+              },
+              {
+                "id": "d-t-l",
+                "label": "T",
+                "x": -3.15,
+                "y": 2.5
+              },
+              {
+                "id": "d-t-r",
+                "label": "T",
+                "x": 3.15,
+                "y": 2.5
+              },
+              {
+                "id": "d-m",
+                "label": "M",
+                "x": 0,
+                "y": 5.5
+              },
+              {
+                "id": "d-cb-l",
+                "label": "C",
+                "x": -19,
+                "y": 8
+              },
+              {
+                "id": "d-cb-r",
+                "label": "C",
+                "x": 19,
+                "y": 8
+              }
+            ],
+            "assignments": [
+              {
+                "id": "example-z-corner",
+                "playerId": "o-z",
+                "unit": "offense",
+                "type": "Route",
+                "phase": "post",
+                "preset": "Corner",
+                "pace": 1.1,
+                "delay": 0,
+                "points": [
+                  [
+                    17,
+                    0
+                  ],
+                  [
+                    17,
+                    12
+                  ],
+                  [
+                    22.7,
+                    20.2
+                  ]
+                ],
+                "definition": {
+                  "release": "outside",
+                  "stemYards": 12,
+                  "breaks": [
+                    {
+                      "direction": "outside",
+                      "angle": 35,
+                      "distanceYards": 10
+                    }
+                  ],
+                  "condition": "",
+                  "alternatives": [],
+                  "activeAlternativeId": null
+                },
+                "geometryMode": "structured",
+                "templateOverride": false,
+                "evidence": {
+                  "method": "coach-authored",
+                  "confidence": "high",
+                  "sourceLabel": null,
+                  "sourcePage": null,
+                  "note": "",
+                  "coachEdited": true
+                }
+              },
+              {
+                "id": "example-y-sticky",
+                "playerId": "o-y",
+                "unit": "offense",
+                "type": "Route",
+                "phase": "post",
+                "preset": "Stick",
+                "pace": 0.95,
+                "delay": 0,
+                "points": [
+                  [
+                    -11,
+                    -1.5
+                  ],
+                  [
+                    -11,
+                    3.5
+                  ],
+                  [
+                    -6.2,
+                    6.3
+                  ]
+                ],
+                "definition": {
+                  "release": "none",
+                  "stemYards": 5,
+                  "breaks": [
+                    {
+                      "direction": "inside",
+                      "angle": 60,
+                      "distanceYards": 5
+                    }
+                  ],
+                  "condition": "Sit versus zone, run away versus man",
+                  "alternatives": [
+                    {
+                      "id": "man",
+                      "label": "Versus man",
+                      "when": "Man coverage",
+                      "release": "inside",
+                      "stemYards": 5,
+                      "breaks": [
+                        {
+                          "direction": "outside",
+                          "angle": 90,
+                          "distanceYards": 6
+                        }
+                      ]
+                    }
+                  ],
+                  "activeAlternativeId": null
+                },
+                "geometryMode": "detected",
+                "templateOverride": false,
+                "evidence": {
+                  "method": "labels-and-geometry",
+                  "confidence": "medium-high",
+                  "sourceLabel": "2019 LSU Offense Playbook",
+                  "sourcePage": 41,
+                  "note": "5 YDS with man/zone read shown",
+                  "coachEdited": false,
+                  "geometryBasis": "diagram-traced",
+                  "sourcePositionLabel": null
+                }
+              },
+              {
+                "id": "example-lt-pass-set",
+                "playerId": "o-lt",
+                "unit": "offense",
+                "type": "Block",
+                "phase": "post",
+                "preset": "Pass Set",
+                "pace": 1,
+                "delay": 0,
+                "points": [
+                  [
+                    -4.8,
+                    -0.5
+                  ],
+                  [
+                    -6.3,
+                    -5.5
+                  ]
+                ],
+                "definition": {
+                  "technique": "pass-set",
+                  "direction": "left",
+                  "target": "E",
+                  "climb": false
+                },
+                "templateOverride": false
+              },
+              {
+                "id": "example-h-jet",
+                "playerId": "o-h",
+                "unit": "offense",
+                "type": "Motion",
+                "phase": "pre",
+                "preset": "Jet",
+                "pace": 1,
+                "delay": -1.5,
+                "points": [
+                  [
+                    1.5,
+                    -6.5
+                  ],
+                  [
+                    -12.5,
+                    -6.5
+                  ]
+                ],
+                "definition": {
+                  "motionType": "jet",
+                  "direction": "left",
+                  "distanceYards": 14
+                },
+                "templateOverride": false
+              },
+              {
+                "id": "example-cb-r-man",
+                "playerId": "d-cb-r",
+                "unit": "defense",
+                "type": "Man",
+                "phase": "post",
+                "preset": "Man",
+                "pace": 1,
+                "delay": 0,
+                "points": [
+                  [
+                    19,
+                    8
+                  ],
+                  [
+                    17,
+                    1
+                  ]
+                ],
+                "definition": {
+                  "targetId": "o-z",
+                  "leverage": "outside"
+                },
+                "templateOverride": false
+              },
+              {
+                "id": "example-e-l-contain",
+                "playerId": "d-e-l",
+                "unit": "defense",
+                "type": "Rush",
+                "phase": "post",
+                "preset": "Contain",
+                "pace": 1,
+                "delay": 0,
+                "points": [
+                  [
+                    -6.3,
+                    2.5
+                  ],
+                  [
+                    -8.5,
+                    -1.5
+                  ],
+                  [
+                    -6,
+                    -5
+                  ]
+                ],
+                "definition": {
+                  "technique": "contain",
+                  "gap": "C",
+                  "direction": "left"
+                },
+                "templateOverride": false
+              },
+              {
+                "id": "example-cb-l-flat",
+                "playerId": "d-cb-l",
+                "unit": "defense",
+                "type": "Zone",
+                "phase": "post",
+                "preset": "Flat",
+                "pace": 1,
+                "delay": 0,
+                "points": [
+                  [
+                    -19,
+                    8
+                  ],
+                  [
+                    -21,
+                    3
+                  ]
+                ],
+                "definition": {
+                  "area": "flat",
+                  "landmark": "Outside leverage on X",
+                  "responsibilityArea": {
+                    "version": 1,
+                    "shape": "ellipse",
+                    "center": [
+                      -19,
+                      4
+                    ],
+                    "radiusX": 6,
+                    "radiusY": 5,
+                    "label": "Flat",
+                    "color": "teal"
+                  }
+                },
+                "templateOverride": false
+              },
+              {
+                "id": "example-m-b-fit",
+                "playerId": "d-m",
+                "unit": "defense",
+                "type": "Fit",
+                "phase": "post",
+                "preset": "B Fit",
+                "pace": 1,
+                "delay": 0,
+                "points": [
+                  [
+                    0,
+                    5.5
+                  ],
+                  [
+                    2.5,
+                    1
+                  ]
+                ],
+                "definition": {
+                  "responsibility": "B",
+                  "technique": "spill"
+                },
+                "templateOverride": false
+              }
+            ],
+            "fieldSide": "right",
+            "conceptName": "Mesh Corner"
+          }
+        ]
+      }
+    ]
+  }
+}
