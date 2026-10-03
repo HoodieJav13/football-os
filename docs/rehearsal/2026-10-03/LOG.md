@@ -59,3 +59,5 @@ If this session is interrupted, resume from the last entry.
 ## Push / patch decision
 
 - Evidence (see "Auto-deploy check" above and report §5) establishes that a branch push and a draft PR trigger CI only. Decision: push `rehearsal/2026-10-03`, open a draft PR against `feat/responsibility-areas`, do not merge, no patches written. Residual: `hooks`/`environments` unreadable (403) from this session.
+
+- Draft PR opened: https://github.com/HoodieJav13/football-os/pull/12 (base `feat/responsibility-areas`, head `3ee0533` + this log commit). Not merged.
