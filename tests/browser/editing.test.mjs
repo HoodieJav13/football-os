@@ -138,3 +138,31 @@ test("an edit survives a reload", async () => {
   assert.ok(labels.includes("ZZ"), `label persisted across reload: ${labels.join(",")}`);
   await app.close();
 });
+
+/*
+ * Enter committed the label and then blurred the input, and the blur committed
+ * it again before React had re-rendered with the new label: two identical
+ * undo entries for one rename, so the first Ctrl+Z visibly did nothing.
+ */
+test("a rename committed with Enter is exactly one undo step", async () => {
+  const app = await open();
+  const { page } = app;
+  const labels = () => page.evaluate(() => [...document.querySelectorAll(".player-label")].map((t) => t.textContent));
+  const undo = page.getByRole("button", { name: "Undo", exact: true });
+
+  await token(page, "X").click();
+  await page.waitForTimeout(250);
+  assert.equal(await undo.isEnabled(), false, "nothing to undo on a fresh play");
+  const input = page.locator(".position-label-control input");
+  await input.fill("W1");
+  await input.press("Enter");
+  await page.waitForTimeout(300);
+  assert.ok((await labels()).includes("W1"), "the rename reached the field");
+
+  await page.keyboard.press("Control+z");
+  await page.waitForTimeout(300);
+  assert.ok(!(await labels()).includes("W1"), "one undo takes the rename back");
+  assert.equal(await undo.isEnabled(), false, "and there is no second, phantom entry left behind");
+  app.assertNoErrors();
+  await app.close();
+});
