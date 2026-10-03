@@ -1,0 +1,246 @@
+{
+  "name": "f-interruptions",
+  "at": "2026-10-03T06:25:58.049Z",
+  "steps": [
+    {
+      "label": "reload mid-edit: the rename made 0 ms before reload is on disk",
+      "result": "pass"
+    },
+    {
+      "label": "reload mid-drag: R1 before/after (either the moved spot or the start is acceptable; a half-state is not)",
+      "result": "note",
+      "evidence": {
+        "xBefore": -20,
+        "xAfter": -13.3,
+        "yAfter": 0,
+        "players": 11
+      }
+    },
+    {
+      "label": "reload mid-drag: play still has 11 players, a legal formation, and loads cleanly",
+      "result": "pass",
+      "evidence": {
+        "errors": [],
+        "status": "Offline ready"
+      }
+    },
+    {
+      "label": "close tab mid-edit: the rename made 0 ms before closing the tab is on disk",
+      "result": "pass"
+    },
+    {
+      "label": "reload mid-save: Play details saved 0 ms before reload is on disk",
+      "result": "pass",
+      "evidence": "Slide Lt"
+    },
+    {
+      "label": "double save: one play, protection saved once, no errors, dialog closed",
+      "result": "pass"
+    },
+    {
+      "label": "double create: exactly one play created",
+      "result": "pass",
+      "evidence": [
+        "Double Tap Dive"
+      ]
+    },
+    {
+      "label": "quick switch: play A has QA and not QB; play B has QB and not QA",
+      "result": "pass",
+      "evidence": {
+        "labelsA": [
+          "QA",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ],
+        "labelsB": [
+          "QB",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ]
+      }
+    },
+    {
+      "label": "quick switch: A's nudge went to A's player, B's nudge to B's player",
+      "result": "pass"
+    },
+    {
+      "label": "quick switch: nothing else on either play changed (players and their carried assignments aside)",
+      "result": "pass",
+      "evidence": {
+        "aAssignmentStarts": [
+          [
+            [
+              -13.3,
+              0
+            ]
+          ],
+          [
+            [
+              -13.05,
+              0
+            ]
+          ]
+        ],
+        "bAssignmentStarts": [
+          [
+            [
+              -20.5,
+              0
+            ]
+          ],
+          [
+            [
+              -20.75,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "label": "uncommitted label then switch: the blur commits to the play it was typed on, never the next one",
+      "result": "pass",
+      "evidence": {
+        "A": [
+          "UN",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ],
+        "B": [
+          "QB",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ]
+      }
+    },
+    {
+      "label": "undo on play B leaves play A untouched",
+      "result": "pass"
+    },
+    {
+      "label": "two tabs: labels on disk after tab1 edit, after tab2 edit, after returning to tab1",
+      "result": "note",
+      "evidence": {
+        "afterTab1": [
+          "T1",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ],
+        "afterTab2": [
+          "UN",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "T2",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ],
+        "afterBack": [
+          "UN",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "T2",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ]
+      }
+    },
+    {
+      "label": "two tabs: both tabs' edits to the same play are on disk",
+      "result": "fail",
+      "evidence": {
+        "T1": false,
+        "T2": true
+      }
+    },
+    {
+      "label": "two tabs: labels after tab1 reload",
+      "result": "note",
+      "evidence": [
+        "T1",
+        "LT",
+        "LG",
+        "C",
+        "RG",
+        "RT",
+        "Z",
+        "Y",
+        "F",
+        "Q",
+        "H"
+      ]
+    },
+    {
+      "label": "two tabs: labels after closing tab2 (its pagehide flush)",
+      "result": "note",
+      "evidence": [
+        "UN",
+        "LT",
+        "LG",
+        "C",
+        "RG",
+        "RT",
+        "T2",
+        "Y",
+        "F",
+        "Q",
+        "H"
+      ]
+    },
+    {
+      "label": "no console or page errors through (f)",
+      "result": "pass",
+      "evidence": []
+    }
+  ]
+}

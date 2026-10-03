@@ -1,0 +1,124 @@
+{
+  "name": "d-backup-restore",
+  "at": "2026-10-03T06:24:09.874Z",
+  "steps": [
+    {
+      "label": "backup: a .footballos envelope downloaded",
+      "result": "pass",
+      "evidence": {
+        "suggested": "football-os-backup-2026-10-03.footballos",
+        "sha256": "49562de3a4986e6a08a99e0ebd59852abaec381c68cc13dcff61504b588bf38b",
+        "bytes": 920854
+      }
+    },
+    {
+      "label": "backup: the envelope's workspace equals the live stored workspace",
+      "result": "pass",
+      "evidence": {
+        "playbooks": 5,
+        "plays": 73
+      }
+    },
+    {
+      "label": "backup: carries the rehearsal plays",
+      "result": "pass"
+    },
+    {
+      "label": "double-tap backup: two valid files with identical workspaces (only exportedAt differs), no errors",
+      "result": "pass",
+      "evidence": {
+        "downloads": 2,
+        "exportedAt": [
+          "2026-10-03T06:23:09.536Z",
+          "2026-10-03T06:23:09.585Z"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "label": "fresh profile: starts from the seed workspace, without the rehearsal play",
+      "result": "pass",
+      "evidence": {
+        "heading": "Mesh"
+      }
+    },
+    {
+      "label": "fresh profile: backup validates and previews counts",
+      "result": "pass",
+      "evidence": "Valid Football OS backup5 playbooks · 73 plays · 0 conceptsRestore this backup"
+    },
+    {
+      "label": "fresh profile: stored workspace equals the backup exactly",
+      "result": "pass"
+    },
+    {
+      "label": "fresh profile: stored workspace equals the source profile's stored workspace",
+      "result": "pass"
+    },
+    {
+      "label": "fresh profile: the replaced (seed) workspace was kept as a recovery copy",
+      "result": "pass"
+    },
+    {
+      "label": "fresh profile: the rehearsal play opens on screen",
+      "result": "pass"
+    },
+    {
+      "label": "fresh profile: restore survives a reload",
+      "result": "pass"
+    },
+    {
+      "label": "fresh profile: no errors",
+      "result": "pass",
+      "evidence": []
+    },
+    {
+      "label": "over existing: an edit (OV) is saved before restoring",
+      "result": "pass"
+    },
+    {
+      "label": "over existing: workspace equals the backup; the edit is gone from the live play",
+      "result": "pass"
+    },
+    {
+      "label": "over existing: the overwritten workspace (with OV) is the recovery copy",
+      "result": "pass"
+    },
+    {
+      "label": "over existing: toast confirms and names the recovery copy",
+      "result": "fail",
+      "evidence": ""
+    },
+    {
+      "label": "twice: second restore of the same file leaves the workspace equal to the backup",
+      "result": "pass"
+    },
+    {
+      "label": "twice: recovery copy now holds the first restore's result (equal to the backup)",
+      "result": "pass"
+    },
+    {
+      "label": "double-tap restore: workspace still equals the backup, dialog closed, no errors",
+      "result": "pass",
+      "evidence": []
+    },
+    {
+      "label": "reload right after restore: workspace equals the backup",
+      "result": "pass"
+    },
+    {
+      "label": "damaged file: refused with a message and no Restore button",
+      "result": "pass",
+      "evidence": "The backup is incomplete or contains invalid play data."
+    },
+    {
+      "label": "damaged file: workspace untouched",
+      "result": "pass"
+    },
+    {
+      "label": "no console or page errors through (d)",
+      "result": "pass",
+      "evidence": []
+    }
+  ]
+}

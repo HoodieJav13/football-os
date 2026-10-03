@@ -1,0 +1,429 @@
+{
+  "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c",
+  "name": "Cover 3 — teaching example",
+  "fieldSide": "right",
+  "family": "Cover 3 teaching",
+  "folder": "Teaching",
+  "formation": "Trips Right Open",
+  "personnel": "10 Personnel",
+  "players": [
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-x",
+      "label": "X",
+      "sourceLabel": "X",
+      "x": -20,
+      "y": 0
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-lt",
+      "label": "LT",
+      "sourceLabel": "LT",
+      "x": -4.8,
+      "y": 0
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-lg",
+      "label": "LG",
+      "sourceLabel": "LG",
+      "x": -2.4,
+      "y": 0
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-c",
+      "label": "C",
+      "sourceLabel": "C",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-rg",
+      "label": "RG",
+      "sourceLabel": "RG",
+      "x": 2.4,
+      "y": 0
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-rt",
+      "label": "RT",
+      "sourceLabel": "RT",
+      "x": 4.8,
+      "y": 0
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-z",
+      "label": "Z",
+      "sourceLabel": "Z",
+      "x": 20,
+      "y": 0
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-y",
+      "label": "Y",
+      "sourceLabel": "Y",
+      "x": 12,
+      "y": -1.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-f",
+      "label": "F",
+      "sourceLabel": "F",
+      "x": 8,
+      "y": -1.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-q",
+      "label": "Q",
+      "sourceLabel": "Q",
+      "x": 0,
+      "y": -5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-o-h",
+      "label": "H",
+      "sourceLabel": "H",
+      "x": 3,
+      "y": -5
+    }
+  ],
+  "defenders": [
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-front-0",
+      "label": "E",
+      "x": -6,
+      "y": 2.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-front-1",
+      "label": "T",
+      "x": -2,
+      "y": 2.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-front-2",
+      "label": "T",
+      "x": 2,
+      "y": 2.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-front-3",
+      "label": "E",
+      "x": 6,
+      "y": 2.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-cl",
+      "label": "BC",
+      "x": -19,
+      "y": 8
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-fs",
+      "label": "S",
+      "x": 0,
+      "y": 15
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-cr",
+      "label": "FC",
+      "x": 19,
+      "y": 8
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-wl",
+      "label": "B",
+      "x": -14,
+      "y": 5.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-ml",
+      "label": "W",
+      "x": -5,
+      "y": 5.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-mr",
+      "label": "M",
+      "x": 5,
+      "y": 5.5
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-sr",
+      "label": "A",
+      "x": 14,
+      "y": 5.5
+    }
+  ],
+  "assignments": [
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-zone-cl",
+      "playerId": "cover3-6e319b71-51b0-45a0-87df-03743355500c-cl",
+      "unit": "defense",
+      "phase": "post",
+      "type": "Zone",
+      "pace": 1,
+      "delay": 0,
+      "geometryMode": "manual",
+      "preset": "Deep left",
+      "points": [
+        [
+          -19,
+          8
+        ],
+        [
+          -18,
+          26
+        ]
+      ],
+      "definition": {
+        "area": "deep-third",
+        "landmark": "Illustrative teaching area; adjust for your lesson.",
+        "responsibilityArea": {
+          "version": 1,
+          "shape": "ellipse",
+          "center": [
+            -18,
+            26
+          ],
+          "radiusX": 8,
+          "radiusY": 11,
+          "label": "Deep left",
+          "color": "blue"
+        }
+      },
+      "templateOverride": false
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-zone-fs",
+      "playerId": "cover3-6e319b71-51b0-45a0-87df-03743355500c-fs",
+      "unit": "defense",
+      "phase": "post",
+      "type": "Zone",
+      "pace": 1,
+      "delay": 0,
+      "geometryMode": "manual",
+      "preset": "Deep middle",
+      "points": [
+        [
+          0,
+          15
+        ],
+        [
+          0,
+          27
+        ]
+      ],
+      "definition": {
+        "area": "deep-third",
+        "landmark": "Illustrative teaching area; adjust for your lesson.",
+        "responsibilityArea": {
+          "version": 1,
+          "shape": "ellipse",
+          "center": [
+            0,
+            27
+          ],
+          "radiusX": 10,
+          "radiusY": 11,
+          "label": "Deep middle",
+          "color": "blue"
+        }
+      },
+      "templateOverride": false
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-zone-cr",
+      "playerId": "cover3-6e319b71-51b0-45a0-87df-03743355500c-cr",
+      "unit": "defense",
+      "phase": "post",
+      "type": "Zone",
+      "pace": 1,
+      "delay": 0,
+      "geometryMode": "manual",
+      "preset": "Deep right",
+      "points": [
+        [
+          19,
+          8
+        ],
+        [
+          18,
+          26
+        ]
+      ],
+      "definition": {
+        "area": "deep-third",
+        "landmark": "Illustrative teaching area; adjust for your lesson.",
+        "responsibilityArea": {
+          "version": 1,
+          "shape": "ellipse",
+          "center": [
+            18,
+            26
+          ],
+          "radiusX": 8,
+          "radiusY": 11,
+          "label": "Deep right",
+          "color": "blue"
+        }
+      },
+      "templateOverride": false
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-zone-wl",
+      "playerId": "cover3-6e319b71-51b0-45a0-87df-03743355500c-wl",
+      "unit": "defense",
+      "phase": "post",
+      "type": "Zone",
+      "pace": 1,
+      "delay": 0,
+      "geometryMode": "manual",
+      "preset": "Left flat",
+      "points": [
+        [
+          -14,
+          5.5
+        ],
+        [
+          -20,
+          9
+        ]
+      ],
+      "definition": {
+        "area": "flat",
+        "landmark": "Illustrative teaching area; adjust for your lesson.",
+        "responsibilityArea": {
+          "version": 1,
+          "shape": "ellipse",
+          "center": [
+            -20,
+            9
+          ],
+          "radiusX": 7,
+          "radiusY": 6,
+          "label": "Left flat",
+          "color": "teal"
+        }
+      },
+      "templateOverride": false
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-zone-ml",
+      "playerId": "cover3-6e319b71-51b0-45a0-87df-03743355500c-ml",
+      "unit": "defense",
+      "phase": "post",
+      "type": "Zone",
+      "pace": 1,
+      "delay": 0,
+      "geometryMode": "manual",
+      "preset": "Left hook",
+      "points": [
+        [
+          -5,
+          5.5
+        ],
+        [
+          -7,
+          12
+        ]
+      ],
+      "definition": {
+        "area": "hook",
+        "landmark": "Illustrative teaching area; adjust for your lesson.",
+        "responsibilityArea": {
+          "version": 1,
+          "shape": "ellipse",
+          "center": [
+            -7,
+            12
+          ],
+          "radiusX": 8,
+          "radiusY": 7,
+          "label": "Left hook",
+          "color": "amber"
+        }
+      },
+      "templateOverride": false
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-zone-mr",
+      "playerId": "cover3-6e319b71-51b0-45a0-87df-03743355500c-mr",
+      "unit": "defense",
+      "phase": "post",
+      "type": "Zone",
+      "pace": 1,
+      "delay": 0,
+      "geometryMode": "manual",
+      "preset": "Right hook",
+      "points": [
+        [
+          5,
+          5.5
+        ],
+        [
+          7,
+          12
+        ]
+      ],
+      "definition": {
+        "area": "hook",
+        "landmark": "Illustrative teaching area; adjust for your lesson.",
+        "responsibilityArea": {
+          "version": 1,
+          "shape": "ellipse",
+          "center": [
+            7,
+            12
+          ],
+          "radiusX": 8,
+          "radiusY": 7,
+          "label": "Right hook",
+          "color": "amber"
+        }
+      },
+      "templateOverride": false
+    },
+    {
+      "id": "cover3-6e319b71-51b0-45a0-87df-03743355500c-zone-sr",
+      "playerId": "cover3-6e319b71-51b0-45a0-87df-03743355500c-sr",
+      "unit": "defense",
+      "phase": "post",
+      "type": "Zone",
+      "pace": 1,
+      "delay": 0,
+      "geometryMode": "manual",
+      "preset": "Right flat",
+      "points": [
+        [
+          14,
+          5.5
+        ],
+        [
+          20,
+          9
+        ]
+      ],
+      "definition": {
+        "area": "flat",
+        "landmark": "Illustrative teaching area; adjust for your lesson.",
+        "responsibilityArea": {
+          "version": 1,
+          "shape": "ellipse",
+          "center": [
+            20,
+            9
+          ],
+          "radiusX": 7,
+          "radiusY": 6,
+          "label": "Right flat",
+          "color": "teal"
+        }
+      },
+      "templateOverride": false
+    }
+  ],
+  "protection": "",
+  "blockingScheme": "",
+  "conceptName": "Cover 3 — teaching example",
+  "conceptTemplateId": null,
+  "variantOf": null
+}

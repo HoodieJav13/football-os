@@ -1,0 +1,32 @@
+{
+  "name": "e-offline-game-day-start",
+  "at": "2026-10-03T06:26:42.051Z",
+  "steps": [
+    {
+      "label": "offline: app reloaded with the network cut",
+      "result": "pass",
+      "evidence": "Offline · ready"
+    },
+    {
+      "label": "precondition: the personal play from (a) is open",
+      "result": "pass"
+    },
+    {
+      "label": "start: Temporary chip shown and snapshot stored",
+      "result": "pass",
+      "evidence": {
+        "playId": "personal-active-trips-rt-24-blast-1791008763762",
+        "startedAt": "2026-10-03T06:26:38.894Z"
+      }
+    },
+    {
+      "label": "edit: the play carries the temporary edits while the snapshot stays the original",
+      "result": "pass"
+    },
+    {
+      "label": "no errors",
+      "result": "pass",
+      "evidence": []
+    }
+  ]
+}

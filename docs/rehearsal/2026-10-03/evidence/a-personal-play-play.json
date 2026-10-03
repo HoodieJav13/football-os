@@ -1,0 +1,202 @@
+{
+  "id": "personal-active-trips-rt-24-blast-1791008500332",
+  "fieldSide": "right",
+  "name": "Trips Rt 24 Blast",
+  "conceptName": "Trips Rt 24 Blast",
+  "family": "Blast",
+  "personnel": "21 Personnel",
+  "formation": "Trips Right Open",
+  "folder": "Run game",
+  "protection": "",
+  "blockingScheme": "Power",
+  "conceptTemplateId": null,
+  "variantOf": null,
+  "players": [
+    {
+      "id": "o-x",
+      "label": "W2",
+      "sourceLabel": "X",
+      "x": -20,
+      "y": 0
+    },
+    {
+      "id": "o-lt",
+      "label": "LT",
+      "sourceLabel": "LT",
+      "x": -4.8,
+      "y": 0
+    },
+    {
+      "id": "o-lg",
+      "label": "LG",
+      "sourceLabel": "LG",
+      "x": -2.4,
+      "y": 0
+    },
+    {
+      "id": "o-c",
+      "label": "C",
+      "sourceLabel": "C",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "o-rg",
+      "label": "RG",
+      "sourceLabel": "RG",
+      "x": 2.4,
+      "y": 0
+    },
+    {
+      "id": "o-rt",
+      "label": "RT",
+      "sourceLabel": "RT",
+      "x": 4.8,
+      "y": 0
+    },
+    {
+      "id": "o-z",
+      "label": "Z",
+      "sourceLabel": "Z",
+      "x": 20,
+      "y": 0
+    },
+    {
+      "id": "o-y",
+      "label": "Y",
+      "sourceLabel": "Y",
+      "x": 12,
+      "y": -1.5
+    },
+    {
+      "id": "o-f",
+      "label": "F",
+      "sourceLabel": "F",
+      "x": 8,
+      "y": -1.5
+    },
+    {
+      "id": "o-q",
+      "label": "Q",
+      "sourceLabel": "Q",
+      "x": 0,
+      "y": -5
+    },
+    {
+      "id": "o-h",
+      "label": "H",
+      "sourceLabel": "H",
+      "x": 3,
+      "y": -5
+    }
+  ],
+  "defenders": [
+    {
+      "id": "d-e-l",
+      "label": "E",
+      "x": -6.3,
+      "y": 2.5
+    },
+    {
+      "id": "d-t-l",
+      "label": "T",
+      "x": -3.15,
+      "y": 2.5
+    },
+    {
+      "id": "d-n",
+      "label": "N",
+      "x": 0,
+      "y": 2.5
+    },
+    {
+      "id": "d-t-r",
+      "label": "T",
+      "x": 3.15,
+      "y": 2.5
+    },
+    {
+      "id": "d-e-r",
+      "label": "E",
+      "x": 6.3,
+      "y": 2.5
+    },
+    {
+      "id": "d-w",
+      "label": "W",
+      "x": -6.5,
+      "y": 5.5
+    },
+    {
+      "id": "d-m",
+      "label": "M",
+      "x": 0,
+      "y": 5.5
+    },
+    {
+      "id": "d-s",
+      "label": "S",
+      "x": 6.5,
+      "y": 5.5
+    },
+    {
+      "id": "d-cb-l",
+      "label": "C",
+      "x": -19,
+      "y": 8
+    },
+    {
+      "id": "d-cb-r",
+      "label": "C",
+      "x": 19,
+      "y": 8
+    },
+    {
+      "id": "d-fs",
+      "label": "FS",
+      "x": 0,
+      "y": 15
+    }
+  ],
+  "assignments": [
+    {
+      "id": "personal-active-trips-rt-24-blast-1791008500332-offense-o-x-post-1791008502864",
+      "playerId": "o-x",
+      "unit": "offense",
+      "type": "Route",
+      "preset": "Structured",
+      "pace": 1,
+      "delay": 0,
+      "phase": "post",
+      "points": [
+        [
+          -20,
+          0
+        ],
+        [
+          -20,
+          16
+        ]
+      ],
+      "definition": {
+        "release": "none",
+        "stemYards": 16,
+        "breaks": [],
+        "condition": "",
+        "alternatives": [],
+        "activeAlternativeId": null
+      },
+      "geometryMode": "structured",
+      "evidence": {
+        "method": "coach-authored",
+        "confidence": "high",
+        "sourceLabel": null,
+        "sourcePage": null,
+        "note": "",
+        "coachEdited": true
+      }
+    }
+  ],
+  "sourcePage": null,
+  "sourceLabel": null
+}

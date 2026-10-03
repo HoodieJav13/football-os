@@ -1,0 +1,159 @@
+{
+  "name": "b-game-day",
+  "at": "2026-10-03T06:22:49.844Z",
+  "steps": [
+    {
+      "label": "precondition: the personal play from (a) is open",
+      "result": "pass"
+    },
+    {
+      "label": "start: Temporary chip shown and snapshot stored",
+      "result": "pass",
+      "evidence": {
+        "playId": "personal-active-trips-rt-24-blast-1791008500332",
+        "startedAt": "2026-10-03T06:22:14.422Z"
+      }
+    },
+    {
+      "label": "edit: the play carries the temporary edits while the snapshot stays the original",
+      "result": "pass"
+    },
+    {
+      "label": "reload: play shown after reload",
+      "result": "note",
+      "evidence": "Mesh"
+    },
+    {
+      "label": "reload: adjustment survives a reload (chip back, edits present, snapshot intact)",
+      "result": "pass",
+      "evidence": {
+        "menuOnOtherPlay": "Game Day Adjust"
+      }
+    },
+    {
+      "label": "other play: no Temporary chip on a play that is not being adjusted",
+      "result": "pass",
+      "evidence": {
+        "other": "Mesh"
+      }
+    },
+    {
+      "label": "other play: Game Day Adjust from another play jumps back to the adjusted play and offers Resolve",
+      "result": "pass",
+      "evidence": {
+        "headingNow": "Trips Rt 24 Blast"
+      }
+    },
+    {
+      "label": "variation: original restored exactly to the snapshot",
+      "result": "pass"
+    },
+    {
+      "label": "variation: new play holds the adjusted content and links to the original",
+      "result": "pass",
+      "evidence": {
+        "variantOf": "personal-active-trips-rt-24-blast-1791008500332",
+        "id": "personal-active-trips-rt-24-blast-1791008500332-variation-1791008544124"
+      }
+    },
+    {
+      "label": "variation: game-day key resolved and chip gone",
+      "result": "pass"
+    },
+    {
+      "label": "variation: assignment ids shared with the original? (ids are per-play like player ids; Duplicate-as-variation remaps, game-day does not)",
+      "result": "note",
+      "evidence": {
+        "shared": true,
+        "variationIds": [
+          "personal-active-trips-rt-24-blast-1791008500332-offense-o-x-post-1791008502864"
+        ],
+        "originalIds": [
+          "personal-active-trips-rt-24-blast-1791008500332-offense-o-x-post-1791008502864"
+        ]
+      }
+    },
+    {
+      "label": "variation: Undo on the original right after Save as Variation — labels now, equals original?",
+      "result": "note",
+      "evidence": {
+        "labels": [
+          "W2",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ],
+        "equalsOriginal": true,
+        "temporary": false
+      }
+    },
+    {
+      "label": "discard: edits made (GD on field)",
+      "result": "pass"
+    },
+    {
+      "label": "discard: original equals the snapshot again; chip gone",
+      "result": "pass"
+    },
+    {
+      "label": "discard: Undo right after Discard — undo enabled?, labels now, play equals original?",
+      "result": "note",
+      "evidence": {
+        "undoWasEnabled": false,
+        "labels": [
+          "W2",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H"
+        ],
+        "equalsOriginal": true,
+        "temporary": false
+      }
+    },
+    {
+      "label": "replace: original now carries the edit permanently; chip gone",
+      "result": "pass"
+    },
+    {
+      "label": "new play: original restored to the replaced state; new play holds NP and is unlinked",
+      "result": "pass",
+      "evidence": {
+        "variantOf": null
+      }
+    },
+    {
+      "label": "after reload: all three plays present and no adjustment pending",
+      "result": "pass",
+      "evidence": [
+        "Mesh",
+        "Mesh Sit",
+        "Mesh Wheel",
+        "Trips Right Stick",
+        "Doubles Y Cross",
+        "Inside Zone Glance",
+        "Trips Rt 24 Blast",
+        "Trips Rt 24 Blast Variation",
+        "Trips Rt 24 Blast New"
+      ]
+    },
+    {
+      "label": "no console or page errors through (b)",
+      "result": "pass",
+      "evidence": []
+    }
+  ]
+}

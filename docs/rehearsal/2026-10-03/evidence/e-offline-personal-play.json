@@ -1,0 +1,445 @@
+{
+  "name": "e-offline-personal-play",
+  "at": "2026-10-03T06:26:31.464Z",
+  "steps": [
+    {
+      "label": "offline: app reloaded with the network cut",
+      "result": "pass",
+      "evidence": "Offline · ready"
+    },
+    {
+      "label": "opened app",
+      "result": "note",
+      "evidence": {
+        "heading": "Mesh",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      }
+    },
+    {
+      "label": "create: header names the new play",
+      "result": "pass",
+      "evidence": "Trips Rt 24 Blast"
+    },
+    {
+      "label": "create: play persisted with 11 players and no assignments",
+      "result": "pass",
+      "evidence": {
+        "id": "personal-active-trips-rt-24-blast-1791008763762",
+        "players": 11
+      }
+    },
+    {
+      "label": "edit: route, stem depth, rename and nudge all persisted",
+      "result": "pass",
+      "evidence": {
+        "assignments": 1,
+        "stem": 16,
+        "w1": {
+          "id": "o-x",
+          "label": "W1",
+          "sourceLabel": "X",
+          "x": -19.75,
+          "y": 0
+        },
+        "xBefore": {
+          "id": "o-x",
+          "label": "X",
+          "sourceLabel": "X",
+          "x": -20,
+          "y": 0
+        }
+      }
+    },
+    {
+      "label": "cancel: Play details cancel changed nothing (header + saved JSON identical)",
+      "result": "pass",
+      "evidence": {
+        "heading": "Trips Rt 24 Blast"
+      }
+    },
+    {
+      "label": "cancel: Escape on Play details changed nothing",
+      "result": "pass"
+    },
+    {
+      "label": "tool after Escape",
+      "result": "note",
+      "evidence": "Select"
+    },
+    {
+      "label": "undo: 8 undos over 4 edits return exactly to the post-create state",
+      "result": "pass",
+      "evidence": {
+        "undoSteps": [
+          [
+            true,
+            1,
+            true
+          ],
+          [
+            true,
+            1,
+            false
+          ],
+          [
+            true,
+            1,
+            false
+          ],
+          [
+            true,
+            0,
+            false
+          ],
+          [
+            false,
+            0,
+            false
+          ],
+          [
+            false,
+            0,
+            false
+          ],
+          [
+            false,
+            0,
+            false
+          ],
+          [
+            false,
+            0,
+            false
+          ]
+        ]
+      }
+    },
+    {
+      "label": "undo: no errors while undoing past the start of history",
+      "result": "pass",
+      "evidence": []
+    },
+    {
+      "label": "redo: 8 redos return exactly to the fully edited state and stop",
+      "result": "pass",
+      "evidence": {
+        "redoSteps": [
+          [
+            true,
+            1
+          ],
+          [
+            true,
+            1
+          ],
+          [
+            true,
+            1
+          ],
+          [
+            true,
+            1
+          ],
+          [
+            false,
+            1
+          ],
+          [
+            false,
+            1
+          ],
+          [
+            false,
+            1
+          ],
+          [
+            false,
+            1
+          ]
+        ],
+        "diff": {}
+      }
+    },
+    {
+      "label": "redo: undos needed to take back the nudge + rename (2 edits)",
+      "result": "note",
+      "evidence": 2
+    },
+    {
+      "label": "redo: a new edit after undo clears the redo branch",
+      "result": "pass"
+    },
+    {
+      "label": "redo: redo after the new edit lands on W2, never on the discarded W1 branch",
+      "result": "pass"
+    },
+    {
+      "label": "save: details persisted",
+      "result": "pass",
+      "evidence": {
+        "folder": "Run game",
+        "family": "Blast",
+        "personnel": "21 Personnel",
+        "blockingScheme": "Power",
+        "fieldSide": "right"
+      }
+    },
+    {
+      "label": "save: details save kept every earlier edit",
+      "result": "pass"
+    },
+    {
+      "label": "save: the saved field side is visible on the canvas",
+      "result": "pass"
+    },
+    {
+      "label": "reopen: play shown after reopen (active play is not persisted; the app opens on the first play)",
+      "result": "note",
+      "evidence": "Mesh"
+    },
+    {
+      "label": "reopen: saved play is identical after close/reopen (modulo normalizer defaults)",
+      "result": "pass",
+      "evidence": {
+        "rawDiff": {
+          "assignments": {
+            "a": [
+              {
+                "id": "personal-active-trips-rt-24-blast-1791008763762-offense-o-x-post-1791008766302",
+                "playerId": "o-x",
+                "unit": "offense",
+                "type": "Route",
+                "preset": "Structured",
+                "pace": 1,
+                "delay": 0,
+                "phase": "post",
+                "points": [
+                  [
+                    -20,
+                    0
+                  ],
+                  [
+                    -20,
+                    16
+                  ]
+                ],
+                "definition": {
+                  "release": "none",
+                  "stemYards": 16,
+                  "breaks": [],
+                  "condition": "",
+                  "alternatives": [],
+                  "activeAlternativeId": null
+                },
+                "geometryMode": "structured",
+                "evidence": {
+                  "method": "coach-authored",
+                  "confidence": "high",
+                  "sourceLabel": null,
+                  "sourcePage": null,
+                  "note": "",
+                  "coachEdited": true
+                }
+              }
+            ],
+            "b": [
+              {
+                "id": "personal-active-trips-rt-24-blast-1791008763762-offense-o-x-post-1791008766302",
+                "playerId": "o-x",
+                "unit": "offense",
+                "type": "Route",
+                "preset": "Structured",
+                "pace": 1,
+                "delay": 0,
+                "phase": "post",
+                "points": [
+                  [
+                    -20,
+                    0
+                  ],
+                  [
+                    -20,
+                    16
+                  ]
+                ],
+                "definition": {
+                  "release": "none",
+                  "stemYards": 16,
+                  "breaks": [],
+                  "condition": "",
+                  "alternatives": [],
+                  "activeAlternativeId": null
+                },
+                "geometryMode": "structured",
+                "evidence": {
+                  "method": "coach-authored",
+                  "confidence": "high",
+                  "sourceLabel": null,
+                  "sourcePage": null,
+                  "note": "",
+                  "coachEdited": true
+                },
+                "templateOverride": false
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "reopen: stored bytes unchanged by reopening (normalizer defaults may be written back)",
+      "result": "note",
+      "evidence": {
+        "diff": [
+          "playbooks"
+        ],
+        "playDiff": {
+          "assignments": {
+            "a": [
+              {
+                "id": "personal-active-trips-rt-24-blast-1791008763762-offense-o-x-post-1791008766302",
+                "playerId": "o-x",
+                "unit": "offense",
+                "type": "Route",
+                "preset": "Structured",
+                "pace": 1,
+                "delay": 0,
+                "phase": "post",
+                "points": [
+                  [
+                    -20,
+                    0
+                  ],
+                  [
+                    -20,
+                    16
+                  ]
+                ],
+                "definition": {
+                  "release": "none",
+                  "stemYards": 16,
+                  "breaks": [],
+                  "condition": "",
+                  "alternatives": [],
+                  "activeAlternativeId": null
+                },
+                "geometryMode": "structured",
+                "evidence": {
+                  "method": "coach-authored",
+                  "confidence": "high",
+                  "sourceLabel": null,
+                  "sourcePage": null,
+                  "note": "",
+                  "coachEdited": true
+                }
+              }
+            ],
+            "b": [
+              {
+                "id": "personal-active-trips-rt-24-blast-1791008763762-offense-o-x-post-1791008766302",
+                "playerId": "o-x",
+                "unit": "offense",
+                "type": "Route",
+                "preset": "Structured",
+                "pace": 1,
+                "delay": 0,
+                "phase": "post",
+                "points": [
+                  [
+                    -20,
+                    0
+                  ],
+                  [
+                    -20,
+                    16
+                  ]
+                ],
+                "definition": {
+                  "release": "none",
+                  "stemYards": 16,
+                  "breaks": [],
+                  "condition": "",
+                  "alternatives": [],
+                  "activeAlternativeId": null
+                },
+                "geometryMode": "structured",
+                "evidence": {
+                  "method": "coach-authored",
+                  "confidence": "high",
+                  "sourceLabel": null,
+                  "sourcePage": null,
+                  "note": "",
+                  "coachEdited": true
+                },
+                "templateOverride": false
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "reopen: the screen shows the same play state",
+      "result": "pass",
+      "evidence": {
+        "before": {
+          "heading": "Trips Rt 24 Blast",
+          "meta": "21 PersonnelTrips Right Open",
+          "family": "Blast Family",
+          "labels": [
+            "W2",
+            "LT",
+            "LG",
+            "C",
+            "RG",
+            "RT",
+            "Z",
+            "Y",
+            "F",
+            "Q",
+            "H"
+          ],
+          "routes": 1,
+          "fieldIndicator": true
+        },
+        "after": {
+          "heading": "Trips Rt 24 Blast",
+          "meta": "21 PersonnelTrips Right Open",
+          "family": "Blast Family",
+          "labels": [
+            "W2",
+            "LT",
+            "LG",
+            "C",
+            "RG",
+            "RT",
+            "Z",
+            "Y",
+            "F",
+            "Q",
+            "H"
+          ],
+          "routes": 1,
+          "fieldIndicator": true
+        }
+      }
+    },
+    {
+      "label": "reopen: undo history did not survive the reopen (session-scoped by design)",
+      "result": "pass"
+    },
+    {
+      "label": "no console or page errors through (a)",
+      "result": "pass",
+      "evidence": []
+    },
+    {
+      "label": "game-day key after (a)",
+      "result": "note",
+      "evidence": null
+    }
+  ]
+}

@@ -46,7 +46,9 @@ function PositionLabelControl({ label, onSave }) {
         onKeyDown={(event) => {
           if (event.key === "Enter") {
             event.preventDefault();
-            commit();
+            // Blurring commits through onBlur. Committing here as well ran
+            // before React had re-rendered with the new label, so the blur
+            // committed a second time and pushed a duplicate undo entry.
             event.currentTarget.blur();
           }
         }}

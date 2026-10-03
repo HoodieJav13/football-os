@@ -1,0 +1,326 @@
+{
+  "name": "c-export-cover3",
+  "at": "2026-10-03T06:23:04.592Z",
+  "steps": [
+    {
+      "label": "lesson added to Personal Active",
+      "result": "pass",
+      "evidence": "Cover 3 — teaching example"
+    },
+    {
+      "label": "on screen (editor)",
+      "result": "note",
+      "evidence": {
+        "legend": [],
+        "offense": [],
+        "defense": [],
+        "tags": [],
+        "areas": 7,
+        "fieldSide": "FIELD →",
+        "allText": [
+          "10",
+          "10",
+          "20",
+          "20",
+          "30",
+          "30",
+          "BC",
+          "S",
+          "FC",
+          "B",
+          "W",
+          "M",
+          "A",
+          "X",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H",
+          "E",
+          "T",
+          "T",
+          "E",
+          "BC",
+          "S",
+          "FC",
+          "B",
+          "W",
+          "M",
+          "A",
+          "FIELD →"
+        ]
+      }
+    },
+    {
+      "label": "on screen (present)",
+      "result": "note",
+      "evidence": {
+        "legend": [
+          "BC — Deep left",
+          "S — Deep middle",
+          "FC — Deep right",
+          "W — Left hook",
+          "M — Right hook",
+          "B — Left flat",
+          "A — Right flat"
+        ],
+        "offense": [],
+        "defense": [],
+        "tags": [
+          "BC — Deep left",
+          "S — Deep middle",
+          "FC — Deep right",
+          "W — Left hook",
+          "M — Right hook",
+          "B — Left flat",
+          "A — Right flat"
+        ],
+        "areas": 7,
+        "fieldSide": "FIELD →",
+        "allText": [
+          "10",
+          "10",
+          "20",
+          "20",
+          "30",
+          "30",
+          "40",
+          "40",
+          "BC",
+          "S",
+          "FC",
+          "B",
+          "W",
+          "M",
+          "A",
+          "X",
+          "LT",
+          "LG",
+          "C",
+          "RG",
+          "RT",
+          "Z",
+          "Y",
+          "F",
+          "Q",
+          "H",
+          "E",
+          "T",
+          "T",
+          "E",
+          "BC",
+          "S",
+          "FC",
+          "B",
+          "W",
+          "M",
+          "A",
+          "FIELD →",
+          "BC — Deep left",
+          "S — Deep middle",
+          "FC — Deep right",
+          "W — Left hook",
+          "M — Right hook",
+          "B — Left flat",
+          "A — Right flat"
+        ]
+      }
+    },
+    {
+      "label": "field export: PNG downloaded",
+      "result": "pass",
+      "evidence": {
+        "suggested": "cover-3-teaching-example-phone.png",
+        "dims": {
+          "width": 780,
+          "height": 1136
+        }
+      }
+    },
+    {
+      "label": "field export: PNG is 2× the 390-px phone layout",
+      "result": "pass",
+      "evidence": {
+        "pngDims": {
+          "width": 780,
+          "height": 1136
+        },
+        "cssSize": [
+          390,
+          568
+        ]
+      }
+    },
+    {
+      "label": "field export: every legend line on screen is in the image",
+      "result": "pass",
+      "evidence": {
+        "screen": [
+          "BC — Deep left",
+          "S — Deep middle",
+          "FC — Deep right",
+          "W — Left hook",
+          "M — Right hook",
+          "B — Left flat",
+          "A — Right flat"
+        ],
+        "image": [
+          "BC — Deep left",
+          "S — Deep middle",
+          "FC — Deep right",
+          "W — Left hook",
+          "M — Right hook",
+          "B — Left flat",
+          "A — Right flat"
+        ]
+      }
+    },
+    {
+      "label": "field export: every defender label on screen is in the image",
+      "result": "pass",
+      "evidence": {
+        "missing": []
+      }
+    },
+    {
+      "label": "field export: every offensive label on screen is in the image",
+      "result": "pass",
+      "evidence": {
+        "missing": []
+      }
+    },
+    {
+      "label": "field export: all 7 areas and the FIELD indicator are in the image",
+      "result": "pass",
+      "evidence": {
+        "areas": 7,
+        "fieldSide": "FIELD →"
+      }
+    },
+    {
+      "label": "field export: no text clipped by the image edge",
+      "result": "pass",
+      "evidence": []
+    },
+    {
+      "label": "field export: no overlapping text boxes",
+      "result": "fail",
+      "evidence": [
+        [
+          "10",
+          "B",
+          1.9,
+          4.4
+        ],
+        [
+          "10",
+          "A",
+          5.3,
+          4.4
+        ],
+        [
+          "50",
+          "FIELD →",
+          21,
+          3
+        ]
+      ]
+    },
+    {
+      "label": "field export: no editor-only handles, hit targets, animation or selection in the image",
+      "result": "pass",
+      "evidence": 0
+    },
+    {
+      "label": "field export: text sizes (CSS px at 390 wide; image is 2×)",
+      "result": "note",
+      "evidence": {
+        "smallest": 0.953846,
+        "sizes": [
+          0.953846,
+          1.03333,
+          1.11282,
+          1.66923,
+          1.74872,
+          1.90769,
+          2.4
+        ]
+      }
+    },
+    {
+      "label": "diagram export: PNG downloaded at 2× of 390",
+      "result": "pass",
+      "evidence": {
+        "dims": {
+          "width": 780,
+          "height": 818
+        },
+        "cssSize": [
+          390,
+          409
+        ]
+      }
+    },
+    {
+      "label": "diagram export: legend complete, no clipping, no overlaps",
+      "result": "pass",
+      "evidence": {
+        "overlaps": [],
+        "clipped": []
+      }
+    },
+    {
+      "label": "diagram export: skill-position labels present (OL labels omitted by design)",
+      "result": "pass",
+      "evidence": [
+        "BC",
+        "S",
+        "FC",
+        "B",
+        "W",
+        "M",
+        "A",
+        "X",
+        "Z",
+        "Y",
+        "F",
+        "Q",
+        "H",
+        "E",
+        "T",
+        "T",
+        "E",
+        "BC",
+        "S",
+        "FC",
+        "B",
+        "W",
+        "M",
+        "A"
+      ]
+    },
+    {
+      "label": "double-tap export: exactly one download, no errors",
+      "result": "pass",
+      "evidence": {
+        "downloads": 1,
+        "errors": []
+      }
+    },
+    {
+      "label": "export did not change the saved lesson",
+      "result": "pass"
+    },
+    {
+      "label": "no console or page errors through (c)",
+      "result": "pass",
+      "evidence": []
+    }
+  ]
+}

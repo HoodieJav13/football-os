@@ -1455,6 +1455,15 @@ export function App() {
       notify(isVariation ? "Saved as a linked variation" : "Saved as a new play");
     }
 
+    if (resolution !== "replace") {
+      // The original was just restored from its snapshot, so the session
+      // history (which still holds every edit made during the adjustment) no
+      // longer describes it: one Ctrl+Z after Discard made the discarded
+      // change permanent, with no Temporary chip to say so. Resolving is a
+      // commit point, like deleting a play -- it is not part of undo history.
+      historyRef.current.delete(gameDay.playId);
+      setHistoryVersion((value) => value + 1);
+    }
     setLibrary(nextLibrary);
     setPlayId(nextId);
     const nextPlay = nextLibrary.find((item) => item.id === nextId);
