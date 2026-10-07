@@ -21,7 +21,7 @@ const open = useBrowser();
 
 const viewOnly = (page) => page.locator(".authority-chip").count().then((n) => n > 0);
 const banner = (page) => page.locator(".authority-banner").innerText().catch(() => "");
-const editHere = (page) => page.locator(".authority-banner").getByRole("button", { name: "Edit here" }).click();
+const editHere = (page) => page.locator(".topbar").getByRole("button", { name: "Edit here" }).click();
 async function becomesEditor(page, timeout = 6000) {
   await page.waitForFunction(() => !document.querySelector(".authority-chip"), null, { timeout });
   await page.waitForTimeout(250);
@@ -612,5 +612,72 @@ test("without Web Locks the app fails closed: view-only, explained, and nothing 
   assert.equal(await a.getByRole("button", { name: "More", exact: true }).isDisabled(), true, "no editing menu");
   await hideAndClose(a);
   assert.deepEqual(Object.keys(await readDurable(app.context)), [], "nothing was written");
+  await app.context.close();
+});
+
+/* Regressions from the independent review of this change. */
+
+test("a preservation file downloaded before a conflict does not unlock the conflict's destructive choices", async () => {
+  const app = await open();
+  const a = app.page;
+  await renamePlayer(a, "X", "EARLY");
+  await settleSave(a);
+  await openDataTools(a);
+  const early = a.waitForEvent("download");
+  await a.getByRole("button", { name: /Download preservation file/ }).click();
+  await early;
+  await a.getByRole("button", { name: "Close" }).click();
+  const outsider = await app.context.newPage();
+  await outsider.goto(new URL("manifest.webmanifest", process.env.APP_URL).href);
+  await outsider.evaluate((key) => { const w = JSON.parse(localStorage.getItem(key)); w.playbooks[0].plays[0].name = "Written Elsewhere"; localStorage.setItem(key, JSON.stringify(w)); }, WORKSPACE_KEY);
+  await outsider.close();
+  await a.waitForTimeout(600);
+  assert.match(await banner(a), /Saving paused/);
+  assert.deepEqual(
+    [await a.getByRole("button", { name: "Keep this tab's version" }).isDisabled(), await a.getByRole("button", { name: "Load saved version" }).isDisabled()],
+    [true, true],
+    "the earlier file does not hold the version written elsewhere",
+  );
+  const fresh = a.waitForEvent("download");
+  await a.locator(".authority-banner").getByRole("button", { name: /Download preservation file/ }).click();
+  await fresh;
+  assert.equal(await a.getByRole("button", { name: "Keep this tab's version" }).isDisabled(), false);
+  await app.close();
+});
+
+test("a locked layer's label field cannot hold a draft that blocks the handover", async () => {
+  const app = await open();
+  const second = await openTab(app.context);
+  const a = app.page, b = second.page;
+  await token(a, "X").click();
+  await a.locator(".layer-bar").getByRole("button", { name: /Lock offense/i }).click();
+  await a.waitForTimeout(300);
+  assert.equal(await a.locator(".position-label-control input").isDisabled(), true);
+  await editHere(b);
+  await becomesEditor(b);
+  await app.close();
+});
+
+test("closing a tab whose changes could not be saved asks first, until a preservation file covers them", async () => {
+  const app = await open();
+  const a = app.page;
+  await a.evaluate(() => { Storage.prototype.setItem = function () { throw new DOMException("Full", "QuotaExceededError"); }; });
+  await renamePlayer(a, "X", "UNSAVED");
+  await settleSave(a);
+  const dialogs = [];
+  a.on("dialog", (dialog) => { dialogs.push(dialog.type()); dialog.dismiss(); });
+  await a.close({ runBeforeUnload: true });
+  await a.waitForTimeout(500);
+  assert.deepEqual([dialogs, a.isClosed()], [["beforeunload"], false], "the coach is asked and the page stays");
+  const asks = () => a.evaluate(() => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; });
+  assert.equal(await asks(), true);
+  const download = a.waitForEvent("download");
+  await a.locator(".storage-recovery").getByRole("button", { name: "Download preservation file" }).click();
+  await download;
+  await a.waitForTimeout(200);
+  assert.equal(await asks(), false, "once a current preservation file covers the changes, leaving is not blocked");
+  await renamePlayer(a, "Z", "LATER");
+  await settleSave(a);
+  assert.equal(await asks(), true, "a change after the file was made is not covered by it");
   await app.context.close();
 });

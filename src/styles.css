@@ -1622,6 +1622,8 @@ button:active { scale: 0.96; }
     blank 84px button.
   */
   .run-button { min-height: 40px; padding-inline: 10px; font-size: 0; gap: 0; }
+  /* No room for the chip in a 232px bar; the accent Edit here icon and the inspector carry the state. */
+  .authority-chip { display: none; }
 
   .inspector { grid-column: 3; grid-row: 2; height: auto; padding: 10px 12px; border-left: 1px solid var(--line); }
   .mobile-sheet-handle { display: none; }
@@ -1903,3 +1905,7 @@ button:active { scale: 0.96; }
 .recovery-replace-actions input { width: 20px; height: 20px; accent-color: var(--accent); }
 .data-note { margin: 10px 0 0 !important; color: var(--text-mid) !important; font-size: 12px !important; line-height: 1.5; text-align: start; }
 .restore-preview button:disabled, .game-day-recovery button:disabled { opacity: 0.45; cursor: not-allowed; }
+.header-button.authority-edit { color: oklch(0.17 0.025 75); background: var(--accent); box-shadow: none; }
+.header-button.authority-edit:hover { background: oklch(0.86 0.14 76); }
+.view-only-note { margin-bottom: 12px; }
+.restore-preview > .restore-version-switch { grid-column: 1 / -1; min-height: 44px; color: var(--accent); background: var(--accent-soft); }

@@ -48,6 +48,7 @@ export function DataToolsDialog({
   onRecoveryAck = noop,
   onDownloadRecovery = noop,
   onPreserve = noop,
+  onRestoreVersion = noop,
   gameDayRecovery,
   onRecoverGameDay,
   activePlaybook,
@@ -122,9 +123,17 @@ export function DataToolsDialog({
           <div>
             <strong>{restoreCandidate.preservation ? "Valid Football OS preservation file" : "Valid Football OS backup"}</strong>
             <span>{restoreCandidate.playbookCount} playbooks · {restoreCandidate.playCount} plays · {restoreCandidate.conceptCount} concepts{restoreCandidate.gameDay ? " · game-day adjustment with its original" : ""}</span>
+            {restoreCandidate.preservation && restoreCandidate.liveAvailable && restoreCandidate.storedAvailable
+              ? <span>{restoreCandidate.version === "stored" ? "The version that was in storage when the file was made" : "The version the tab that made the file was holding"}</span>
+              : null}
             {restoreCandidate.drafts?.length ? <span>{restoreCandidate.drafts.length} unfinished draft{restoreCandidate.drafts.length === 1 ? "" : "s"} stay in the file for reference and are not applied</span> : null}
           </div>
           <button type="button" disabled={!canRestore || (existingRecovery && recoveryAck !== existingRecovery.raw)} onClick={onConfirmRestore}>Restore this backup</button>
+          {restoreCandidate.preservation && restoreCandidate.liveAvailable && restoreCandidate.storedAvailable ? (
+            <button type="button" className="restore-version-switch" onClick={() => onRestoreVersion(restoreCandidate.version === "stored" ? "live" : "stored")}>
+              {restoreCandidate.version === "stored" ? "Restore the tab's version instead" : "Restore the stored version instead"}
+            </button>
+          ) : null}
           <RecoveryReplaceNotice existing={existingRecovery} acknowledged={Boolean(existingRecovery) && recoveryAck === existingRecovery.raw} onAck={onRecoveryAck} onDownload={onDownloadRecovery} what="Restoring" />
           {!canRestore ? <p className="data-note">View only: choose Edit here before restoring. The current workspace is unchanged.</p> : null}
         </div>

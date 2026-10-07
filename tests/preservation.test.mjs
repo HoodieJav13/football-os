@@ -72,3 +72,24 @@ test("an existing recovery copy is replaced only with confirmation of exactly th
   recoverGameDay(damaged, loadGameDayState(damaged), { replaceRecovery: "earlier" });
   assert.equal(JSON.parse(damaged.getItem(GAME_DAY_RECOVERY_KEY)).raw, "{bad");
 });
+
+/* Regressions from the independent review of this change. */
+
+test("both versions in a conflict preservation file are restorable: this tab's, and the one found in storage", () => {
+  const live = createDefaultWorkspace();
+  live.playbooks[0].plays[0].name = "This Tab";
+  const stored = createDefaultWorkspace();
+  stored.playbooks[0].plays[0].name = "Written Elsewhere";
+  const text = JSON.stringify(createPreservationBundle({ reason: "conflict", workspace: live, durable: { [WORKSPACE_KEY]: JSON.stringify(stored) } }));
+  const mine = parseRestoreFile(text);
+  assert.deepEqual([mine.version, mine.storedAvailable, mine.workspace.playbooks[0].plays[0].name], ["live", true, "This Tab"]);
+  const theirs = parseRestoreFile(text, { version: "stored" });
+  assert.deepEqual([theirs.version, theirs.workspace.playbooks[0].plays[0].name], ["stored", "Written Elsewhere"]);
+});
+
+test("an adjustment the loader would reject as damaged is refused at restore, not written", () => {
+  const { workspace, gameDay } = adjusted();
+  gameDay.snapshot.assignments.push({ id: "bad", playerId: gameDay.snapshot.defenders[0].id, unit: "defense", type: "Zone", phase: "post", points: [[0, 5], [0, 20]], definition: { responsibilityArea: { version: 1, shape: "ellipse", center: [0, 20], radiusX: -4, radiusY: 5, label: "Bad", color: "blue" } } });
+  const text = JSON.stringify(createPreservationBundle({ reason: "x", workspace, gameDay }));
+  assert.throws(() => parseRestoreFile(text), /damaged/);
+});

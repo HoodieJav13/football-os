@@ -27,6 +27,9 @@ function describeBlocked(blocked, { own }) {
       ? "Saving is paused because the saved data changed outside this tab. Resolve that first."
       : "It found saved data changed outside it and paused saving until that is resolved.";
   }
+  if (blocked.kind === "deferred") {
+    return "Another tab took over just before your request reached it. Cancel and choose Edit here again if you still want to edit.";
+  }
   if (blocked.kind === "save") {
     return own
       ? `Your changes could not be saved${blocked.message ? ` (${blocked.message})` : ""}, so this tab keeps editing. Download a preservation file.`
@@ -44,7 +47,7 @@ export function ViewOnlyChip() {
  * Explains who may edit and offers the one safe next step. Shown only when
  * there is something to say; an uncontested editor sees nothing.
  */
-export function AuthorityBanner({ auth, conflict, preserved, onEditHere, onCancel, onPreserve, onKeepMine, onLoadSaved }) {
+export function AuthorityBanner({ auth, conflict, preserved, dismissed = false, onDismiss, onEditHere, onCancel, onPreserve, onKeepMine, onLoadSaved }) {
   const preserveButton = (
     <button type="button" onClick={onPreserve}><DownloadSimple size={17} />{preserved ? "Download again" : "Download preservation file"}</button>
   );
@@ -78,11 +81,13 @@ export function AuthorityBanner({ auth, conflict, preserved, onEditHere, onCance
   if (auth.status === "starting") return null;
 
   if (auth.status === "unsupported") {
+    if (dismissed) return null;
     return (
       <aside className="authority-banner" role="status">
         <strong><LockSimple size={17} />View only in this browser</strong>
         <p>This browser cannot make sure only one tab edits your playbooks (it has no Web Locks support), so editing is off to keep two tabs from overwriting each other.</p>
         <p className="authority-hint">Update Safari (iPadOS 15.4 or later) or use a current browser, then reopen Football OS. Viewing, presenting, exports and backup download still work.</p>
+        <div className="authority-actions"><button type="button" onClick={onDismiss}>Got it</button></div>
       </aside>
     );
   }
@@ -98,6 +103,10 @@ export function AuthorityBanner({ auth, conflict, preserved, onEditHere, onCance
   }
 
   const lost = auth.reason?.kind === "lost";
+  // The steady view-only state lives in the header (chip and Edit here); this
+  // notice only announces a change, then steps aside so it never sits over the
+  // backfield. A lost lease stays: it holds work the coach must keep.
+  if (dismissed && !lost) return null;
   const message = lost
     ? "This tab stopped being the editor while it was suspended. Anything it had not saved is still on this screen."
     : auth.reason?.kind === "handed-over"
@@ -111,10 +120,12 @@ export function AuthorityBanner({ auth, conflict, preserved, onEditHere, onCance
     <aside className={`authority-banner ${lost ? "is-problem" : ""}`} role="status">
       <p><LockSimple size={16} />{message}</p>
       {lost ? <p className="authority-hint">Download a preservation file before editing again: editing here starts from the saved workspace.</p> : null}
-      <div className="authority-actions">
-        {lost ? preserveButton : null}
-        <button type="button" className="authority-primary" disabled={lost && !preserved} onClick={onEditHere}><PencilSimple size={17} />Edit here</button>
-      </div>
+      {lost ? (
+        <div className="authority-actions">
+          {preserveButton}
+          <button type="button" className="authority-primary" disabled={!preserved} onClick={onEditHere}><PencilSimple size={17} />Edit here</button>
+        </div>
+      ) : null}
     </aside>
   );
 }

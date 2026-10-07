@@ -7,7 +7,7 @@ import { GAME_DAY_RECOVERY_KEY, loadWorkspaceState, loadGameDayState, RecoveryCo
 import { createDurableStore, OutOfBandWriteError, RevokedWriteError, WATCHED_KEYS } from "./durableStore.js";
 import { getEditorAuthority } from "./editorAuthority.js";
 import { listDrafts, useDraft, subscribeDrafts } from "./draftRegistry.js";
-import { createPreservationBundle, parseRestoreFile, preservationFilename } from "./preservation.js";
+import { adjustmentBelongs, createPreservationBundle, parseRestoreFile, preservationFilename } from "./preservation.js";
 import { AuthorityBanner, HandoverNoticeContext, ViewOnlyChip } from "./AuthorityBanner";
 import { createEmptyPlayFilters, createFamilyBases, createPlayFilterOptions, filterPlays } from "./playFilters";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -127,8 +127,16 @@ export function App() {
   const [baseEpoch, setBaseEpoch] = useState(0);
   /** Saved data changed outside this tab while it was editing. */
   const [conflict, setConflict] = useState(null);
-  /** A preservation file has been downloaded for the current conflict or loss. */
-  const [preserved, setPreserved] = useState(false);
+  /*
+   * What the last preservation file captured: the live workspace and
+   * adjustment objects and every stored record. A destructive choice (keep
+   * one version, start over from storage) is allowed only while all three are
+   * still exactly what the file holds -- a file downloaded earlier, or before
+   * storage changed again, does not cover what would be discarded.
+   */
+  const [preservedAs, setPreservedAs] = useState(null);
+  /** The authority notice the coach has already seen and set aside. */
+  const [dismissedNotice, setDismissedNotice] = useState(null);
   const isEditor = auth.status === "editor" && auth.epoch === baseEpoch && baseEpoch !== 0;
   const writable = storageState.writable;
   /** May this tab change the workspace at all right now. */
@@ -158,6 +166,8 @@ export function App() {
   const [restoreError, setRestoreError] = useState("");
   /** The exact recovery-copy bytes the coach agreed to replace, if any. */
   const [recoveryAck, setRecoveryAck] = useState(null);
+  /** The chosen file's text, so a preservation file's other version can be picked. */
+  const [restoreText, setRestoreText] = useState(null);
   // A chosen-but-unconfirmed backup is unfinished work: handover waits for it.
   useDraft("restore", {
     dirty: Boolean(restoreCandidate),
@@ -355,6 +365,25 @@ export function App() {
   /** Where the coach is looking, kept across a reread of storage. */
   const navRef = useRef(null);
   navRef.current = { bookId: workspace.activePlaybookId, playId };
+  /** The state an editing lease started from, to tell a clean editor from one with changes. */
+  const adoptedRef = useRef({ workspace: null, gameDay: null, at: 0 });
+
+  /*
+   * Saved data changed behind this editor. Right after taking over, with no
+   * change made here yet, that is most likely the previous editor's final
+   * save arriving after the lock did (storage and lock grants travel by
+   * different routes between tabs): reread rather than raise a conflict,
+   * since nothing here can be lost. Otherwise pause and preserve.
+   */
+  const handleDrift = (keys) => {
+    const adopted = adoptedRef.current;
+    const clean = workspaceRef.current === adopted.workspace && gameDayRef.current === adopted.gameDay;
+    if (clean && Date.now() - adopted.at < 5000 && authority.getState().status === "editor") {
+      handlersRef.current.adoptDurable(epochRef.current, { fromGrant: true });
+      return;
+    }
+    setConflict((current) => current ?? { keys, at: new Date().toISOString() });
+  };
 
   /*
    * The workspace and the game-day record are written in one guarded
@@ -382,7 +411,7 @@ export function App() {
     } catch (error) {
       if (error instanceof RevokedWriteError) return { ok: false, revoked: true };
       if (error instanceof OutOfBandWriteError) {
-        setConflict((current) => current ?? { keys: error.keys, at: new Date().toISOString() });
+        handleDrift(error.keys);
         return { ok: false, blocked: { kind: "conflict" } };
       }
       setSaveError(error.partialKeys
@@ -422,7 +451,7 @@ export function App() {
    * view-only tab. Navigation survives; undo history does not, because it
    * describes plays as they were before the reread.
    */
-  const adoptDurable = (epoch, { keepNavigation = true } = {}) => {
+  const adoptDurable = (epoch, { keepNavigation = true, fromGrant = false } = {}) => {
     if (epoch) store.adopt(epoch);
     const freshStorage = loadWorkspaceState(store.reader);
     const freshGameDay = loadGameDayState(store.reader, freshStorage.workspace);
@@ -432,13 +461,15 @@ export function App() {
     setGameDayStorage(freshGameDay);
     setGameDay(freshGameDay.gameDay);
     persistedGameDayRef.current = freshGameDay.gameDay;
-    setWorkspace(keepBook ? { ...freshStorage.workspace, activePlaybookId: nav.bookId } : freshStorage.workspace);
+    const adoptedWorkspace = keepBook ? { ...freshStorage.workspace, activePlaybookId: nav.bookId } : freshStorage.workspace;
+    setWorkspace(adoptedWorkspace);
     setBaseEpoch(epoch);
     historyRef.current = new Map();
     setHistoryVersion((value) => value + 1);
     setSaveError(null);
     setConflict(null);
-    setPreserved(false);
+    setPreservedAs(null);
+    adoptedRef.current = { workspace: adoptedWorkspace, gameDay: freshGameDay.gameDay, at: fromGrant ? Date.now() : 0 };
     playerDrag.current = null;
     routePointDrag.current = null;
     drawing.current = false;
@@ -488,7 +519,7 @@ export function App() {
   const onStorageChange = () => {
     if (authority.getState().status === "editor") {
       const drifted = store.drift(epochRef.current);
-      if (drifted.length) setConflict((current) => current ?? { keys: drifted, at: new Date().toISOString() });
+      if (drifted.length) handleDrift(drifted);
       return;
     }
     // A tab that lost its lease still holds unsaved work; it is only replaced
@@ -501,7 +532,7 @@ export function App() {
   handlersRef.current = { adoptDurable, prepareHandover, onStorageChange };
   useEffect(() => {
     authority.connect({
-      acquire: (epoch) => handlersRef.current.adoptDurable(epoch),
+      acquire: (epoch) => handlersRef.current.adoptDurable(epoch, { fromGrant: true }),
       prepareHandover: (epoch) => handlersRef.current.prepareHandover(epoch),
     });
     authority.start();
@@ -531,12 +562,27 @@ export function App() {
     }
   }, [isEditor]);
 
-  // A gesture that ends without a state change still clears the way to hand over.
+  // A gesture that ends without a state change still clears the way to hand
+  // over. A failing save is retried by the authority's poll instead: retrying
+  // here would re-serialise the workspace on every render.
   useEffect(() => {
-    if (auth.requested) authority.tryHandover();
+    if (auth.requested && !saveError) authority.tryHandover();
   });
 
   useEffect(() => subscribeOfflineStatus(setOfflineStatus), []);
+
+  /*
+   * A view-only notice announces a change (moved to another tab, editor
+   * closed) and then steps aside after a few seconds; the header keeps the
+   * View only chip and the Edit here button. Requests, conflicts, a lost
+   * lease and save problems stay until resolved.
+   */
+  const noticeKey = `${auth.status}|${auth.reason?.kind ?? ""}|${auth.editorPresent}`;
+  useEffect(() => {
+    if (auth.status !== "viewer" || auth.reason?.kind === "lost") return undefined;
+    const timer = window.setTimeout(() => setDismissedNotice(noticeKey), 8000);
+    return () => window.clearTimeout(timer);
+  }, [noticeKey, auth.status, auth.reason]);
 
   /*
    * Feedback is scoped to the play it was raised on -- an "Undo" offered for a
@@ -959,7 +1005,9 @@ export function App() {
     setRecoveryAck(null);
     if (!file) return;
     try {
-      setRestoreCandidate(parseRestoreFile(await file.text()));
+      const text = await file.text();
+      setRestoreCandidate(parseRestoreFile(text));
+      setRestoreText(text);
     } catch (error) {
       setRestoreError(error instanceof Error ? error.message : "That backup could not be opened.");
     }
@@ -1046,7 +1094,7 @@ export function App() {
       durable: store.snapshot(),
     });
     downloadBlob(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }), preservationFilename(bundle.createdAt));
-    setPreserved(true);
+    setPreservedAs({ workspace, gameDay, durable: JSON.stringify(bundle.durable) });
     notify("Preservation file downloaded", { scope: "workspace" });
   };
 
@@ -1061,16 +1109,26 @@ export function App() {
     const bundle = createPreservationBundle({
       reason: `recovery-copy:${key}`,
       workspace: key === RECOVERY_WORKSPACE_KEY ? parsed?.workspace : null,
-      gameDay: liveGameDay?.snapshot ? liveGameDay : null,
+      gameDay: key === RECOVERY_WORKSPACE_KEY && adjustmentBelongs(liveGameDay, parsed?.workspace) ? liveGameDay : null,
       liveValid: key === RECOVERY_WORKSPACE_KEY && Boolean(parsed?.workspace),
       durable: { [key]: raw },
     });
     downloadBlob(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }), preservationFilename(bundle.createdAt));
   };
 
+  /** Does the last preservation file still hold everything a destructive choice would drop? */
+  const preservationCurrent = () => Boolean(preservedAs)
+    && preservedAs.workspace === workspaceRef.current
+    && preservedAs.gameDay === gameDayRef.current
+    && preservedAs.durable === JSON.stringify(store.snapshot());
+  const refusePreservation = () => {
+    setPreservedAs(null);
+    notifyProblem("Something changed since the preservation file was downloaded. Download it again before choosing.");
+  };
+
   /** Resolving a conflict: keep this tab's version over the one written outside it. */
   const keepThisVersion = () => {
-    if (!preserved || authority.getState().status !== "editor") return;
+    if (!preservationCurrent() || authority.getState().status !== "editor") return refusePreservation();
     store.adopt(epochRef.current);
     setConflict(null);
     conflictRef.current = null;
@@ -1080,7 +1138,7 @@ export function App() {
 
   /** Resolving a conflict: continue from what is stored; this tab's version is in the file. */
   const loadSavedVersion = () => {
-    if (!preserved || authority.getState().status !== "editor") return;
+    if (!preservationCurrent() || authority.getState().status !== "editor") return refusePreservation();
     adoptDurable(epochRef.current);
     notify("Saved version loaded · this tab's version is in your preservation file", { scope: "workspace" });
   };
@@ -1807,6 +1865,19 @@ export function App() {
   const existingGameDayRecovery = useMemo(() => (dataToolsDialog && gameDayStorage.error ? recoveryInfo(GAME_DAY_RECOVERY_KEY) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [dataToolsDialog, baseEpoch, gameDayStorage]);
+  const unsavedRisk = Boolean(saveError || conflict || auth.reason?.kind === "lost");
+  const preservedNow = unsavedRisk ? preservationCurrent() : false;
+  /*
+   * While this tab holds work that storage does not (a failed save, a paused
+   * conflict, a lost lease) and no current preservation file covers it, ask
+   * before the page goes away. Best effort: iPadOS may not show the prompt.
+   */
+  useEffect(() => {
+    if (!unsavedRisk || preservedNow) return undefined;
+    const onBeforeUnload = (event) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [unsavedRisk, preservedNow]);
   const handoverNotice = auth.status === "editor" && auth.requested
     ? "Another tab is waiting to edit. Save or cancel this dialog so this tab can hand over."
     : null;
@@ -1930,12 +2001,14 @@ export function App() {
         ) : null}
         <AuthorityBanner
           auth={auth}
+          dismissed={dismissedNotice === noticeKey}
+          onDismiss={() => setDismissedNotice(noticeKey)}
           conflict={conflict}
-          preserved={preserved}
+          preserved={preservedNow}
           onEditHere={() => {
             // A tab that lost its lease holds work storage may not have; it
             // starts over from storage only after that work was preserved.
-            if (auth.reason?.kind === "lost" && !preserved) return;
+            if (auth.reason?.kind === "lost" && !preservationCurrent()) { refusePreservation(); return; }
             authority.requestEdit();
           }}
           onCancel={() => authority.cancelRequest()}
@@ -1947,6 +2020,7 @@ export function App() {
       <Header
         writable={editable}
         viewOnly={!isEditor && auth.status !== "starting"}
+        onEditHere={auth.status === "viewer" && auth.reason?.kind !== "lost" ? () => authority.requestEdit() : null}
         activePlaybook={activePlaybook}
         formationLegal={currentFormationStatus.legal}
         mainPlaybook={mainPlaybook}
@@ -2141,6 +2215,10 @@ export function App() {
           }}
           onClose={() => { setDataToolsDialog(false); setRestoreCandidate(null); setRecoveryAck(null); }}
           onConfirmRestore={confirmRestore}
+          onRestoreVersion={(version) => {
+            try { setRestoreCandidate(parseRestoreFile(restoreText, { version })); setRecoveryAck(null); setRestoreError(""); }
+            catch (error) { setRestoreError(error.message); }
+          }}
           onExportPng={exportCurrentPng}
           onOpenPrint={() => {
             setDataToolsDialog(false);

@@ -74,7 +74,12 @@ export function createEditorAuthority({
     const epoch = epochCounter;
     let release;
     const held = new Promise((resolve) => { release = resolve; });
-    lease = { epoch, active: true, release, leaseLockHeld: false };
+    // baseline: tabs already queued when this lease began. They asked the
+    // previous editor, not this one, so they are not handed the lock the
+    // moment this tab gets it; a fresh request (message) or a new queue entry
+    // is needed. Without this, two queued tabs bounce the first one out within
+    // a poll of its coach choosing Edit here.
+    lease = { epoch, active: true, release, leaseLockHeld: false, clientId: null, baseline: null, freshRequest: false };
     pendingRequest = null;
     try {
       // Reread durable state under the lock, before anything can edit.
@@ -86,11 +91,12 @@ export function createEditorAuthority({
       return held;
     }
     // A second, lease-specific lock lets the editor confirm later that the
-    // browser still considers it the holder (see verify()).
+    // browser still considers it the holder, and tells it its own clientId.
     const current = lease;
     locks.request(leaseLockName(tabId, epoch), { ifAvailable: true }, (lock) => {
       if (!lock) return undefined;
       current.leaseLockHeld = true;
+      poll();
       return held;
     }).catch(() => {});
     emit({ status: "editor", epoch, requested: false, blocked: null, editorBlocked: null, editorPresent: true, reason: null });
@@ -105,55 +111,108 @@ export function createEditorAuthority({
     post({ type: "released" });
   }
 
-  /** Hands over if someone is waiting and the app says it is safe. */
-  function tryHandover() {
-    if (!lease?.active || !state.requested) return;
-    let result;
+  /**
+   * Reads the lock state for the current lease, or null when the answer is
+   * stale: the lease changed, or its lease lock was granted, while the query
+   * was in flight. Acting on a snapshot from before an acquisition finished
+   * could see this tab's own queued request, or miss its new lease lock.
+   */
+  async function leaseSnapshot() {
+    const current = lease;
+    if (!current?.active || !locks?.query) return null;
+    const wasHeld = current.leaseLockHeld;
+    let snapshot;
+    try { snapshot = await locks.query(); } catch { return null; }
+    if (lease !== current || !current.active || current.leaseLockHeld !== wasHeld) return null;
+    const held = snapshot.held ?? [];
+    const own = held.find((entry) => entry.name === leaseLockName(tabId, current.epoch));
+    if (own) current.clientId = own.clientId;
+    const others = (snapshot.pending ?? []).filter((entry) => entry.name === EDITOR_LOCK && entry.clientId !== current.clientId);
+    return { current, wasHeld, held, own, others };
+  }
+
+  function requestedFrom(current, others) {
+    if (!current.leaseLockHeld) return false;
+    if (current.baseline === null) {
+      current.baseline = new Set(others.map((entry) => entry.clientId));
+      if (others.length) post({ type: "deferred" });
+    }
+    return others.some((entry) => current.freshRequest || !current.baseline.has(entry.clientId));
+  }
+
+  let handingOver = false;
+  /**
+   * Hands over if someone is still waiting and the app says it is safe. The
+   * queue is re-read first, so a requester that cancelled or closed since the
+   * last poll is not handed a lock nobody will take.
+   */
+  async function tryHandover() {
+    if (!lease?.active || !state.requested || handingOver) return;
+    handingOver = true;
     try {
-      result = handlers.prepareHandover(lease.epoch);
-    } catch (error) {
-      result = { ok: false, blocked: { kind: "save", message: error?.message ?? String(error) } };
-    }
-    if (result?.ok) {
-      release("handed-over");
-      return;
-    }
-    const blocked = result?.blocked ?? { kind: "unknown" };
-    if (JSON.stringify(blocked) !== JSON.stringify(state.blocked)) {
-      emit({ blocked });
-      post({ type: "blocked", blocked });
+      const view = await leaseSnapshot();
+      if (!view) return;
+      const { current, others } = view;
+      if (!requestedFrom(current, others)) {
+        emit({ requested: false, blocked: null });
+        return;
+      }
+      let result;
+      try {
+        result = handlers.prepareHandover(current.epoch);
+      } catch (error) {
+        result = { ok: false, blocked: { kind: "save", message: error?.message ?? String(error) } };
+      }
+      if (result?.ok) {
+        release("handed-over");
+        return;
+      }
+      const blocked = result?.blocked ?? { kind: "unknown" };
+      if (JSON.stringify(blocked) !== JSON.stringify(state.blocked)) {
+        emit({ blocked });
+        post({ type: "blocked", blocked });
+      }
+    } finally {
+      handingOver = false;
     }
   }
 
   async function poll() {
     if (!locks?.query) return;
-    let snapshot;
-    try { snapshot = await locks.query(); } catch { return; }
-    const held = snapshot.held ?? [];
-    const pending = snapshot.pending ?? [];
     if (lease?.active) {
-      if (lease.leaseLockHeld && !held.some((entry) => entry.name === leaseLockName(tabId, lease.epoch))) {
+      const view = await leaseSnapshot();
+      if (!view) return;
+      const { current, wasHeld, own, others } = view;
+      if (wasHeld && !own) {
         // The browser no longer counts this tab as the holder (for example a
-        // suspended page whose locks were released). Stop writing at once; the
+        // suspended page whose locks were released). Stop writing at once and
+        // let go of the editor lock too, so no tab waits on it forever; the
         // live branch stays in memory for the coach to preserve.
-        lease.active = false;
+        current.active = false;
+        current.release();
         emit({ status: "viewer", epoch: 0, requested: false, blocked: null, editorPresent: null, reason: { kind: "lost" } });
+        post({ type: "released" });
         return;
       }
-      const requested = pending.some((entry) => entry.name === EDITOR_LOCK);
+      const requested = requestedFrom(current, others);
       if (requested !== state.requested) emit({ requested, blocked: requested ? state.blocked : null });
       if (requested) tryHandover();
       return;
     }
-    const editorPresent = held.some((entry) => entry.name === EDITOR_LOCK);
+    let snapshot;
+    try { snapshot = await locks.query(); } catch { return; }
+    if (lease?.active) return;
+    const editorPresent = (snapshot.held ?? []).some((entry) => entry.name === EDITOR_LOCK);
     if (editorPresent !== state.editorPresent) emit({ editorPresent });
   }
 
   function onMessage(event) {
     const message = event?.data;
     if (!message || message.from === tabId) return;
-    if (message.type === "request" || message.type === "released") poll();
+    if (message.type === "request" && lease?.active) lease.freshRequest = true;
+    if (["request", "released", "cancel"].includes(message.type)) poll();
     if (message.type === "blocked" && state.status === "requesting") emit({ editorBlocked: message.blocked });
+    if (message.type === "deferred" && state.status === "requesting") emit({ editorBlocked: { kind: "deferred" } });
   }
 
   return {
@@ -210,6 +269,7 @@ export function createEditorAuthority({
       pendingRequest = null;
       controller.abort();
       emit({ status: "viewer", editorBlocked: null });
+      post({ type: "cancel" });
       poll();
     },
 

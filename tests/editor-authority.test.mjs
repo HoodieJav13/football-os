@@ -161,3 +161,72 @@ test("a lease the browser no longer reports as held stops writing at once", asyn
   assert.throws(() => a.store.transact(epoch, (s) => s.setItem(WORKSPACE_KEY, "late")), RevokedWriteError);
   assert.equal(storage.getItem(WORKSPACE_KEY), "v1");
 });
+
+/* Regressions from the independent review of this change. */
+
+test("a requester that cancelled while the editor was blocked is not handed a lock nobody takes", async () => {
+  const manager = createLockManager(), hub = createChannelHub();
+  const a = tab(manager, hub, "a"), b = tab(manager, hub, "b");
+  a.authority.start(); await flush();
+  b.authority.start(); await flush();
+  a.gate.drafts = ["Play details for Mesh"];
+  b.authority.requestEdit(); await flush();
+  await a.authority.poll(); await flush();
+  assert.equal(a.authority.getState().requested, true);
+  hub.dropping = true; // the cancel message is lost too
+  b.authority.cancelRequest(); await flush();
+  a.gate.drafts = [];
+  a.authority.tryHandover(); await flush();
+  assert.deepEqual([a.authority.getState().status, a.gate.saves], ["editor", 0], "A keeps editing; nobody is waiting");
+});
+
+test("a tab queued before the current lease began is deferred, not handed the lock the moment the new editor gets it", async () => {
+  const manager = createLockManager(), hub = createChannelHub();
+  const a = tab(manager, hub, "a"), b = tab(manager, hub, "b"), c = tab(manager, hub, "c");
+  a.authority.start(); await flush();
+  b.authority.start(); c.authority.start(); await flush();
+  a.gate.drafts = ["New play dialog"];
+  b.authority.requestEdit(); await flush();
+  c.authority.requestEdit(); await flush();
+  a.gate.drafts = [];
+  await a.authority.poll(); await flush();
+  assert.equal(b.authority.getState().status, "editor");
+  for (let i = 0; i < 3; i += 1) { await b.authority.poll(); await flush(); }
+  assert.deepEqual([b.authority.getState().status, c.authority.getState().status], ["editor", "requesting"], "B keeps the lock it just asked for");
+  assert.deepEqual(c.authority.getState().editorBlocked, { kind: "deferred" }, "C is told why");
+  c.authority.cancelRequest(); await flush();
+  c.authority.requestEdit(); await flush();
+  await b.authority.poll(); await flush();
+  assert.equal(c.authority.getState().status, "editor", "asking again after B took over is honoured");
+});
+
+test("a lost lease also lets go of the editor lock, so neither this tab nor another waits forever", async () => {
+  const manager = createLockManager(), hub = createChannelHub();
+  const a = tab(manager, hub, "a"), b = tab(manager, hub, "b");
+  a.authority.start(); await flush();
+  b.authority.start(); await flush();
+  const leaseLock = [...manager.held.keys()].find((name) => name.startsWith(`${EDITOR_LOCK}.lease.a.`));
+  manager.held.delete(leaseLock);
+  await a.authority.poll(); await flush();
+  assert.equal(a.authority.getState().reason.kind, "lost");
+  assert.equal(manager.held.has(EDITOR_LOCK), false, "the editor lock is free");
+  b.authority.requestEdit(); await flush();
+  assert.equal(b.authority.getState().status, "editor");
+});
+
+test("a lock query answered from before the lease lock was granted is discarded", async () => {
+  const manager = createLockManager(), hub = createChannelHub();
+  const real = manager.client("a");
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  // The first query is captured now but answered only after the grant.
+  let delayed = true;
+  const locks = { request: real.request, query: async () => { const snapshot = await real.query(); if (delayed) { delayed = false; await gate; } return snapshot; } };
+  const authority = createEditorAuthority({ locks, createChannel: () => hub.create(), setTimer: () => 0, clearTimer: () => {}, tabId: "a" });
+  authority.connect({ acquire: () => {}, prepareHandover: () => ({ ok: true }) });
+  authority.start();
+  const stale = authority.poll();
+  await flush();
+  release(); await stale; await flush();
+  assert.deepEqual([authority.getState().status, authority.getState().reason], ["editor", null]);
+});

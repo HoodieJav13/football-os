@@ -1,5 +1,7 @@
 import { normalizePlay } from "./playData.js";
-import { normalizeWorkspace, parseWorkspaceBackup, validPlays, WORKSPACE_VERSION } from "./workspaceData.js";
+import { validateResponsibilityAreas } from "./responsibilityArea.js";
+import { normalizeWorkspace, parseWorkspaceBackup, validPlays, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData.js";
+import { GAME_DAY_KEY } from "./workspaceStorage.js";
 
 /*
  * A preservation file is what a coach downloads when this tab cannot save, or
@@ -69,12 +71,58 @@ function adjustmentBook(gameDay, workspace) {
     ?? null;
 }
 
+/** Whether a saved adjustment belongs to this workspace (and so can be restored with it). */
+export function adjustmentBelongs(gameDay, workspace) {
+  return Boolean(gameDay && workspace?.playbooks && adjustmentBook(gameDay, workspace));
+}
+
+/**
+ * The adjustment as the loader would accept it, or an error. Restore must not
+ * write an adjustment that the next load would reject as damaged.
+ */
+function checkedAdjustment(saved, workspace, what) {
+  if (!saved) return null;
+  const book = adjustmentBook(saved, workspace);
+  if (!book) throw new Error(`${what} game-day adjustment does not match its workspace, so it was not restored.`);
+  try {
+    validateResponsibilityAreas(saved.snapshot, "game-day snapshot", true);
+  } catch (error) {
+    throw new Error(`${what} game-day adjustment is damaged (${error.message}), so it was not restored.`);
+  }
+  return { ...saved, playbookId: book.id, snapshot: normalizePlay(saved.snapshot) };
+}
+
+/** The workspace and adjustment the file recorded as stored, if they can be restored. */
+function storedVersion(durable) {
+  try {
+    const workspace = normalizeWorkspace(JSON.parse(durable?.[WORKSPACE_KEY]));
+    if (!workspace) return null;
+    let saved = null;
+    try { saved = JSON.parse(durable?.[GAME_DAY_KEY] ?? "null"); } catch { saved = null; }
+    const gameDay = saved && !saved.resolved && adjustmentBelongs(saved, workspace) ? checkedAdjustment(saved, workspace, "The stored") : null;
+    return { workspace, gameDay };
+  } catch {
+    return null;
+  }
+}
+
+const summary = (workspace) => ({
+  playbookCount: workspace.playbooks.length,
+  playCount: workspace.playbooks.reduce((total, book) => total + book.plays.length, 0),
+  conceptCount: workspace.playbooks.reduce((total, book) => total + book.concepts.length, 0),
+});
+
 /**
  * Accepts an ordinary backup or a preservation file. A preservation file whose
  * adjustment does not belong to its workspace is refused whole rather than
  * restored without the original it was meant to protect.
+ *
+ * A preservation file written during a conflict holds two versions: this
+ * tab's (`live`) and the one found in storage (`durable`). `version: "stored"`
+ * restores the latter, so "the other version is in the file" is a version a
+ * coach can actually get back, not just bytes in JSON.
  */
-export function parseRestoreFile(text) {
+export function parseRestoreFile(text, { version = "live" } = {}) {
   let parsed;
   try {
     parsed = JSON.parse(text);
@@ -83,22 +131,20 @@ export function parseRestoreFile(text) {
   }
   if (parsed?.format !== PRESERVATION_FORMAT) return { ...parseWorkspaceBackup(text), gameDay: null, drafts: [] };
   if (parsed.formatVersion !== PRESERVATION_FORMAT_VERSION) throw new Error(`That preservation file was written by a newer version of Football OS (format ${parsed.formatVersion}).`);
-  if (!parsed.live) throw new Error("That preservation file holds only raw saved records (the tab that wrote it was in recovery). Open it to copy data out; it cannot be restored directly.");
+  const stored = storedVersion(parsed.durable);
+  const drafts = Array.isArray(parsed.drafts) ? parsed.drafts : [];
+  const base = { exportedAt: parsed.createdAt ?? null, upconvertedFrom: null, preservation: true, drafts };
+  if (version === "stored") {
+    if (!stored) throw new Error("The preservation file holds no restorable stored version.");
+    return { ...base, version: "stored", storedAvailable: true, liveAvailable: Boolean(parsed.live), ...stored, ...summary(stored.workspace) };
+  }
+  if (!parsed.live) {
+    if (stored) return { ...base, version: "stored", storedAvailable: true, liveAvailable: false, ...stored, ...summary(stored.workspace) };
+    throw new Error("That preservation file holds only raw saved records (the tab that wrote it was in recovery). Open it to copy data out; it cannot be restored directly.");
+  }
   const workspace = normalizeWorkspace(parsed.live.workspace);
   if (!workspace) throw new Error("The preservation file's workspace is incomplete or contains invalid play data.");
-  const saved = parsed.live.gameDay ?? null;
-  const book = saved ? adjustmentBook(saved, workspace) : null;
-  if (saved && !book) throw new Error("The preservation file's game-day adjustment does not match its workspace, so it was not restored.");
-  const gameDay = saved ? { ...saved, playbookId: book.id } : null;
-  return {
-    exportedAt: parsed.createdAt ?? null,
-    upconvertedFrom: null,
-    preservation: true,
-    workspace,
-    gameDay: gameDay ? { ...gameDay, snapshot: normalizePlay(gameDay.snapshot) } : null,
-    drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
-    playbookCount: workspace.playbooks.length,
-    playCount: workspace.playbooks.reduce((total, book) => total + book.plays.length, 0),
-    conceptCount: workspace.playbooks.reduce((total, book) => total + book.concepts.length, 0),
-  };
+  const gameDay = checkedAdjustment(parsed.live.gameDay ?? null, workspace, "The preservation file's");
+  const storedDiffers = Boolean(stored) && JSON.stringify(stored.workspace) !== JSON.stringify(workspace);
+  return { ...base, version: "live", storedAvailable: storedDiffers, liveAvailable: true, workspace, gameDay, ...summary(workspace) };
 }
