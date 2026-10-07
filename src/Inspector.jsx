@@ -1,5 +1,6 @@
 import { ResponsibilityAreaControls } from './ResponsibilityAreaControls';
 import { useEffect, useRef, useState } from "react";
+import { useDraft } from "./draftRegistry";
 import {
   AssignmentStagePicker,
   AssignmentTransfer,
@@ -22,6 +23,8 @@ import { CaretDown, CaretRight, CaretUp, Copy, GitMerge, LockSimple, Play, Plus,
 /** The right edge player inspector: identity, assignment stage, and the detail editors. */
 function PositionLabelControl({ label, onSave }) {
   const [value, setValue] = useState(label);
+  // Commits on blur; until then the typed label exists only here.
+  useDraft("position-label", { dirty: value.trim().toUpperCase() !== label && value.trim() !== "", label: `Position label ${label} → ${value.trim().toUpperCase()}`, values: { from: label, to: value } });
 
   useEffect(() => setValue(label), [label]);
 
@@ -64,6 +67,7 @@ function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
   const manual = route.geometryMode === "manual";
   const [conditionDraft, setConditionDraft] = useState(definition.condition);
   const conditionDraftRef = useRef(definition.condition);
+  useDraft("route-condition", { dirty: conditionDraft !== definition.condition, label: "Route condition text", values: { assignmentId: route.id, condition: conditionDraft } });
 
   useEffect(() => {
     setConditionDraft(definition.condition);
@@ -211,8 +215,10 @@ export function Inspector({
   unavailableTypes,
   unit,
   reference = false,
+  viewOnly = null,
   lockReason,
 }) {
+  const readOnly = reference || Boolean(viewOnly);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   /*
    * On a phone this sheet appears directly under the finger that selected the
@@ -274,7 +280,7 @@ export function Inspector({
         </div>
         <button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button>
       </div>
-      {!reference ? <AssignmentStagePicker
+      {!readOnly ? <AssignmentStagePicker
         disabled={locked}
         activeId={route?.id ?? null}
         assignments={assignments}
@@ -283,9 +289,11 @@ export function Inspector({
         unit={unit}
       /> : null}
       <div className="inspector-body">
-        {reference ? (
+        {readOnly ? (
           <div className="reference-inspector">
-            <div className="reference-lock-note"><LockSimple size={18} /><span><strong>Verified reference</strong><small>Copy this play to Personal Active before editing.</small></span></div>
+            {viewOnly
+              ? <div className="reference-lock-note"><LockSimple size={18} /><span><strong>View only</strong><small>{viewOnly}</small></span></div>
+              : <div className="reference-lock-note"><LockSimple size={18} /><span><strong>Verified reference</strong><small>Copy this play to Personal Active before editing.</small></span></div>}
             <dl>
               <div><dt>Position</dt><dd>{label}{route?.evidence?.sourcePositionLabel && route.evidence.sourcePositionLabel !== label ? ` · source ${route.evidence.sourcePositionLabel}` : ""}</dd></div>
               <div><dt>Assignment</dt><dd>{route?.preset ?? route?.type ?? "None"}</dd></div>

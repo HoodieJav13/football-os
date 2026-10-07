@@ -8,6 +8,21 @@ import {
 export const LEGACY_LIBRARY_KEY = 'football-os.library.v4';
 export const GAME_DAY_KEY = 'football-os.game-day.v7';
 export const LEGACY_GAME_DAY_KEYS = ['football-os.game-day.v6','football-os.game-day.v5','football-os.game-day.v4'];
+export const GAME_DAY_RECOVERY_KEY = 'football-os.game-day-recovery.v1';
+export const RESOLVED_GAME_DAY = JSON.stringify({resolved:true,workspaceVersion:WORKSPACE_VERSION});
+
+/** Thrown instead of silently replacing the only recovery copy a coach has. */
+export class RecoveryCopyExistsError extends Error {
+  constructor(key,raw) {
+    super('An earlier recovery copy would be replaced. Download it or confirm replacing it first.');
+    this.name='RecoveryCopyExistsError';this.key=key;this.raw=raw;
+  }
+}
+/** A recovery key may only be replaced by a caller that confirmed exactly the bytes it replaces. */
+function guardRecoveryCopy(storage,key,replaceRecovery) {
+  const existing=storage.getItem(key);
+  if (existing!==null && existing!==replaceRecovery) throw new RecoveryCopyExistsError(key,existing);
+}
 
 /** The first present key is authoritative, including when it is corrupt. */
 function firstStored(storage,keys) {
@@ -52,32 +67,49 @@ export function loadGameDayState(storage, workspace) {
   }
 }
 
-/** Recovery write must succeed before replacing data or changing the live workspace. */
-export function restoreWorkspace(storage,candidate,currentState) {
+/**
+ * Recovery write must succeed before replacing data or changing the live workspace.
+ *
+ * The recovery copy also keeps the raw game-day record, because during an
+ * active adjustment the original of the adjusted play exists only there: a
+ * recovery copy of the workspace alone would hold the temporary version and
+ * nothing else. With `endAdjustment` (or a `gameDay` to install) the game-day
+ * key is written before the workspace, so a failure between the two leaves
+ * the pre-restore workspace with its adjustment preserved in the recovery copy
+ * rather than an old adjustment pointing into the restored workspace.
+ */
+export function restoreWorkspace(storage,candidate,currentState,{replaceRecovery=null,endAdjustment=false,gameDay}={}) {
   const normalized=normalizeWorkspace(candidate);
   if (!normalized) throw new Error('The replacement workspace is invalid.');
+  guardRecoveryCopy(storage,RECOVERY_WORKSPACE_KEY,replaceRecovery);
   const recovery={version:WORKSPACE_VERSION,createdAt:new Date().toISOString(),workspace:currentState.workspace};
   if (!currentState.writable && currentState.sourceKey) {
     recovery.sourceKey=currentState.sourceKey;
     recovery.raw=storage.getItem(currentState.sourceKey);
   }
+  const savedGameDay=firstStored(storage,[GAME_DAY_KEY,...LEGACY_GAME_DAY_KEYS]);
+  if (savedGameDay.sourceKey) recovery.gameDay=savedGameDay;
   storage.setItem(RECOVERY_WORKSPACE_KEY,JSON.stringify(recovery));
+  if (gameDay) storage.setItem(GAME_DAY_KEY,JSON.stringify({...gameDay,workspaceVersion:WORKSPACE_VERSION}));
+  else if (endAdjustment && savedGameDay.sourceKey) storage.setItem(GAME_DAY_KEY,RESOLVED_GAME_DAY);
   storage.setItem(WORKSPACE_KEY,JSON.stringify(normalized));
   return normalized;
 }
 
-// Defer even the localStorage getter so restricted-browser access is caught by callers.
-export const browserStorage = {
+/*
+ * Defer even the localStorage getter so restricted-browser access is caught by
+ * callers. Read-only on purpose: every write goes through durableStore.
+ */
+export const browserStorage = Object.freeze({
   getItem: key => window.localStorage.getItem(key),
-  setItem: (key,value) => window.localStorage.setItem(key,value),
-  removeItem: key => window.localStorage.removeItem(key),
-};
+});
 
-export function recoverGameDay(storage, state) {
+export function recoverGameDay(storage, state, {replaceRecovery=null}={}) {
   if (state.writable || !state.sourceKey) throw new Error('No saved adjustment is available for recovery.');
   const raw=storage.getItem(state.sourceKey);
   if (raw !== state.raw) throw new Error('The saved adjustment changed. Reload before recovering it.');
-  storage.setItem('football-os.game-day-recovery.v1',JSON.stringify({sourceKey:state.sourceKey,raw,createdAt:new Date().toISOString()}));
-  storage.setItem(GAME_DAY_KEY,JSON.stringify({resolved:true,workspaceVersion:WORKSPACE_VERSION}));
+  guardRecoveryCopy(storage,GAME_DAY_RECOVERY_KEY,replaceRecovery);
+  storage.setItem(GAME_DAY_RECOVERY_KEY,JSON.stringify({sourceKey:state.sourceKey,raw,createdAt:new Date().toISOString()}));
+  storage.setItem(GAME_DAY_KEY,RESOLVED_GAME_DAY);
   return loadGameDayState(storage);
 }

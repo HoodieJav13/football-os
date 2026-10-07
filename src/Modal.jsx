@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { HandoverNotice } from "./AuthorityBanner";
 
 /** Matches the dialog exit keyframes in styles.css. */
 const EXIT_MS = 160;
@@ -154,6 +155,7 @@ export function Modal({
         aria-label={label}
         {...panelProps}
       >
+        <HandoverNotice />
         {children}
       </Panel>
     </div>

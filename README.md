@@ -59,6 +59,23 @@ Storage uses workspace v11, backup v3 and game-day v7. Damaged saved data enters
 read-only recovery; successful restore preserves the original raw data before
 replacement. Downloaded backups remain the portable recovery method.
 
+## One editor at a time
+
+A workspace has one editing tab. Any other tab or window of the same browser
+opens **View only**: it follows the saved playbook, can browse, present and
+export, and writes nothing. **Edit here** asks the editing tab to hand over; it
+does so once its open dialogs, typed-but-uncommitted fields and drags are
+finished and its changes are saved. A hidden or suspended editor keeps
+control until it wakes or closes; nothing is taken from it on a timer. If a
+save fails, or saved data is changed outside the editing tab (an older version
+still open, for example), saving pauses and **Download preservation file**
+keeps everything that tab holds: the workspace, an active game-day adjustment
+with its original play, unfinished drafts, and the saved records exactly as
+stored. A preservation file restores through **Choose backup to restore**.
+Browsers without Web Locks (Safari before 15.4) open view-only. Restoring never
+replaces an earlier recovery copy without asking. Design notes and evidence:
+[`docs/multi-tab/`](docs/multi-tab/README.md).
+
 ## Keyboard
 
 | Key | Action |

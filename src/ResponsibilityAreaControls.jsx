@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { FIELD, clampPoint } from './playData.js';
 import { REGION_COLORS, responsibilityAreaError } from './responsibilityArea.js';
+import { useDraft } from './draftRegistry.js';
 
 const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
 export function ResponsibilityAreaControls({area,ownerLabel,disabled,onChange,onEdit,editing,defaultCenter=[0,20]}) {
   const [draft,setDraft]=useState({label:'',width:'',height:''});
   const [error,setError]=useState('');
+  const committed=area?{label:area.label,width:String(area.radiusX*2),height:String(area.radiusY*2)}:{label:'',width:'',height:''};
+  useDraft('responsibility-area',{dirty:Boolean(area)&&JSON.stringify(draft)!==JSON.stringify(committed),label:`Responsibility area fields for ${ownerLabel}`,values:draft});
   useEffect(()=>{
     setDraft(area?{label:area.label,width:String(area.radiusX*2),height:String(area.radiusY*2)}:{label:'',width:'',height:''});
     setError('');

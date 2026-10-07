@@ -37,3 +37,22 @@ a coach would describe the app: `token(page, "X")`, `tokenSpot`, `playClock`,
 
 Every opened app collects console and page errors; call `assertNoErrors()`
 before closing when a test exercises a path where a silent throw would matter.
+
+## Multi-tab tests
+
+`multi-tab.test.mjs` and `crash-windows.test.mjs` open genuine same-origin
+pages in one browser context (shared localStorage, Web Locks and
+BroadcastChannel, like tabs of one profile). Helpers live in `tabs.mjs`.
+
+- **Read durable results from a page that does not run the app.**
+  `readDurable` loads `manifest.webmanifest` and reads localStorage, because an
+  app page would acquire editing authority and save, changing what it observes.
+- **Suspend with the debugger, not the lifecycle API.** CDP
+  `Page.setWebLifecycleState({ state: "frozen" })` was measured to be ignored
+  for visible headless pages (timers kept ticking), so a test built on it
+  proves nothing. `Debugger.pause` stops all of a tab's script while it keeps
+  its locks. Closing a paused tab terminates it without `pagehide`.
+- **Crash windows are fault injection.** `crash-windows.test.mjs` lets the next
+  N Football OS writes through and drops the rest, which is what a restarted
+  browser would find had the tab died after write N. Tests needing the
+  unapproved redo journal are `todo`: they run and report, but do not fail.

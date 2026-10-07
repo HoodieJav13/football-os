@@ -3,9 +3,14 @@ import { createCover3Lesson } from './cover3Lesson';
 import { FIELD } from './playData';
 import { copyResponsibilityArea, responsibilityOwnerKeys } from './responsibilityArea';
 import { LessonExport } from './LessonExport';
-import { browserStorage, loadWorkspaceState, loadGameDayState, restoreWorkspace, recoverGameDay } from "./workspaceStorage.js";
+import { GAME_DAY_RECOVERY_KEY, loadWorkspaceState, loadGameDayState, RecoveryCopyExistsError, RESOLVED_GAME_DAY, restoreWorkspace, recoverGameDay } from "./workspaceStorage.js";
+import { createDurableStore, OutOfBandWriteError, RevokedWriteError, WATCHED_KEYS } from "./durableStore.js";
+import { getEditorAuthority } from "./editorAuthority.js";
+import { listDrafts, useDraft, subscribeDrafts } from "./draftRegistry.js";
+import { createPreservationBundle, parseRestoreFile, preservationFilename } from "./preservation.js";
+import { AuthorityBanner, HandoverNoticeContext, ViewOnlyChip } from "./AuthorityBanner";
 import { createEmptyPlayFilters, createFamilyBases, createPlayFilterOptions, filterPlays } from "./playFilters";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { CaretLeft, CornersOut, Play, X } from "@phosphor-icons/react";
 
 import { ApplyConceptDialog, DataToolsDialog, PrintCollectionPreview, SaveConceptDialog } from "./WorkspaceDialogs";
@@ -68,9 +73,30 @@ import {
   sanitizeAssignmentDefinition,
   snapDragTarget,
 } from "./playData";
-import { downloadPlayPng, downloadWorkspaceBackup } from "./exportUtils";
+import { downloadBlob, downloadPlayPng, downloadWorkspaceBackup } from "./exportUtils";
 import { refreshOfflineCopy, subscribeOfflineStatus } from "./offline";
-import { parseWorkspaceBackup, uniquePlaybookId, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
+import { RECOVERY_WORKSPACE_KEY, uniquePlaybookId, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData";
+
+/*
+ * One authority and one durable store per document. The store asks the
+ * authority whether a lease is current at the moment of every write, so no
+ * component can write around it.
+ */
+let session = null;
+function workspaceSession() {
+  if (!session) {
+    const authority = getEditorAuthority();
+    session = { authority, store: createDurableStore({ isCurrent: (epoch) => authority.isCurrent(epoch) }) };
+  }
+  return session;
+}
+
+const GESTURE_LABELS = {
+  player: "dragging a player",
+  point: "moving a path handle",
+  drawing: "drawing an assignment",
+  region: "moving a responsibility area",
+};
 
 /** Matches the inspector exit keyframes in styles.css. */
 const INSPECTOR_EXIT_MS = 200;
@@ -84,12 +110,29 @@ function starterPlay(playbookId) {
 }
 
 export function App() {
-  const [storageState, setStorageState] = useState(() => loadWorkspaceState(browserStorage));
+  const { authority, store } = workspaceSession();
+  const auth = useSyncExternalStore(authority.subscribe, authority.getState);
+  /*
+   * What the page first shows is a view of storage, not an editable base: the
+   * tab may not be the editor, and even if it becomes one, storage may change
+   * between this read and the lock being granted. Editing starts only when
+   * the lock callback has reread storage and tagged the state with its lease
+   * epoch (adoptDurable).
+   */
+  const [storageState, setStorageState] = useState(() => loadWorkspaceState(store.reader));
   const [workspace, setWorkspace] = useState(storageState.workspace);
   const [saveError, setSaveError] = useState(null);
-  const [gameDaySaveError, setGameDaySaveError] = useState(null);
-  const [gameDayStorage, setGameDayStorage] = useState(() => loadGameDayState(browserStorage, storageState.workspace));
+  const [gameDayStorage, setGameDayStorage] = useState(() => loadGameDayState(store.reader, storageState.workspace));
+  /** The lease epoch the workspace in state was read under; 0 means view only. */
+  const [baseEpoch, setBaseEpoch] = useState(0);
+  /** Saved data changed outside this tab while it was editing. */
+  const [conflict, setConflict] = useState(null);
+  /** A preservation file has been downloaded for the current conflict or loss. */
+  const [preserved, setPreserved] = useState(false);
+  const isEditor = auth.status === "editor" && auth.epoch === baseEpoch && baseEpoch !== 0;
   const writable = storageState.writable;
+  /** May this tab change the workspace at all right now. */
+  const editable = writable && isEditor && !conflict;
   const [playId, setPlayId] = useState(null);
   const [view, setView] = useState("end");
   const [background, setBackground] = useState("field");
@@ -113,6 +156,14 @@ export function App() {
   const [printPreview, setPrintPreview] = useState(false);
   const [restoreCandidate, setRestoreCandidate] = useState(null);
   const [restoreError, setRestoreError] = useState("");
+  /** The exact recovery-copy bytes the coach agreed to replace, if any. */
+  const [recoveryAck, setRecoveryAck] = useState(null);
+  // A chosen-but-unconfirmed backup is unfinished work: handover waits for it.
+  useDraft("restore", {
+    dirty: Boolean(restoreCandidate),
+    label: "Backup chosen for restore (not yet confirmed)",
+    values: restoreCandidate ? { exportedAt: restoreCandidate.exportedAt, playbooks: restoreCandidate.playbookCount, plays: restoreCandidate.playCount } : null,
+  });
   const [offlineStatus, setOfflineStatus] = useState({
     online: typeof navigator === "undefined" ? true : navigator.onLine,
     ready: false,
@@ -160,7 +211,7 @@ export function App() {
   const mainPlaybook = playbooks.find((book) => book.id === workspace.mainPlaybookId) ?? playbooks[0];
   const library = activePlaybook.plays;
   const referenceLocked = activePlaybook.readOnly === true;
-  const mutationLocked = referenceLocked || !writable;
+  const mutationLocked = referenceLocked || !editable;
   /*
    * Each family's base is its first play in full library order -- stable even
    * when search or folder filters hide it, so a filtered strip still diffs
@@ -282,52 +333,218 @@ export function App() {
    * serialised the entire workspace 25 times -- about 1.4 MB of JSON.stringify on
    * the main thread. A trailing write plus a flush when the page is hidden keeps
    * the same durability without the per-frame cost.
+   *
+   * Every write goes through the durable store with the epoch this state was
+   * read under, so a timer or hide listener that fires after this tab handed
+   * editing to another one is refused at the store, not merely skipped here.
    */
   const workspaceRef = useRef(workspace);
   workspaceRef.current = workspace;
+  const gameDayRef = useRef(gameDay);
+  gameDayRef.current = gameDay;
+  const storageStateRef = useRef(storageState);
+  storageStateRef.current = storageState;
+  const gameDayStorageRef = useRef(gameDayStorage);
+  gameDayStorageRef.current = gameDayStorage;
+  const epochRef = useRef(baseEpoch);
+  epochRef.current = baseEpoch;
+  const conflictRef = useRef(conflict);
+  conflictRef.current = conflict;
+  /** The adjustment as last saved, so starting or resolving one is written at once. */
+  const persistedGameDayRef = useRef(gameDay);
+  /** Where the coach is looking, kept across a reread of storage. */
+  const navRef = useRef(null);
+  navRef.current = { bookId: workspace.activePlaybookId, playId };
 
-  useEffect(() => {
-    if (!writable) return undefined;
-    const flush = () => {
-      try {
-        browserStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspaceRef.current));
-        setSaveError(null);
-      } catch (error) {
-        setSaveError(`Changes could not be saved: ${error.message}. Keep this page open and download a backup.`);
+  /*
+   * The workspace and the game-day record are written in one guarded
+   * transaction, workspace first. Starting, editing and resolving an
+   * adjustment then never leave the adjustment marked resolved while the
+   * workspace still holds the temporary version -- the old separate,
+   * undebounced game-day write did exactly that for 400 ms after every
+   * resolution, and a tab killed in that window lost the original play.
+   */
+  const saveNow = () => {
+    const writes = [];
+    if (storageStateRef.current.writable) {
+      writes.push([WORKSPACE_KEY, JSON.stringify(workspaceRef.current)]);
+      const savedGameDay = gameDayStorageRef.current;
+      if (savedGameDay.writable) {
+        const current = gameDayRef.current;
+        if (current) writes.push([GAME_DAY_KEY, JSON.stringify({ ...current, workspaceVersion: WORKSPACE_VERSION })]);
+        else if (savedGameDay.gameDay || store.reader.getItem(GAME_DAY_KEY) !== null) writes.push([GAME_DAY_KEY, RESOLVED_GAME_DAY]);
       }
-    };
-    const timer = window.setTimeout(flush, 400);
-    const onHide = () => {
+    }
+    try {
+      store.transact(epochRef.current, (guarded) => {
+        for (const [key, value] of writes) guarded.setItem(key, value);
+      });
+    } catch (error) {
+      if (error instanceof RevokedWriteError) return { ok: false, revoked: true };
+      if (error instanceof OutOfBandWriteError) {
+        setConflict((current) => current ?? { keys: error.keys, at: new Date().toISOString() });
+        return { ok: false, blocked: { kind: "conflict" } };
+      }
+      setSaveError(error.partialKeys
+        ? `Changes could not be saved: ${error.message}. Saving stopped part-way and ${error.partialKeys.join(", ")} could not be put back. Keep this page open and download a preservation file.`
+        : `Changes could not be saved: ${error.message}. Keep this page open and download a preservation file.`);
+      return { ok: false, blocked: { kind: "save", message: error.message } };
+    }
+    persistedGameDayRef.current = gameDayRef.current;
+    setSaveError(null);
+    return { ok: true };
+  };
+
+  const canPersist = isEditor && writable && !conflict;
+  useEffect(() => {
+    if (!canPersist) return undefined;
+    let timer = null;
+    const flush = () => {
       window.clearTimeout(timer);
-      flush();
+      if (saveNow().ok && authority.getState().requested) window.setTimeout(() => authority.tryHandover(), 0);
     };
-    window.addEventListener("pagehide", onHide);
-    document.addEventListener("visibilitychange", onHide);
+    if (gameDay !== persistedGameDayRef.current) flush();
+    else timer = window.setTimeout(flush, 400);
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", flush);
     return () => {
       window.clearTimeout(timer);
-      window.removeEventListener("pagehide", onHide);
-      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", flush);
     };
-  }, [workspace, writable]);
+  }, [workspace, gameDay, canPersist, baseEpoch]);
+
+  /**
+   * Replaces what this tab holds with what is stored. With an epoch it is the
+   * start of an editing lease: called inside the lock callback, so the base a
+   * new editor edits is read after it holds the lock, and the store records
+   * the same bytes as the ones it may overwrite. Without one it refreshes a
+   * view-only tab. Navigation survives; undo history does not, because it
+   * describes plays as they were before the reread.
+   */
+  const adoptDurable = (epoch, { keepNavigation = true } = {}) => {
+    if (epoch) store.adopt(epoch);
+    const freshStorage = loadWorkspaceState(store.reader);
+    const freshGameDay = loadGameDayState(store.reader, freshStorage.workspace);
+    const nav = navRef.current;
+    const keepBook = keepNavigation && freshStorage.workspace.playbooks.some((book) => book.id === nav.bookId && !book.archived);
+    setStorageState(freshStorage);
+    setGameDayStorage(freshGameDay);
+    setGameDay(freshGameDay.gameDay);
+    persistedGameDayRef.current = freshGameDay.gameDay;
+    setWorkspace(keepBook ? { ...freshStorage.workspace, activePlaybookId: nav.bookId } : freshStorage.workspace);
+    setBaseEpoch(epoch);
+    historyRef.current = new Map();
+    setHistoryVersion((value) => value + 1);
+    setSaveError(null);
+    setConflict(null);
+    setPreserved(false);
+    playerDrag.current = null;
+    routePointDrag.current = null;
+    drawing.current = false;
+    setDraftAssignment([]);
+    setDragInfo(null);
+    cancelRegionDrag();
+  };
+
+  /** Unfinished work a handover must wait for, in words a coach recognises. */
+  const unfinishedWork = () => [
+    ...listDrafts().map((draft) => draft.label),
+    ...(playerDrag.current ? [GESTURE_LABELS.player] : []),
+    ...(routePointDrag.current ? [GESTURE_LABELS.point] : []),
+    ...(drawing.current ? [GESTURE_LABELS.drawing] : []),
+    ...(regionDrag.current ? [GESTURE_LABELS.region] : []),
+  ];
+
+  /*
+   * Called by the authority when another tab is queued for the lock. Handing
+   * over requires no unfinished drafts or gestures, no unresolved conflict and
+   * a save that succeeded; otherwise this tab keeps editing and says why.
+   * Dialogs still open here are clean (a dirty one is a draft), so closing them
+   * discards nothing.
+   */
+  const prepareHandover = (epoch) => {
+    if (epoch !== epochRef.current) return { ok: false, blocked: { kind: "settling" } };
+    const drafts = unfinishedWork();
+    if (drafts.length) return { ok: false, blocked: { kind: "drafts", drafts } };
+    if (conflictRef.current) return { ok: false, blocked: { kind: "conflict" } };
+    const saved = saveNow();
+    if (!saved.ok) return { ok: false, blocked: saved.blocked ?? { kind: "save" } };
+    setGameDayDialog(false);
+    setDetailsDialog(false);
+    setCreatePlayDialog(false);
+    setDeletePlayDialog(false);
+    setNewPlaybookDialog(false);
+    setSaveFormationDialog(false);
+    setApplyFormationDialog(false);
+    setSaveConceptDialog(false);
+    setApplyConceptDialog(false);
+    setActiveTool("Select");
+    setEditRegionId(null);
+    return { ok: true };
+  };
+
+  /** Storage changed in another tab: a viewer follows it, an editor treats it as out of band. */
+  const onStorageChange = () => {
+    if (authority.getState().status === "editor") {
+      const drifted = store.drift(epochRef.current);
+      if (drifted.length) setConflict((current) => current ?? { keys: drifted, at: new Date().toISOString() });
+      return;
+    }
+    // A tab that lost its lease still holds unsaved work; it is only replaced
+    // once the coach has kept a copy and chosen to edit again.
+    if (authority.getState().reason?.kind === "lost") return;
+    adoptDurable(0);
+  };
+
+  const handlersRef = useRef(null);
+  handlersRef.current = { adoptDurable, prepareHandover, onStorageChange };
+  useEffect(() => {
+    authority.connect({
+      acquire: (epoch) => handlersRef.current.adoptDurable(epoch),
+      prepareHandover: (epoch) => handlersRef.current.prepareHandover(epoch),
+    });
+    authority.start();
+    const stopDrafts = subscribeDrafts(() => window.setTimeout(() => authority.tryHandover(), 0));
+    const onStorage = (event) => {
+      if (event.key !== null && !WATCHED_KEYS.includes(event.key)) return;
+      handlersRef.current.onStorageChange();
+    };
+    // A page restored from the back/forward cache missed every storage event
+    // while it was away: a viewer catches up, an editor checks for drift.
+    const onPageShow = (event) => { if (event.persisted) handlersRef.current.onStorageChange(); };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      stopDrafts();
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [authority]);
+
+  // Handing over ends this tab's editing session, and its undo history with it.
+  useEffect(() => {
+    if (isEditor) return;
+    if (historyRef.current.size) {
+      historyRef.current = new Map();
+      setHistoryVersion((value) => value + 1);
+    }
+  }, [isEditor]);
+
+  // A gesture that ends without a state change still clears the way to hand over.
+  useEffect(() => {
+    if (auth.requested) authority.tryHandover();
+  });
 
   useEffect(() => subscribeOfflineStatus(setOfflineStatus), []);
-
-  useEffect(() => {
-    if (!writable || !gameDayStorage.writable) return;
-    try {
-      if (gameDay) browserStorage.setItem(GAME_DAY_KEY, JSON.stringify({ ...gameDay, workspaceVersion: WORKSPACE_VERSION }));
-      else if (gameDayStorage.gameDay || browserStorage.getItem(GAME_DAY_KEY) !== null) browserStorage.setItem(GAME_DAY_KEY, JSON.stringify({ resolved: true, workspaceVersion: WORKSPACE_VERSION }));
-      setGameDaySaveError(null);
-    } catch (error) {
-      setGameDaySaveError(`Changes could not be saved: ${error.message}. Keep this page open and download a backup.`);
-    }
-  }, [gameDay, writable, gameDayStorage]);
 
   /*
    * Feedback is scoped to the play it was raised on -- an "Undo" offered for a
    * deleted assignment must not still be sitting there after switching plays.
+   * Workspace-wide confirmations (a restore) carry no play-local action and
+   * survive the play switch that usually follows them.
    */
-  useEffect(() => { setFeedback(null); }, [play.id]);
+  useEffect(() => { setFeedback((current) => (current?.scope === "workspace" ? current : null)); }, [play.id]);
 
   // Confirmations fade; problems stay until acknowledged or superseded.
   useEffect(() => {
@@ -359,7 +576,7 @@ export function App() {
   }, []);
 
   const setLibrary = (nextValue) => {
-    if (!writable) return;
+    if (!editable) return;
     setWorkspace((current) => ({
       ...current,
       playbooks: current.playbooks.map((book) => {
@@ -526,7 +743,7 @@ export function App() {
   };
 
   const copyToMain = () => {
-    if (!writable) return;
+    if (!editable) return;
     if (activePlaybook.id === mainPlaybook.id) return;
     const copy = {
       ...clonePlaybook([play])[0],
@@ -552,7 +769,7 @@ export function App() {
   };
 
   const createPlaybook = (name) => {
-    if (!writable) return;
+    if (!editable) return;
     const id = uniquePlaybookId(name, workspace.playbooks);
     const firstPlay = starterPlay(id);
     const newBook = {
@@ -739,34 +956,133 @@ export function App() {
     event.target.value = "";
     setRestoreCandidate(null);
     setRestoreError("");
+    setRecoveryAck(null);
     if (!file) return;
     try {
-      setRestoreCandidate(parseWorkspaceBackup(await file.text()));
+      setRestoreCandidate(parseRestoreFile(await file.text()));
     } catch (error) {
       setRestoreError(error instanceof Error ? error.message : "That backup could not be opened.");
     }
   };
 
+  /*
+   * Restore runs as one guarded transaction under the current lease: the
+   * recovery copy (workspace plus the raw game-day record, so an adjusted
+   * play's original is kept), then the game-day record, then the workspace.
+   * The store refuses it if this tab is not the editor or if anything it would
+   * overwrite changed since this tab read it, and an existing recovery copy is
+   * only replaced when the coach confirmed exactly that copy.
+   */
   const confirmRestore = () => {
     if (!restoreCandidate) return;
-    let restored;
-    try {
-      restored = restoreWorkspace(browserStorage, restoreCandidate.workspace, { ...storageState, workspace });
-    } catch (error) {
-      setRestoreError(`Backup was not restored: ${error.message}. The current workspace is unchanged.`);
+    if (!isEditor) {
+      setRestoreError("Backup was not restored: this tab is view only. Choose Edit here first; the current workspace is unchanged.");
       return;
     }
-    setStorageState({ workspace: restored, writable: true, error: null, sourceKey: WORKSPACE_KEY, raw: null });
-    setSaveError(null);
+    let restored;
+    try {
+      restored = store.transact(epochRef.current, (guarded) => restoreWorkspace(guarded, restoreCandidate.workspace, { ...storageState, workspace }, {
+        replaceRecovery: recoveryAck,
+        endAdjustment: gameDayStorage.writable,
+        gameDay: restoreCandidate.gameDay ?? undefined,
+      }));
+    } catch (error) {
+      if (error instanceof OutOfBandWriteError) setConflict((current) => current ?? { keys: error.keys, at: new Date().toISOString() });
+      setRestoreError(error instanceof RecoveryCopyExistsError
+        ? "Backup was not restored: the earlier recovery copy changed or was not confirmed. Review it below; the current workspace is unchanged."
+        : `Backup was not restored: ${error.message}. The current workspace is unchanged.`);
+      setRecoveryAck(null);
+      return;
+    }
+    adoptDurable(epochRef.current, { keepNavigation: false });
     const restoredBook = restored.playbooks.find((book) => book.id === restored.activePlaybookId) ?? restored.playbooks[0];
-    setWorkspace(restored);
-    setPlayId(restoredBook.plays[0].id);
+    setPlayId(restoreCandidate.gameDay?.playbookId === restoredBook.id ? restoreCandidate.gameDay.playId : restoredBook.plays[0].id);
     clearSelection();
     setSelectedUnit("offense");
-    setGameDay(null);
     setRestoreCandidate(null);
+    setRecoveryAck(null);
     setDataToolsDialog(false);
-    notify(`Backup restored · previous workspace kept as a recovery copy`);
+    notify(restoreCandidate.gameDay
+      ? "Preservation file restored · game-day adjustment and its original kept · previous workspace kept as a recovery copy"
+      : "Backup restored · previous workspace kept as a recovery copy", { scope: "workspace" });
+  };
+
+  const recoverSavedGameDay = () => {
+    if (!isEditor) {
+      setRestoreError("Adjustment was not reset: this tab is view only. Choose Edit here first.");
+      return;
+    }
+    let recovered;
+    try {
+      recovered = store.transact(epochRef.current, (guarded) => recoverGameDay(guarded, gameDayStorage, { replaceRecovery: recoveryAck }));
+    } catch (error) {
+      setRestoreError(error instanceof RecoveryCopyExistsError
+        ? "Adjustment was not reset: an earlier game-day recovery copy would be replaced. Download it or confirm replacing it first."
+        : `Adjustment was not reset: ${error.message}`);
+      setRecoveryAck(null);
+      return;
+    }
+    setGameDayStorage(recovered);
+    persistedGameDayRef.current = null;
+    setGameDay(null);
+    setRestoreError("");
+    setRecoveryAck(null);
+    notify("Original game-day data kept as a recovery copy · adjustments available again", { scope: "workspace" });
+  };
+
+  /** Everything this tab holds that storage may not, as one file. */
+  const downloadPreservation = (reason) => {
+    const bundle = createPreservationBundle({
+      reason,
+      workspace,
+      gameDay,
+      liveValid: writable,
+      location: { playbookId: activePlaybook.id, playId: play.id },
+      drafts: [
+        ...listDrafts(),
+        ...(draftAssignment.length > 1 ? [{ id: "stroke", label: GESTURE_LABELS.drawing, values: { points: draftAssignment } }] : []),
+        ...(regionPreview ? [{ id: "region", label: GESTURE_LABELS.region, values: regionPreview }] : []),
+      ],
+      durable: store.snapshot(),
+    });
+    downloadBlob(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }), preservationFilename(bundle.createdAt));
+    setPreserved(true);
+    notify("Preservation file downloaded", { scope: "workspace" });
+  };
+
+  /** Downloads an existing recovery copy before the coach agrees to replace it. */
+  const downloadRecoveryCopy = (key) => {
+    const raw = store.reader.getItem(key);
+    if (raw === null) return;
+    let parsed = null;
+    try { parsed = JSON.parse(raw); } catch { /* kept raw below */ }
+    let liveGameDay = null;
+    try { liveGameDay = parsed?.gameDay?.raw ? JSON.parse(parsed.gameDay.raw) : null; } catch { /* raw is kept */ }
+    const bundle = createPreservationBundle({
+      reason: `recovery-copy:${key}`,
+      workspace: key === RECOVERY_WORKSPACE_KEY ? parsed?.workspace : null,
+      gameDay: liveGameDay?.snapshot ? liveGameDay : null,
+      liveValid: key === RECOVERY_WORKSPACE_KEY && Boolean(parsed?.workspace),
+      durable: { [key]: raw },
+    });
+    downloadBlob(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }), preservationFilename(bundle.createdAt));
+  };
+
+  /** Resolving a conflict: keep this tab's version over the one written outside it. */
+  const keepThisVersion = () => {
+    if (!preserved || authority.getState().status !== "editor") return;
+    store.adopt(epochRef.current);
+    setConflict(null);
+    conflictRef.current = null;
+    const saved = saveNow();
+    if (saved.ok) notify("This tab's version saved · the other version is in your preservation file", { scope: "workspace" });
+  };
+
+  /** Resolving a conflict: continue from what is stored; this tab's version is in the file. */
+  const loadSavedVersion = () => {
+    if (!preserved || authority.getState().status !== "editor") return;
+    adoptDurable(epochRef.current);
+    notify("Saved version loaded · this tab's version is in your preservation file", { scope: "workspace" });
   };
 
   const exportCurrentPng = async (format = "wide") => {
@@ -1473,6 +1789,28 @@ export function App() {
     setGameDayDialog(false);
   };
 
+  /*
+   * Recovery copies the restore flow would replace, read fresh whenever the
+   * dialog or the stored state changes, so the confirmation always names the
+   * copy that is actually there.
+   */
+  const recoveryInfo = (key) => {
+    const raw = store.reader.getItem(key);
+    if (raw === null) return null;
+    let createdAt = null;
+    try { createdAt = JSON.parse(raw)?.createdAt ?? null; } catch { /* damaged copy: still kept and offered */ }
+    return { key, raw, createdAt };
+  };
+  const existingRecovery = useMemo(() => (dataToolsDialog ? recoveryInfo(RECOVERY_WORKSPACE_KEY) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dataToolsDialog, restoreCandidate, baseEpoch, storageState, workspace]);
+  const existingGameDayRecovery = useMemo(() => (dataToolsDialog && gameDayStorage.error ? recoveryInfo(GAME_DAY_RECOVERY_KEY) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dataToolsDialog, baseEpoch, gameDayStorage]);
+  const handoverNotice = auth.status === "editor" && auth.requested
+    ? "Another tab is waiting to edit. Save or cancel this dialog so this tab can hand over."
+    : null;
+
   const anyDialogOpen = gameDayDialog || detailsDialog || createPlayDialog || deletePlayDialog
     || newPlaybookDialog || saveFormationDialog || applyFormationDialog || saveConceptDialog
     || applyConceptDialog || dataToolsDialog || printPreview;
@@ -1577,16 +1915,38 @@ export function App() {
   });
 
   return (
+    <HandoverNoticeContext.Provider value={handoverNotice}>
     <main className={`app-shell ${present ? "is-presenting" : ""} ${playback === "running" ? "is-running" : ""}`} tabIndex={-1}>
-      {(storageState.error || gameDayStorage.error || gameDaySaveError || saveError) ? (
-        <aside className="storage-recovery" role="alert">
-          <strong>{!writable ? "Read-only recovery view" : "Storage needs attention"}</strong>
-          <p>{storageState.error || gameDayStorage.error || gameDaySaveError || saveError}</p>
-          <button onClick={() => setDataToolsDialog(true)}>Open backup and recovery</button>
-        </aside>
-      ) : null}
+      <div className="status-dock">
+        {(storageState.error || gameDayStorage.error || saveError) ? (
+          <aside className="storage-recovery" role="alert">
+            <strong>{!writable ? "Read-only recovery view" : "Storage needs attention"}</strong>
+            <p>{storageState.error || gameDayStorage.error || saveError}</p>
+            <div className="authority-actions">
+              <button onClick={() => setDataToolsDialog(true)}>Open backup and recovery</button>
+              {saveError ? <button onClick={() => downloadPreservation("save-failed")}>Download preservation file</button> : null}
+            </div>
+          </aside>
+        ) : null}
+        <AuthorityBanner
+          auth={auth}
+          conflict={conflict}
+          preserved={preserved}
+          onEditHere={() => {
+            // A tab that lost its lease holds work storage may not have; it
+            // starts over from storage only after that work was preserved.
+            if (auth.reason?.kind === "lost" && !preserved) return;
+            authority.requestEdit();
+          }}
+          onCancel={() => authority.cancelRequest()}
+          onPreserve={() => downloadPreservation(conflict ? "conflict" : auth.reason?.kind === "lost" ? "lost-lease" : "save-failed")}
+          onKeepMine={keepThisVersion}
+          onLoadSaved={loadSavedVersion}
+        />
+      </div>
       <Header
-        writable={writable}
+        writable={editable}
+        viewOnly={!isEditor && auth.status !== "starting"}
         activePlaybook={activePlaybook}
         formationLegal={currentFormationStatus.legal}
         mainPlaybook={mainPlaybook}
@@ -1700,6 +2060,7 @@ export function App() {
             unit={selectedUnit}
             label={selectedPlayerLabel}
             reference={referenceLocked}
+            viewOnly={!isEditor ? (auth.status === "unsupported" ? "Editing is off in this browser." : auth.status === "starting" ? "Opening the workspace…" : "Editing is open in another tab. Choose Edit here to take over.") : conflict ? "Saving is paused until the conflict is resolved." : null}
             lockReason={!writable ? "Restore a valid backup to resume editing." : undefined}
             locked={currentLayerLocked}
             unavailableTypes={unavailableTypes}
@@ -1759,16 +2120,16 @@ export function App() {
       {dataToolsDialog ? (
         <DataToolsDialog
           gameDayRecovery={gameDayStorage.error ? gameDayStorage : null}
-          onRecoverGameDay={() => {
-            try {
-              const recovered = recoverGameDay(browserStorage, gameDayStorage);
-              setGameDayStorage(recovered);
-              setGameDay(null);
-              setRestoreError("");
-              notify("Original game-day data kept as a recovery copy · adjustments available again");
-            } catch (error) { setRestoreError(`Adjustment was not reset: ${error.message}`); }
-          }}
+          onRecoverGameDay={recoverSavedGameDay}
           writable={writable}
+          canRestore={isEditor}
+          gameDayActive={Boolean(gameDay)}
+          existingRecovery={existingRecovery}
+          existingGameDayRecovery={existingGameDayRecovery}
+          recoveryAck={recoveryAck}
+          onRecoveryAck={setRecoveryAck}
+          onDownloadRecovery={downloadRecoveryCopy}
+          onPreserve={() => downloadPreservation("manual")}
           activePlaybook={activePlaybook}
           offlineStatus={offlineStatus}
           onBackup={() => {
@@ -1778,7 +2139,7 @@ export function App() {
               notify("Football OS backup downloaded");
             } catch (error) { notifyProblem(error.message); }
           }}
-          onClose={() => setDataToolsDialog(false)}
+          onClose={() => { setDataToolsDialog(false); setRestoreCandidate(null); setRecoveryAck(null); }}
           onConfirmRestore={confirmRestore}
           onExportPng={exportCurrentPng}
           onOpenPrint={() => {
@@ -1803,5 +2164,6 @@ export function App() {
         onDismiss={() => setFeedback(null)}
       />
     </main>
+    </HandoverNoticeContext.Provider>
   );
 }

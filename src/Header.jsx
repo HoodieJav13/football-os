@@ -1,3 +1,4 @@
+import { ViewOnlyChip } from "./AuthorityBanner";
 import { SegmentedControl } from "./SegmentedControl";
 import { useDismissable } from "./useDismissable";
 import {
@@ -78,6 +79,7 @@ function PlaybookSwitcher({ writable = true, activePlaybook, mainPlaybook, onCop
 
 export function Header({
   writable = true,
+  viewOnly = false,
   activePlaybook,
   formationLegal,
   mainPlaybook,
@@ -118,7 +120,8 @@ export function Header({
           <span className="family-label">{reference ? `Concept · ${play.conceptName ?? play.name}` : `${play.family} Family`}</span>
           <div className="title-line">
             <h1>{primaryName}</h1>
-            {temporary ? <span className="temporary-chip">Temporary</span> : reference ? <span className="reference-chip"><LockSimple size={13} />Reference</span> : <NotePencil size={18} aria-hidden="true" />}
+            {temporary ? <span className="temporary-chip">Temporary</span> : reference ? <span className="reference-chip"><LockSimple size={13} />Reference</span> : viewOnly ? null : <NotePencil size={18} aria-hidden="true" />}
+            {viewOnly ? <ViewOnlyChip /> : null}
           </div>
           <div className="play-meta"><span>{play.personnel}</span><span>{play.formation}</span></div>
         </div>
