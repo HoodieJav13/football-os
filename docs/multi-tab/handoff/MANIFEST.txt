@@ -1,0 +1,35 @@
+PR #13 hand-off manifest
+tested commit 4ec5f8ed19bf9ea1c371e735e31da6194d7bb696  tree e496dc383994534d90542e9922ff92e720aef241
+
+## Committed in this directory (sha256  bytes  path)
+5faec54706f24913d0de4573079ad836cc097d6f08f5785a97057b2268a6f521      7910  README.md
+5b109d8784f64f1455364a9d52cd07fc6568540a52c4281371161ea404fc0253       164  captures/after-4ec5f8e-guard-notes.json
+ab6f47533c80bbf12676ae130206ab0d8577974d3361fa4879683e69ae80c0b3       131  captures/before-20ea612-guard-notes.json
+7e69d83589e8b80039e969e17af521b6af59fbe570855548c74166a4571b0583     51269  logs/01-baseline-f41365f-npm-test.txt
+a1068cf25686d33eb33f6b4853f481827deb332ade09d7217a2f7e32be234a29     28129  logs/02-red-before-multitab-on-f41365f.txt
+9a0b0f9074bc5ec4233d7885c9f34f83eac56a00132b6b9fdabea03a0f16c9c5      2975  logs/03-red-before-review-browser-on-62e4953.txt
+6ebc28b91b019d363bbf719a63dfdf2a67036466ff034b6f8e23e481a5043ce0      6087  logs/03b-red-before-review-unit-on-62e4953.txt
+112a77f37736ba506911cc69b2d91e843eb91ca84e6c53aad379741619b1a26e     68605  logs/04-full-npm-test-0f73f16.txt
+ef14d20a6d5466340807b60b1fb9e91c3d85838f9f981cfb38a8e962860eaa0f     14929  logs/05-red-before-gaps-on-0f73f16.txt
+b7ca1842d25d3f79f44674c726a72147b198aadcbcaf92c7020a2eb8627d4140     12524  logs/05b-red-before-gaps-unit-on-0f73f16.txt
+d7857970657d45ad9fd681f11577169a1050e5f240d23e0d7a3c4f479379309f     74446  logs/06-full-npm-test-20ea612.txt
+267021d7d59dd9751801f809dd7d1d2fae6de9b529d1da01a51b53c4238d1efa     33857  logs/07-red-before-replacement-guards-on-20ea612.txt
+61694e82a8bfe6f1d4277c5a2429edc2781d608333170a9a3de8715f14851eba     14217  logs/08-green-after-affected-suites-uncommitted-fix.txt
+bc6067d975df517c9704f8529e4b96b35696b436ab4431b8e8412f26fa0d60e6     75277  logs/09-full-npm-test-4ec5f8e.txt
+
+## Held back for direct transfer, not committed (sha256  bytes  path inside delivery3/)
+c5a525a5a05603be0de56567ca20dce254a68de53f752bbd4a8527fc42d7d69b     90525  football-os-pr13-4ec5f8e.bundle
+b783c6096406fbd9b61cd7469b2792b89f4421bf3ea25b047bc6aaa19d1e9d98      5317  guard-captures.mjs
+154e8096f58f52cf1a69d5be704bb87f4deed89ea808c4daf5de9e2948d7ded4    543194  screenshots/after-g7-after-keep-attempt.png
+b95acbe28febde32dd75dbac66b0f9a2cf9a2e9be4e5142e223acd16eca35ce5    543136  screenshots/after-g7-incomplete-preservation.png
+d022962fcf3d5758c05c6996d90bfac3b8866adeaecd1d1306f980651c5d8238    657219  screenshots/after-g8-after-edit.png
+885dd43d59dc07bafb210e83046ab268092134751961e44172bd8596804e4520    625499  screenshots/after-g8-after-restore-reread-failed.png
+e9b4eb0d2bf552775c3738ea7685fa5873c92bd60d3023173e34135c91ede8d5    641883  screenshots/before-g7-after-keep-attempt.png
+316a94c199d7edf6af804982a1d5fea3256935ab853a8dfd99c8dc8ec6b3eacf    565389  screenshots/before-g7-incomplete-preservation.png
+c7f7a2bbfc9e33432338bb280512ba9332ac37a6ea559837bda4ab14a0c6f05a    656341  screenshots/before-g8-after-edit.png
+b567989683dc300cfdc3a9ffe913a5030226fcbfeca7d7c2853b0e85057dd0e7    569317  screenshots/before-g8-after-restore-reread-failed.png
+883138fc4bb87737d4096478ba688224297ac9b6b384105979703b5e4b1c3b8c      1079  SHA256SUMS
+723db445e24f09498709eab9dd7a90cf32d5444fc5963adfccb34827f15215da   4883834  delivery3.tar.gz (all of the above)
+
+The bundle holds refs/heads/handoff-tested-4ec5f8e = 4ec5f8e and requires f41365f (the PR #12 head).
+Verify: compare `sha256sum <path>` with the first column; `git bundle verify <bundle>` in a clone that has f41365f.

@@ -1,0 +1,179 @@
+TAP version 13
+# Subtest: simultaneous startup yields exactly one editor and one viewer
+ok 1 - simultaneous startup yields exactly one editor and one viewer
+  ---
+  duration_ms: 10.57445
+  type: 'test'
+  ...
+# Subtest: a request waits for drafts, then hands over; the receiver rereads under a new lease and the old lease cannot write
+ok 2 - a request waits for drafts, then hands over; the receiver rereads under a new lease and the old lease cannot write
+  ---
+  duration_ms: 2.68332
+  type: 'test'
+  ...
+# Subtest: a lost BroadcastChannel message is recovered by polling the lock queue
+ok 3 - a lost BroadcastChannel message is recovered by polling the lock queue
+  ---
+  duration_ms: 1.051195
+  type: 'test'
+  ...
+# Subtest: a failed save keeps the lock with the editor; it hands over once a save succeeds
+ok 4 - a failed save keeps the lock with the editor; it hands over once a save succeeds
+  ---
+  duration_ms: 2.680048
+  type: 'test'
+  ...
+# Subtest: an owner that dies releases the lock to a queued tab; a passive viewer does not take it
+ok 5 - an owner that dies releases the lock to a queued tab; a passive viewer does not take it
+  ---
+  duration_ms: 1.211196
+  type: 'test'
+  ...
+# Subtest: cancelling a request leaves the editor in place and clears its notice
+ok 6 - cancelling a request leaves the editor in place and clears its notice
+  ---
+  duration_ms: 1.062998
+  type: 'test'
+  ...
+# Subtest: without Web Locks the tab fails closed and never acquires
+ok 7 - without Web Locks the tab fails closed and never acquires
+  ---
+  duration_ms: 4.641862
+  type: 'test'
+  ...
+# Subtest: a lease the browser no longer reports as held stops writing at once
+ok 8 - a lease the browser no longer reports as held stops writing at once
+  ---
+  duration_ms: 0.973722
+  type: 'test'
+  ...
+# Subtest: a requester that cancelled while the editor was blocked is not handed a lock nobody takes
+not ok 9 - a requester that cancelled while the editor was blocked is not handed a lock nobody takes
+  ---
+  duration_ms: 5.571393
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/prefix/tests/editor-authority.test.mjs:167:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    A keeps editing; nobody is waiting
+    + actual - expected
+    
+      [
+    +   'viewer',
+    +   1
+    -   'editor',
+    -   0
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'editor'
+    1: 0
+  actual:
+    0: 'viewer'
+    1: 1
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/prefix/tests/editor-authority.test.mjs:180:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a tab queued before the current lease began is deferred, not handed the lock the moment the new editor gets it
+not ok 10 - a tab queued before the current lease began is deferred, not handed the lock the moment the new editor gets it
+  ---
+  duration_ms: 2.317189
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/prefix/tests/editor-authority.test.mjs:183:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    B keeps the lock it just asked for
+    + actual - expected
+    
+      [
+    +   'viewer',
+        'editor',
+    -   'requesting'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'editor'
+    1: 'requesting'
+  actual:
+    0: 'viewer'
+    1: 'editor'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/prefix/tests/editor-authority.test.mjs:195:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a lost lease also lets go of the editor lock, so neither this tab nor another waits forever
+not ok 11 - a lost lease also lets go of the editor lock, so neither this tab nor another waits forever
+  ---
+  duration_ms: 2.388324
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/prefix/tests/editor-authority.test.mjs:203:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    the editor lock is free
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/prefix/tests/editor-authority.test.mjs:212:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a lock query answered from before the lease lock was granted is discarded
+not ok 12 - a lock query answered from before the lease lock was granted is discarded
+  ---
+  duration_ms: 1.472116
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/prefix/tests/editor-authority.test.mjs:217:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   'viewer',
+    +   {
+    +     kind: 'lost'
+    +   }
+    -   'editor',
+    -   null
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'editor'
+    1: ~
+  actual:
+    0: 'viewer'
+    1:
+      kind: 'lost'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/prefix/tests/editor-authority.test.mjs:231:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 8
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 182.518285
+EXIT=1

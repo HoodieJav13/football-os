@@ -1,0 +1,611 @@
+baseline HEAD f41365f19724738a5368d19e76867b7048ff31ba + copied new tests
+TAP version 13
+# Subtest: a tab that dies right after the first write of a game-day Discard never loses the original play
+not ok 1 - a tab that dies right after the first write of a game-day Discard never loses the original play
+  ---
+  duration_ms: 6453.123795
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/crash-windows.test.mjs:62:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        firstWrite: [
+    +     'football-os.game-day.v7'
+    -     'football-os.playbooks.v11'
+        ],
+        gameDay: {
+    +     active: false
+    -     active: true,
+    -     snapshotHasX: true
+        },
+    +   workspaceHasGD: true,
+    +   workspaceHasX: false
+    -   workspaceHasGD: false,
+    -   workspaceHasX: true
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    firstWrite:
+      0: 'football-os.playbooks.v11'
+    workspaceHasX: true
+    workspaceHasGD: false
+    gameDay:
+      active: true
+      snapshotHasX: true
+  actual:
+    firstWrite:
+      0: 'football-os.game-day.v7'
+    workspaceHasX: false
+    workspaceHasGD: true
+    gameDay:
+      active: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/crash-windows.test.mjs:71:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: a tab that dies right after the first write of a game-day Discard leaves the resolution complete
+not ok 2 - a tab that dies right after the first write of a game-day Discard leaves the resolution complete # TODO needs the redo journal (owner approval pending)
+  ---
+  duration_ms: 6437.275718
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/crash-windows.test.mjs:78:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        gameDay: {
+          active: false
+        },
+    +   workspaceHasX: false
+    -   workspaceHasX: true
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    workspaceHasX: true
+    gameDay:
+      active: false
+  actual:
+    workspaceHasX: false
+    gameDay:
+      active: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/crash-windows.test.mjs:83:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a tab that dies after two writes of a restore during an adjustment leaves the restore complete
+not ok 3 - a tab that dies after two writes of a restore during an adjustment leaves the restore complete # TODO needs the redo journal (owner approval pending)
+  ---
+  duration_ms: 6436.073062
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/crash-windows.test.mjs:87:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        gameDay: {
+    +     active: true,
+    +     snapshotHasX: true
+    -     active: false
+        },
+        workspace: 'From Backup'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    workspace: 'From Backup'
+    gameDay:
+      active: false
+  actual:
+    workspace: 'From Backup'
+    gameDay:
+      active: true
+      snapshotHasX: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/crash-windows.test.mjs:102:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a stale second tab can neither edit nor overwrite the editor's saved change on hide/close
+not ok 4 - a stale second tab can neither edit nor overwrite the editor's saved change on hide/close
+  ---
+  duration_ms: 6337.863872
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:69:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    the editor's T1 survives and the view-only tab wrote nothing
+    + actual - expected
+    
+      {
+    +   x: false,
+    +   z: true
+    -   x: true,
+    -   z: false
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    x: true
+    z: false
+  actual:
+    x: false
+    z: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:84:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: simultaneous startup: exactly one tab edits, the other is view-only and writes nothing
+not ok 5 - simultaneous startup: exactly one tab edits, the other is view-only and writes nothing
+  ---
+  duration_ms: 2745.945452
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:95:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    round 0: one editor, one viewer
+    + actual - expected
+    
+      [
+        false,
+    +   false
+    -   true
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: false
+    1: true
+  actual:
+    0: false
+    1: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:102:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: stale edits across plays and books: navigation in a view-only tab publishes nothing, and its edits after taking over start from the reread base
+not ok 6 - stale edits across plays and books: navigation in a view-only tab publishes nothing, and its edits after taking over start from the reread base
+  ---
+  duration_ms: 5546.700116
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:118:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    view-only navigation is not written
+    + actual - expected
+    
+    + 'air-raid-reference'
+    - 'personal-active'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'personal-active'
+  actual: 'air-raid-reference'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:129:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a dirty dialog holds the handover until it is saved; the saved values are what the next editor gets
+not ok 7 - a dirty dialog holds the handover until it is saved; the saved values are what the next editor gets
+  ---
+  duration_ms: 35331.164311
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:158:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:165:9)
+  ...
+# Subtest: cancelling the dirty dialog hands over without saving what was typed
+not ok 8 - cancelling the dirty dialog hands over without saving what was typed
+  ---
+  duration_ms: 35630.562999
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:180:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:186:9)
+  ...
+# Subtest: a drag in progress holds the handover; releasing it saves the drop and then hands over
+not ok 9 - a drag in progress holds the handover; releasing it saves the drop and then hands over
+  ---
+  duration_ms: 37742.508004
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:195:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:204:9)
+  ...
+# Subtest: a responsibility-area drag preview holds the handover and is committed on release, not discarded
+not ok 10 - a responsibility-area drag preview holds the handover and is committed on release, not discarded
+  ---
+  duration_ms: 39215.779139
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:215:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:229:9)
+  ...
+# Subtest: revoked callbacks cannot write: hide, close, keys and a suspend/resume of the former editor leave the new editor's data alone
+not ok 11 - revoked callbacks cannot write: hide, close, keys and a suspend/resume of the former editor leave the new editor's data alone
+  ---
+  duration_ms: 35624.694487
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:240:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:245:9)
+  ...
+# Subtest: a suspended editor keeps ownership with no timeout; on resume it hands over
+not ok 12 - a suspended editor keeps ownership with no timeout; on resume it hands over
+  ---
+  duration_ms: 36416.635693
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:272:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:278:9)
+  ...
+# Subtest: a terminated editor releases the lock: the waiting tab takes over from what was durably saved
+not ok 13 - a terminated editor releases the lock: the waiting tab takes over from what was durably saved
+  ---
+  duration_ms: 39158.313677
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:293:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:301:9)
+  ...
+# Subtest: after the editor closes, a view-only tab sees nobody editing; Edit here acquires and rereads before editing
+not ok 14 - after the editor closes, a view-only tab sees nobody editing; Edit here acquires and rereads before editing
+  ---
+  duration_ms: 10910.85224
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:320:1'
+  failureType: 'testCodeFailure'
+  error: 'page.waitForFunction: Timeout 5000ms exceeded.'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:326:11)
+  ...
+# Subtest: missing notifications: with BroadcastChannel silenced in both tabs the handover still happens
+not ok 15 - missing notifications: with BroadcastChannel silenced in both tabs the handover still happens
+  ---
+  duration_ms: 35872.814103
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:339:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:344:9)
+  ...
+# Subtest: a quota failure keeps the editor in charge and offers a preservation file with the game-day original; it hands over once saving works
+not ok 16 - a quota failure keeps the editor in charge and offers a preservation file with the game-day original; it hands over once saving works
+  ---
+  duration_ms: 45551.241614
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:351:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:365:9)
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with discard
+not ok 17 - an active game-day adjustment moves to the next editor, which resolves it with discard
+  ---
+  duration_ms: 43514.819063
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:389:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:395:11)
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with replace
+not ok 18 - an active game-day adjustment moves to the next editor, which resolves it with replace
+  ---
+  duration_ms: 42538.607068
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:389:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:395:11)
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with variation
+not ok 19 - an active game-day adjustment moves to the next editor, which resolves it with variation
+  ---
+  duration_ms: 43216.853525
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:389:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:395:11)
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with new
+not ok 20 - an active game-day adjustment moves to the next editor, which resolves it with new
+  ---
+  duration_ms: 43667.266643
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:389:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.authority-banner').getByRole('button', { name: 'Edit here' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    editHere (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:24:105)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:395:11)
+  ...
+# Subtest: a stale restore dialog in a view-only tab cannot restore; after taking over it restores over the reread workspace
+not ok 21 - a stale restore dialog in a view-only tab cannot restore; after taking over it restores over the reread workspace
+  ---
+  duration_ms: 10698.376958
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:424:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:432:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a confirmed recovery copy that changed out of band is not replaced
+not ok 22 - a confirmed recovery copy that changed out of band is not replaced
+  ---
+  duration_ms: 16631.086561
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:457:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    replacing the recovery copy needs confirmation
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:470:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a stale damaged-adjustment recovery in a view-only tab is disabled and disappears once the editor recovers it
+not ok 23 - a stale damaged-adjustment recovery in a view-only tab is disabled and disappears once the editor recovers it
+  ---
+  duration_ms: 9779.668217
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:488:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:494:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: repeated restore never silently replaces the only recovery copy; confirmation survives navigation and leaves no play-local undo
+not ok 24 - repeated restore never silently replaces the only recovery copy; confirmation survives navigation and leaves no play-local undo
+  ---
+  duration_ms: 15757.940462
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:505:1'
+  failureType: 'testCodeFailure'
+  error: 'the confirmation survives play navigation'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: ''
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:519:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: restoring during an active adjustment keeps the adjusted play's original in the recovery copy
+not ok 25 - restoring during an active adjustment keeps the adjusted play's original in the recovery copy
+  ---
+  duration_ms: 20031.196993
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:547:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'raw')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:559:48)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: an out-of-band write (an older app version) pauses saving, overwrites nothing, and is resolved only after preserving both versions
+not ok 26 - an out-of-band write (an older app version) pauses saving, overwrites nothing, and is resolved only after preserving both versions
+  ---
+  duration_ms: 35148.589701
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:567:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Saving paused/. Input:
+    
+    ''
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: ''
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:580:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: without Web Locks the app fails closed: view-only, explained, and nothing is written
+not ok 27 - without Web Locks the app fails closed: view-only, explained, and nothing is written
+  ---
+  duration_ms: 2563.372157
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:604:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/baseline/tests/browser/multi-tab.test.mjs:607:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 0
+# fail 25
+# cancelled 0
+# skipped 0
+# todo 2
+# duration_ms 670184.469208
+EXIT=1

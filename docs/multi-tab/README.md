@@ -58,8 +58,8 @@ under the lock.
 
 ## Evidence
 
-- Red-before / green-after logs: see the delivery notes for this branch (raw
-  logs are attached to the hand-off, not committed).
+- Red-before / green-after logs: `handoff/` (report, raw TAP logs from the
+  base through the tested commit, capture notes, checksum manifest).
 - Browser acceptance: `tests/browser/multi-tab.test.mjs` (two genuine pages in
   one context; durable state read by a fresh third page that does not run the
   app) and `tests/browser/crash-windows.test.mjs`.
