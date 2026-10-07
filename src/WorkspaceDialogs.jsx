@@ -57,6 +57,7 @@ export function DataToolsDialog({
   onPreserve = noop,
   onRestoreVersion = noop,
   restoreNeedsPreservation = false,
+  preservationIncomplete = false,
   gameDayRecovery,
   onRecoverGameDay,
   activePlaybook,
@@ -139,7 +140,9 @@ export function DataToolsDialog({
           <button type="button" disabled={!canRestore || Boolean(existingRecovery?.unavailable) || (existingRecovery && recoveryAck !== existingRecovery.raw)} onClick={onConfirmRestore}>Restore this backup</button>
           {canRestore && restoreNeedsPreservation ? (
             <div className="recovery-replace">
-              <p>This tab holds changes that are not saved, including any game-day original. Download a preservation file before restoring: it keeps this tab's version and what is stored.</p>
+              <p>{preservationIncomplete
+                ? "The last preservation file could not include what is stored (storage could not be read), so restoring over it stays blocked. Download again once storage can be read."
+                : "This tab holds changes that are not saved, including any game-day original. Download a preservation file before restoring: it keeps this tab's version and what is stored."}</p>
               <div className="recovery-replace-actions">
                 <button type="button" onClick={onPreserve}><FloppyDisk size={17} />Download preservation file</button>
               </div>

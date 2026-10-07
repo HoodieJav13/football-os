@@ -47,7 +47,7 @@ export function ViewOnlyChip() {
  * Explains who may edit and offers the one safe next step. Shown only when
  * there is something to say; an uncontested editor sees nothing.
  */
-export function AuthorityBanner({ auth, conflict, preserved, dismissed = false, onDismiss, onEditHere, onCancel, onPreserve, onKeepMine, onLoadSaved }) {
+export function AuthorityBanner({ auth, conflict, preserved, storedPreserved = preserved, storedUnavailable = null, dismissed = false, onDismiss, onEditHere, onCancel, onPreserve, onKeepMine, onLoadSaved }) {
   const preserveButton = (
     <button type="button" onClick={onPreserve}><DownloadSimple size={17} />{preserved ? "Download again" : "Download preservation file"}</button>
   );
@@ -57,10 +57,14 @@ export function AuthorityBanner({ auth, conflict, preserved, dismissed = false, 
       <aside className="authority-banner is-problem" role="alert">
         <strong><Warning size={17} weight="fill" />Saving paused</strong>
         <p>The saved playbook was changed outside this tab (another window or an older version of Football OS). Nothing has been overwritten, and your changes are still here.</p>
-        <p className="authority-hint">{preserved ? "The preservation file holds both versions. Choose which one to keep editing." : "Download the preservation file first: it holds both versions, so neither is lost whichever you choose."}</p>
+        <p className="authority-hint">{!preserved
+          ? "Download the preservation file first: it holds both versions, so neither is lost whichever you choose."
+          : storedPreserved
+            ? "The preservation file holds both versions. Choose which one to keep editing."
+            : `The version in storage could not be read${storedUnavailable ? ` (${storedUnavailable})` : ""}, so it is not in the file. Keep this tab's version stays blocked until a file holds it; Load saved version is available because this tab's version is in the file.`}</p>
         <div className="authority-actions">
           {preserveButton}
-          <button type="button" disabled={!preserved} onClick={onKeepMine}>Keep this tab's version</button>
+          <button type="button" disabled={!storedPreserved} onClick={onKeepMine}>Keep this tab's version</button>
           <button type="button" disabled={!preserved} onClick={onLoadSaved}>Load saved version</button>
         </div>
       </aside>

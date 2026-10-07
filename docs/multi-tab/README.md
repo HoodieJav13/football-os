@@ -103,6 +103,16 @@ the real app (`tests/browser/preservation-gaps.test.mjs`: 13/13 red on a
 | 5 | Stored versions under legacy keys, or identical workspaces with different adjustments | The stored version is chosen by the same legacy-aware loaders the app opens with, compared as workspace plus adjustment, and refused whole if its adjustment is damaged |
 | 6 | A restore whose workspace write fails and whose game-day rollback also fails | Rollback stops at the first failed undo (earlier writes are what later ones depend on); every key left changed is reported and the save-failure route offers a preservation file |
 
+## Follow-up: replacement guards (after `20ea612`)
+
+Two more combinations from a source review of `20ea612`, reproduced first
+(`tests/browser/replacement-guards.test.mjs`: 3/3 red on a `20ea612` build):
+
+| # | Sequence | Fix |
+| --- | --- | --- |
+| 7 | Conflict with an outside version B, then key enumeration fails while reads and writes work; a preservation file is downloaded and **Keep this tab's version** chosen | Two snapshots that failed alike compared equal, so the file "matched" and A overwrote B, which the file did not hold. A file now records whether its stored snapshot was complete. Replacing what is stored (Keep this tab's version, or Restore over unsaved work) needs a complete file that still matches; the live-only rescue file is still produced and still unlocks Load saved version, which discards only what the file holds. The banner says why Keep stays blocked |
+| 8 | A restore commits, then the reread right after it fails once; later hide/close flushes and an edit | The old live A stayed in state while the store already expected B, so the next flush wrote A over B. The reread and the installing of state are now separate: if the reread fails, the app installs exactly what the transaction committed, updating the refs the save path reads synchronously |
+
 ## Known limits
 
 - **Crash atomicity is not provided** across the two or three keys of a

@@ -513,13 +513,28 @@ export function App() {
     if (epoch) store.adopt(epoch);
     const freshStorage = loadWorkspaceState(store.reader);
     const freshGameDay = loadGameDayState(store.reader, freshStorage.workspace);
+    installState(epoch, freshStorage, freshGameDay, { keepNavigation, fromGrant });
+  };
+
+  /*
+   * Makes a known durable state the one this tab edits. The refs the save
+   * path reads are updated here, synchronously, not at the next render: a
+   * hide flush or a debounce that fires before React re-renders must write
+   * this state, never the one it replaces.
+   */
+  const installState = (epoch, freshStorage, freshGameDay, { keepNavigation = true, fromGrant = false } = {}) => {
     const nav = navRef.current;
     const keepBook = keepNavigation && freshStorage.workspace.playbooks.some((book) => book.id === nav.bookId && !book.archived);
+    const adoptedWorkspace = keepBook ? { ...freshStorage.workspace, activePlaybookId: nav.bookId } : freshStorage.workspace;
+    storageStateRef.current = freshStorage;
+    gameDayStorageRef.current = freshGameDay;
+    gameDayRef.current = freshGameDay.gameDay;
+    workspaceRef.current = adoptedWorkspace;
+    epochRef.current = epoch;
     setStorageState(freshStorage);
     setGameDayStorage(freshGameDay);
     setGameDay(freshGameDay.gameDay);
     persistedGameDayRef.current = freshGameDay.gameDay;
-    const adoptedWorkspace = keepBook ? { ...freshStorage.workspace, activePlaybookId: nav.bookId } : freshStorage.workspace;
     setWorkspace(adoptedWorkspace);
     setBaseEpoch(epoch);
     historyRef.current = new Map();
@@ -1096,7 +1111,7 @@ export function App() {
     // When storage does not hold what this tab holds (a save failed, or the
     // stored data changed under it), the recovery copy alone cannot keep both:
     // a current preservation file must exist first.
-    if ((saveErrorRef.current || conflictRef.current) && !preservationCurrent()) {
+    if ((saveErrorRef.current || conflictRef.current) && !preservationCurrent({ needsStored: true })) {
       setRestoreError("Backup was not restored: this tab holds changes that are not saved. Download a preservation file first; it keeps this tab's version and what is stored.");
       return;
     }
@@ -1122,10 +1137,21 @@ export function App() {
       setRecoveryAck(null);
       return;
     }
+    let reread = true;
     try {
       adoptDurable(epochRef.current, { keepNavigation: false });
     } catch (error) {
-      setSaveError(`The backup was restored, but ${error.message}. Reload when storage is readable again.`);
+      if (!(error instanceof StorageReadError)) throw error;
+      // The restore is committed; only the reread failed. Install exactly
+      // what the transaction wrote (the store already records those bytes),
+      // so nothing can write the replaced live state over the restored one.
+      reread = false;
+      const committedGameDay = restoreCandidate.gameDay
+        ? { gameDay: { ...restoreCandidate.gameDay, workspaceVersion: WORKSPACE_VERSION }, sourceKey: GAME_DAY_KEY, raw: JSON.stringify({ ...restoreCandidate.gameDay, workspaceVersion: WORKSPACE_VERSION }), writable: true, error: null }
+        : gameDayStorage.writable
+          ? { gameDay: null, sourceKey: gameDayStorage.sourceKey ? GAME_DAY_KEY : null, raw: gameDayStorage.sourceKey ? RESOLVED_GAME_DAY : null, writable: true, error: null }
+          : gameDayStorage;
+      installState(epochRef.current, { workspace: restored, sourceKey: WORKSPACE_KEY, raw: null, writable: true, error: null }, committedGameDay, { keepNavigation: false });
     }
     const restoredBook = restored.playbooks.find((book) => book.id === restored.activePlaybookId) ?? restored.playbooks[0];
     setPlayId(restoreCandidate.gameDay?.playbookId === restoredBook.id ? restoreCandidate.gameDay.playId : restoredBook.plays[0].id);
@@ -1134,9 +1160,10 @@ export function App() {
     setRestoreCandidate(null);
     setRecoveryAck(null);
     setDataToolsDialog(false);
-    notify(restoreCandidate.gameDay
+    notify((restoreCandidate.gameDay
       ? "Preservation file restored · game-day adjustment and its original kept · previous workspace kept as a recovery copy"
-      : "Backup restored · previous workspace kept as a recovery copy", { scope: "workspace" });
+      : "Backup restored · previous workspace kept as a recovery copy")
+      + (reread ? "" : " · storage could not be re-read afterwards, so the restored state was taken from what was just saved"), { scope: "workspace" });
   };
 
   const recoverSavedGameDay = () => {
@@ -1180,7 +1207,7 @@ export function App() {
       durableUnavailable: stored.unavailable,
     });
     downloadBlob(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }), preservationFilename(bundle.createdAt));
-    setPreservedAs({ workspace, gameDay, durable: JSON.stringify(stored), drafts: JSON.stringify(drafts) });
+    setPreservedAs({ workspace, gameDay, durable: JSON.stringify(stored), durableComplete: stored.unavailable === null, drafts: JSON.stringify(drafts) });
     notify("Preservation file downloaded", { scope: "workspace" });
   };
 
@@ -1205,11 +1232,22 @@ export function App() {
   };
 
   /** Does the last preservation file still hold everything a destructive choice would drop? */
-  const preservationCurrent = () => Boolean(preservedAs)
-    && preservedAs.workspace === workspaceRef.current
-    && preservedAs.gameDay === gameDayRef.current
-    && preservedAs.durable === JSON.stringify(store.snapshot())
-    && preservedAs.drafts === JSON.stringify(allDrafts());
+  /*
+   * `needsStored`: the choice would replace what is stored, so the file must
+   * actually hold it. A snapshot that could not read storage proves nothing
+   * -- two failed snapshots compare equal however different the bytes they
+   * missed -- so it never counts as preserving the stored version, though the
+   * same file still preserves this tab's version.
+   */
+  const preservationCurrent = ({ needsStored = false } = {}) => {
+    if (!preservedAs) return false;
+    const now = store.snapshot();
+    if (needsStored && (!preservedAs.durableComplete || now.unavailable !== null)) return false;
+    return preservedAs.workspace === workspaceRef.current
+      && preservedAs.gameDay === gameDayRef.current
+      && preservedAs.durable === JSON.stringify(now)
+      && preservedAs.drafts === JSON.stringify(allDrafts());
+  };
   /*
    * Leaving is safe when nothing exists only in this page, or when a current
    * preservation file holds it. Evaluated when the page is about to go, from
@@ -1227,7 +1265,12 @@ export function App() {
 
   /** Resolving a conflict: keep this tab's version over the one written outside it. */
   const keepThisVersion = () => {
-    if (!preservationCurrent() || authority.getState().status !== "editor") return refusePreservation();
+    if (authority.getState().status !== "editor") return refusePreservation();
+    if (!preservationCurrent({ needsStored: true })) {
+      if (!preservationCurrent()) return refusePreservation();
+      notifyProblem("The preservation file does not hold the version in storage (it could not be read), so it cannot be replaced. Load saved version, or download again once storage can be read.");
+      return undefined;
+    }
     try { store.adopt(epochRef.current); } catch (error) { notifyProblem(`${error.message}. Nothing was changed.`); return; }
     heldDraftsRef.current = [];
     setHeldDrafts([]);
@@ -1969,8 +2012,10 @@ export function App() {
     [dataToolsDialog, baseEpoch, gameDayStorage]);
   const unsavedRisk = Boolean(saveError || conflict || auth.reason?.kind === "lost" || heldDrafts.length);
   const preservedNow = unsavedRisk ? preservationCurrent() : false;
-  /** Restore must wait for a current preservation file while storage lacks what this tab holds. */
-  const restoreNeedsPreservation = Boolean(saveError || conflict) && !preservedNow;
+  /** The file also holds what is stored, completely, so replacing it is allowed. */
+  const storedPreservedNow = preservedNow && preservationCurrent({ needsStored: true });
+  /** Restore must wait for a current, complete preservation file while storage lacks what this tab holds. */
+  const restoreNeedsPreservation = Boolean(saveError || conflict) && !storedPreservedNow;
   /*
    * While this tab holds work that storage does not (a failed save, a paused
    * conflict, a lost lease) and no current preservation file covers it, ask
@@ -2112,6 +2157,8 @@ export function App() {
           onDismiss={() => setDismissedNotice(noticeKey)}
           conflict={conflict}
           preserved={preservedNow}
+          storedPreserved={storedPreservedNow}
+          storedUnavailable={preservedAs && !preservedAs.durableComplete ? JSON.parse(preservedAs.durable).unavailable : null}
           onEditHere={() => {
             // A tab that lost its lease holds work storage may not have; it
             // starts over from storage only after that work was preserved.
@@ -2312,6 +2359,7 @@ export function App() {
           onDownloadRecovery={downloadRecoveryCopy}
           onPreserve={() => downloadPreservation(restoreNeedsPreservation ? "before-restore" : "manual")}
           restoreNeedsPreservation={restoreNeedsPreservation}
+          preservationIncomplete={Boolean(preservedAs && !preservedAs.durableComplete)}
           activePlaybook={activePlaybook}
           offlineStatus={offlineStatus}
           onBackup={() => {
