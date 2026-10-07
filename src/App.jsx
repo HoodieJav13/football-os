@@ -145,8 +145,16 @@ export function App() {
   const [heldDrafts, setHeldDrafts] = useState([]);
   const heldDraftsRef = useRef(heldDrafts);
   heldDraftsRef.current = heldDrafts;
-  // Re-render on every draft change, including ones only a child component knows about.
-  useSyncExternalStore(subscribeDrafts, getDraftsVersion);
+  /*
+   * Re-render on draft changes that only a child component knows about, but
+   * only while that can change what is shown: whether a preservation file is
+   * still current matters during a save problem, a conflict, a lost lease, or
+   * once a file has been downloaded. Otherwise every keystroke in a dialog
+   * would re-render the whole field. (Leaving the page is checked at unload
+   * time from refs and does not depend on this.)
+   */
+  const draftsMatterRef = useRef(false);
+  useSyncExternalStore(subscribeDrafts, () => (draftsMatterRef.current ? getDraftsVersion() : 0));
   /** The authority notice the coach has already seen and set aside. */
   const [dismissedNotice, setDismissedNotice] = useState(null);
   const isEditor = auth.status === "editor" && auth.epoch === baseEpoch && baseEpoch !== 0;
@@ -376,6 +384,7 @@ export function App() {
   conflictRef.current = conflict;
   const saveErrorRef = useRef(saveError);
   saveErrorRef.current = saveError;
+  draftsMatterRef.current = Boolean(saveError || conflict || auth.reason?.kind === "lost" || heldDrafts.length || preservedAs);
 
   /** Unfinished work with its values: registered drafts plus gestures still in hand. */
   const captureDrafts = () => [
