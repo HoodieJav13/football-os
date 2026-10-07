@@ -77,8 +77,12 @@ export function loadGameDayState(storage, workspace) {
  * key is written before the workspace, so a failure between the two leaves
  * the pre-restore workspace with its adjustment preserved in the recovery copy
  * rather than an old adjustment pointing into the restored workspace.
+ *
+ * `liveGameDay` is the adjustment the tab is holding, which can differ from
+ * the stored record -- or exist only in memory when saving it failed. The
+ * stored record alone would then omit the only copy of the original play.
  */
-export function restoreWorkspace(storage,candidate,currentState,{replaceRecovery=null,endAdjustment=false,gameDay}={}) {
+export function restoreWorkspace(storage,candidate,currentState,{replaceRecovery=null,endAdjustment=false,gameDay,liveGameDay=null}={}) {
   const normalized=normalizeWorkspace(candidate);
   if (!normalized) throw new Error('The replacement workspace is invalid.');
   guardRecoveryCopy(storage,RECOVERY_WORKSPACE_KEY,replaceRecovery);
@@ -89,6 +93,7 @@ export function restoreWorkspace(storage,candidate,currentState,{replaceRecovery
   }
   const savedGameDay=firstStored(storage,[GAME_DAY_KEY,...LEGACY_GAME_DAY_KEYS]);
   if (savedGameDay.sourceKey) recovery.gameDay=savedGameDay;
+  if (liveGameDay) recovery.liveGameDay={...liveGameDay,workspaceVersion:WORKSPACE_VERSION};
   storage.setItem(RECOVERY_WORKSPACE_KEY,JSON.stringify(recovery));
   if (gameDay) storage.setItem(GAME_DAY_KEY,JSON.stringify({...gameDay,workspaceVersion:WORKSPACE_VERSION}));
   else if (endAdjustment && savedGameDay.sourceKey) storage.setItem(GAME_DAY_KEY,RESOLVED_GAME_DAY);

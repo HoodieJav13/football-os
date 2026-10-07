@@ -88,6 +88,21 @@ on the pre-fix commit and green after:
 | 10 | Restore accepted adjustments the loader rejects; recovery-copy files could attach a non-matching adjustment | Restore applies the loader's validation; only a matching adjustment is attached |
 | 11 | A failing save was retried on every render while a handover waited | Retries come from the authority's poll only |
 
+## Follow-up: preservation gaps (after `0f73f16`)
+
+A source review of `0f73f16` named six sequences. Each was first reproduced in
+the real app (`tests/browser/preservation-gaps.test.mjs`: 13/13 red on a
+`0f73f16` build), then fixed:
+
+| # | Sequence | Fix |
+| --- | --- | --- |
+| 1 | Game-day saves fail, coach edits, then restores a backup lacking the play | The recovery copy also records the *live* adjustment (`liveGameDay`); while a save error or conflict stands, Restore waits for a current preservation file (offered inside the restore panel) |
+| 2 | A label / route-condition draft or an area-preview drag is in progress when a conflict or lost lease demotes the editor | Drafts and gestures are captured (`holdDrafts`) before demotion unmounts the editors; they stay in every preservation file until the coach resolves. A post-grant reread is skipped when anything is unfinished |
+| 3 | A draft typed (even only inside a child dialog) after a preservation download | Drafts are part of a file's identity; the app re-renders on every draft change; the leave prompt is evaluated at unload time from refs and also covers ordinary dirty dialogs |
+| 4 | Storage reads denied at startup, after editing, or during export enumeration | Typed `StorageReadError`; reads moved inside error handling; `snapshot()` never throws and files carry `durableUnavailable`; the data dialog no longer crashes |
+| 5 | Stored versions under legacy keys, or identical workspaces with different adjustments | The stored version is chosen by the same legacy-aware loaders the app opens with, compared as workspace plus adjustment, and refused whole if its adjustment is damaged |
+| 6 | A restore whose workspace write fails and whose game-day rollback also fails | Rollback stops at the first failed undo (earlier writes are what later ones depend on); every key left changed is reported and the save-failure route offers a preservation file |
+
 ## Known limits
 
 - **Crash atomicity is not provided** across the two or three keys of a
@@ -98,7 +113,14 @@ on the pre-fix commit and green after:
 - **Same profile only.** Separate browser profiles, private windows and
   different browsers have separate storage and are separate workspaces.
 - **Draft registration** covers the dialogs and blur-committed fields that
-  exist today. A new form must call `useDraft` to hold a handover.
+  exist today. A new form must call `useDraft` to hold a handover, appear in
+  preservation files and make leaving ask first.
+- **Held drafts are kept, not re-applied.** After a conflict or lost lease the
+  typed values live in the preservation file; the editors that held them have
+  reset by the time the coach resolves.
+- **Rollback is best effort.** When a rollback write itself fails, the keys left
+  changed are reported and the live branch stays in the tab; storage is not
+  made consistent until a later save succeeds or the coach restores.
 - **Storage propagation after a grant (review #9).** The previous editor's last
   save normally reaches the new editor before its first debounced write; if it
   arrives later, the store's drift check pauses instead of overwriting, except

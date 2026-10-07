@@ -46,6 +46,15 @@ export class RevokedWriteError extends Error {
   }
 }
 
+/** Storage refused a read (a SecurityError, a denied getter, a broken engine). */
+export class StorageReadError extends Error {
+  constructor(cause) {
+    super(`Saved data could not be read (${cause?.message ?? String(cause)})`);
+    this.name = "StorageReadError";
+    this.cause = cause;
+  }
+}
+
 export class OutOfBandWriteError extends Error {
   constructor(keys) {
     super(`Saved data was changed outside this tab (${keys.join(", ")}). Nothing was overwritten.`);
@@ -64,22 +73,36 @@ export function createDurableStore({ storage = windowStorage, isCurrent }) {
   let known = new Map();
   let knownEpoch = 0;
 
-  const read = (key) => storage().getItem(key);
+  const read = (key) => {
+    try {
+      return storage().getItem(key);
+    } catch (error) {
+      throw new StorageReadError(error);
+    }
+  };
   const changedKeys = () => WATCHED_KEYS.filter((key) => read(key) !== known.get(key));
 
   return {
     /** Read-only view for loaders and for display. */
     reader: Object.freeze({ getItem: (key) => read(key) }),
 
-    /** Every Football OS key as it is stored right now, for preservation files. */
+    /**
+     * Every Football OS key as it is stored right now, for preservation files.
+     * Never throws: a file must still be downloadable when storage cannot be
+     * read, so whatever could not be read is reported in `unavailable` instead.
+     */
     snapshot() {
-      const values = {};
-      const all = storage();
-      for (let index = 0; index < all.length; index += 1) {
-        const key = all.key(index);
-        if (key?.startsWith("football-os.")) values[key] = all.getItem(key);
+      const records = {};
+      try {
+        const all = storage();
+        for (let index = 0; index < all.length; index += 1) {
+          const key = all.key(index);
+          if (key?.startsWith("football-os.")) records[key] = all.getItem(key);
+        }
+        return { records, unavailable: null };
+      } catch (error) {
+        return { records, unavailable: `${error?.name ?? "Error"}: ${error?.message ?? String(error)}` };
       }
-      return values;
     },
 
     /**
@@ -125,17 +148,23 @@ export function createDurableStore({ storage = windowStorage, isCurrent }) {
       try {
         return apply(guarded);
       } catch (error) {
-        const stuck = [];
-        for (const [key, previous] of undo.reverse()) {
+        // Undo newest first, and stop at the first undo that fails: the
+        // earlier writes are what the later ones depend on (a recovery copy
+        // written before the records it preserves), so removing them after a
+        // later key could not be put back would destroy the only copy of what
+        // that key held. Every key left changed is reported.
+        const pending = undo.reverse();
+        for (let index = 0; index < pending.length; index += 1) {
+          const [key, previous] = pending[index];
           try {
             if (previous === null) storage().removeItem(key);
             else storage().setItem(key, previous);
             known.set(key, previous);
           } catch {
-            stuck.push(key);
+            error.partialKeys = pending.slice(index).map(([left]) => left).reverse();
+            break;
           }
         }
-        if (stuck.length) error.partialKeys = stuck;
         throw error;
       }
     },

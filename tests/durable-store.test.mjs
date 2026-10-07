@@ -77,3 +77,38 @@ test("unchanged values are not rewritten", () => {
   store.transact(1, (s) => s.setItem(WORKSPACE_KEY, "same"));
   assert.equal(writes, 0);
 });
+
+/* PR #13 follow-up: read failures and partial rollbacks (gaps 4 and 6). */
+import { StorageReadError } from "../src/durableStore.js";
+
+test("a rollback stops at the first failure, keeping the earlier writes the failed key depends on", () => {
+  const { storage, store } = setup({ [WORKSPACE_KEY]: "w0", [GAME_DAY_KEY]: "g-active" });
+  store.adopt(1);
+  const setItem = storage.setItem;
+  let gameDayWrites = 0;
+  storage.setItem = (key, value) => {
+    if (key === WORKSPACE_KEY) throw new Error("QuotaExceededError");
+    if (key === GAME_DAY_KEY && ++gameDayWrites > 1) throw new Error("QuotaExceededError");
+    setItem(key, value);
+  };
+  let caught;
+  try {
+    store.transact(1, (s) => { s.setItem(RECOVERY_WORKSPACE_KEY, "r-copy"); s.setItem(GAME_DAY_KEY, "g-resolved"); s.setItem(WORKSPACE_KEY, "w1"); });
+  } catch (error) { caught = error; }
+  assert.deepEqual(caught.partialKeys, [RECOVERY_WORKSPACE_KEY, GAME_DAY_KEY]);
+  assert.deepEqual([storage.getItem(RECOVERY_WORKSPACE_KEY), storage.getItem(GAME_DAY_KEY), storage.getItem(WORKSPACE_KEY)], ["r-copy", "g-resolved", "w0"]);
+  storage.setItem = setItem;
+  assert.deepEqual(store.drift(1), [], "the store still knows exactly what is stored");
+});
+
+test("read failures are typed, and a snapshot reports them instead of throwing", () => {
+  const storage = memoryStorage({ [WORKSPACE_KEY]: "w0" });
+  const store = createDurableStore({ storage: () => storage, isCurrent: () => true });
+  store.adopt(1);
+  storage.getItem = () => { throw new Error("denied"); };
+  assert.throws(() => store.transact(1, (s) => s.setItem(WORKSPACE_KEY, "w1")), StorageReadError);
+  assert.throws(() => store.reader.getItem(WORKSPACE_KEY), StorageReadError);
+  assert.match(store.snapshot().unavailable, /denied/);
+  const denied = createDurableStore({ storage: () => { throw new Error("SecurityError: denied"); }, isCurrent: () => true });
+  assert.deepEqual(denied.snapshot(), { records: {}, unavailable: "Error: SecurityError: denied" });
+});

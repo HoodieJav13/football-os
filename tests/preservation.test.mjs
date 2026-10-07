@@ -93,3 +93,53 @@ test("an adjustment the loader would reject as damaged is refused at restore, no
   const text = JSON.stringify(createPreservationBundle({ reason: "x", workspace, gameDay }));
   assert.throws(() => parseRestoreFile(text), /damaged/);
 });
+
+/* Stored-version selection follows the loaders, legacy keys included (PR #13 follow-up, gap 5). */
+import { readFileSync } from "node:fs";
+
+const fileWith = (live, durable, liveGameDay = null) => JSON.stringify({
+  format: "football-os-preservation", formatVersion: 1, createdAt: "2026-10-07T00:00:00.000Z", reason: "conflict",
+  live: { workspaceVersion: 11, workspace: live, gameDay: liveGameDay, location: null }, drafts: [], durable,
+});
+
+test("a stored version held only under a legacy workspace key is restorable, migrated", () => {
+  const legacy = readFileSync(new URL("./fixtures/workspace-v10.json", import.meta.url), "utf8");
+  const parsed = parseRestoreFile(fileWith(createDefaultWorkspace(), { "football-os.playbooks.v10": legacy }));
+  assert.equal(parsed.storedAvailable, true);
+  const stored = parseRestoreFile(fileWith(createDefaultWorkspace(), { "football-os.playbooks.v10": legacy }), { version: "stored" });
+  assert.deepEqual([stored.workspace.version, stored.workspace.playbooks[0].plays[0].name, stored.gameDay], [11, "Saved custom v10", null]);
+});
+
+test("a current workspace with only a legacy adjustment (its migration write failed) restores with that adjustment", () => {
+  const { workspace, gameDay } = adjusted();
+  const stored = parseRestoreFile(fileWith(createDefaultWorkspace(), {
+    [WORKSPACE_KEY]: JSON.stringify(workspace),
+    "football-os.game-day.v6": JSON.stringify(gameDay),
+  }), { version: "stored" });
+  assert.deepEqual([stored.gameDay.playId, stored.gameDay.snapshot.players[0].label], [gameDay.playId, "X"]);
+});
+
+test("identical workspaces with different adjustments are two states, and the stored one is offered", () => {
+  const { workspace, gameDay } = adjusted();
+  const text = fileWith(workspace, { [WORKSPACE_KEY]: JSON.stringify(workspace), [GAME_DAY_KEY]: JSON.stringify({ ...gameDay, workspaceVersion: 11 }) });
+  const live = parseRestoreFile(text);
+  assert.deepEqual([live.gameDay, live.storedAvailable], [null, true]);
+  assert.equal(parseRestoreFile(text, { version: "stored" }).gameDay.playId, gameDay.playId);
+  const same = fileWith(workspace, { [WORKSPACE_KEY]: JSON.stringify(workspace), [GAME_DAY_KEY]: JSON.stringify({ ...gameDay, workspaceVersion: 11 }) }, gameDay);
+  assert.equal(parseRestoreFile(same).storedAvailable, false, "same workspace and same adjustment: nothing else to offer");
+});
+
+test("a stored version whose adjustment is damaged is refused rather than offered without it", () => {
+  const workspace = createDefaultWorkspace();
+  const text = fileWith(createDefaultWorkspace(), { [WORKSPACE_KEY]: JSON.stringify(workspace), [GAME_DAY_KEY]: "{damaged" });
+  assert.equal(parseRestoreFile(text).storedAvailable, false);
+  assert.throws(() => parseRestoreFile(text, { version: "stored" }), /damaged/);
+});
+
+test("the recovery copy records the live adjustment even when no adjustment is stored", () => {
+  const { workspace, gameDay } = adjusted();
+  const storage = memoryStorage({ [WORKSPACE_KEY]: JSON.stringify(createDefaultWorkspace()) });
+  restoreWorkspace(storage, createDefaultWorkspace(), { workspace, writable: true }, { endAdjustment: true, liveGameDay: gameDay });
+  const recovery = JSON.parse(storage.getItem(RECOVERY_WORKSPACE_KEY));
+  assert.deepEqual([recovery.gameDay, recovery.liveGameDay.snapshot.players[0].label], [undefined, "X"]);
+});

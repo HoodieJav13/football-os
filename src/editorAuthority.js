@@ -51,7 +51,7 @@ export function createEditorAuthority({
     reason: null,
   };
   const listeners = new Set();
-  let handlers = { acquire: () => {}, prepareHandover: () => ({ ok: true }) };
+  let handlers = { acquire: () => {}, prepareHandover: () => ({ ok: true }), demote: () => {} };
   let lease = null;
   let epochCounter = 0;
   let pendingRequest = null;
@@ -190,6 +190,9 @@ export function createEditorAuthority({
         // live branch stays in memory for the coach to preserve.
         current.active = false;
         current.release();
+        // Before anything re-renders as view-only (which unmounts editors and
+        // drops their drafts), let the app keep what is unfinished.
+        try { handlers.demote("lost"); } catch { /* best effort; the live branch is still in memory */ }
         emit({ status: "viewer", epoch: 0, requested: false, blocked: null, editorPresent: null, reason: { kind: "lost" } });
         post({ type: "released" });
         return;

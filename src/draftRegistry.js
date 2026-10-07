@@ -13,7 +13,17 @@ import { useLayoutEffect, useRef } from "react";
 
 const drafts = new Map();
 const listeners = new Set();
-const notify = () => { for (const listener of listeners) listener(); };
+let version = 0;
+const notify = () => { version += 1; for (const listener of listeners) listener(); };
+
+/**
+ * Changes on every draft change, so a parent can re-render when only a
+ * child's typed value changed (useSyncExternalStore). Without it, anything
+ * the parent derives from drafts -- whether a preservation file is still
+ * current, whether leaving should ask -- went stale until something else
+ * happened to re-render it.
+ */
+export const getDraftsVersion = () => version;
 
 export function listDrafts() {
   return [...drafts.entries()].map(([id, draft]) => ({ id, label: draft.label, values: draft.values }));

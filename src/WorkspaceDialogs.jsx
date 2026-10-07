@@ -26,6 +26,13 @@ const noop = () => {};
 /** Asks before an existing recovery copy is replaced, and offers to keep it first. */
 function RecoveryReplaceNotice({ existing, acknowledged, onAck, onDownload, what }) {
   if (!existing) return null;
+  if (existing.unavailable) {
+    return (
+      <div className="recovery-replace">
+        <p>Stored data could not be read ({existing.unavailable}), so whether an earlier recovery copy would be replaced cannot be checked. {what} is unavailable until storage can be read; the preservation file above still keeps this tab's work.</p>
+      </div>
+    );
+  }
   const when = existing.createdAt ? new Date(existing.createdAt).toLocaleString() : "an earlier date";
   return (
     <div className="recovery-replace">
@@ -49,6 +56,7 @@ export function DataToolsDialog({
   onDownloadRecovery = noop,
   onPreserve = noop,
   onRestoreVersion = noop,
+  restoreNeedsPreservation = false,
   gameDayRecovery,
   onRecoverGameDay,
   activePlaybook,
@@ -113,7 +121,7 @@ export function DataToolsDialog({
           <p>Keep the original adjustment as a local recovery copy, then reset the temporary adjustment so Game Day Adjust is available again.</p>
           <RecoveryReplaceNotice existing={existingGameDayRecovery} acknowledged={Boolean(existingGameDayRecovery) && recoveryAck === existingGameDayRecovery.raw} onAck={onRecoveryAck} onDownload={onDownloadRecovery} what="Resetting" />
           {!canRestore ? <p className="data-note">View only: choose Edit here before recovering.</p> : null}
-          <button type="button" disabled={!gameDayRecovery.sourceKey || !canRestore || (existingGameDayRecovery && recoveryAck !== existingGameDayRecovery.raw)} onClick={onRecoverGameDay}>Preserve and reset adjustment</button>
+          <button type="button" disabled={!gameDayRecovery.sourceKey || !canRestore || Boolean(existingGameDayRecovery?.unavailable) || (existingGameDayRecovery && recoveryAck !== existingGameDayRecovery.raw)} onClick={onRecoverGameDay}>Preserve and reset adjustment</button>
         </section>
       ) : null}
       {restoreError ? <p className="restore-error">{restoreError}</p> : null}
@@ -128,7 +136,15 @@ export function DataToolsDialog({
               : null}
             {restoreCandidate.drafts?.length ? <span>{restoreCandidate.drafts.length} unfinished draft{restoreCandidate.drafts.length === 1 ? "" : "s"} stay in the file for reference and are not applied</span> : null}
           </div>
-          <button type="button" disabled={!canRestore || (existingRecovery && recoveryAck !== existingRecovery.raw)} onClick={onConfirmRestore}>Restore this backup</button>
+          <button type="button" disabled={!canRestore || Boolean(existingRecovery?.unavailable) || (existingRecovery && recoveryAck !== existingRecovery.raw)} onClick={onConfirmRestore}>Restore this backup</button>
+          {canRestore && restoreNeedsPreservation ? (
+            <div className="recovery-replace">
+              <p>This tab holds changes that are not saved, including any game-day original. Download a preservation file before restoring: it keeps this tab's version and what is stored.</p>
+              <div className="recovery-replace-actions">
+                <button type="button" onClick={onPreserve}><FloppyDisk size={17} />Download preservation file</button>
+              </div>
+            </div>
+          ) : null}
           {restoreCandidate.preservation && restoreCandidate.liveAvailable && restoreCandidate.storedAvailable ? (
             <button type="button" className="restore-version-switch" onClick={() => onRestoreVersion(restoreCandidate.version === "stored" ? "live" : "stored")}>
               {restoreCandidate.version === "stored" ? "Restore the tab's version instead" : "Restore the stored version instead"}

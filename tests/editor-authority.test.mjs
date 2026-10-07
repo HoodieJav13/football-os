@@ -230,3 +230,16 @@ test("a lock query answered from before the lease lock was granted is discarded"
   release(); await stale; await flush();
   assert.deepEqual([authority.getState().status, authority.getState().reason], ["editor", null]);
 });
+
+test("a lost lease lets the app keep its drafts before anything re-renders as view-only", async () => {
+  const manager = createLockManager(), hub = createChannelHub();
+  const order = [];
+  const authority = createEditorAuthority({ locks: manager.client("a"), createChannel: () => hub.create(), setTimer: () => 0, clearTimer: () => {}, tabId: "a" });
+  authority.connect({ acquire: () => {}, demote: () => order.push(`demote while ${authority.getState().status}`) });
+  authority.subscribe(() => order.push(`emit ${authority.getState().status}`));
+  authority.start(); await flush();
+  order.length = 0;
+  manager.held.delete([...manager.held.keys()].find((name) => name.startsWith(`${EDITOR_LOCK}.lease.`)));
+  await authority.poll(); await flush();
+  assert.deepEqual(order.slice(0, 2), ["demote while editor", "emit viewer"]);
+});

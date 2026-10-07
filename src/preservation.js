@@ -1,7 +1,7 @@
 import { normalizePlay } from "./playData.js";
 import { validateResponsibilityAreas } from "./responsibilityArea.js";
-import { normalizeWorkspace, parseWorkspaceBackup, validPlays, WORKSPACE_KEY, WORKSPACE_VERSION } from "./workspaceData.js";
-import { GAME_DAY_KEY } from "./workspaceStorage.js";
+import { normalizeWorkspace, parseWorkspaceBackup, validPlays, WORKSPACE_VERSION } from "./workspaceData.js";
+import { loadGameDayState, loadWorkspaceState } from "./workspaceStorage.js";
 
 /*
  * A preservation file is what a coach downloads when this tab cannot save, or
@@ -16,6 +16,9 @@ import { GAME_DAY_KEY } from "./workspaceStorage.js";
  *   drafts    unfinished UI work with its values (not applied on restore)
  *   durable   every football-os.* key exactly as stored, so a version written
  *             by another tab or an older app is kept byte for byte
+ *   durableUnavailable
+ *             why stored records could not be read, when they could not: the
+ *             file is still written, and says so, rather than failing
  *
  * It restores through the normal Restore flow: the live workspace and, when
  * it is consistent, the adjustment with its original.
@@ -25,7 +28,7 @@ export const PRESERVATION_FORMAT = "football-os-preservation";
 export const PRESERVATION_FORMAT_VERSION = 1;
 const PRESERVATION_EXTENSION = ".footballos";
 
-export function createPreservationBundle({ reason, workspace, gameDay, location, drafts = [], durable = {}, liveValid = true, createdAt = new Date().toISOString() }) {
+export function createPreservationBundle({ reason, workspace, gameDay, location, drafts = [], durable = {}, durableUnavailable = null, liveValid = true, createdAt = new Date().toISOString() }) {
   return {
     format: PRESERVATION_FORMAT,
     formatVersion: PRESERVATION_FORMAT_VERSION,
@@ -39,6 +42,7 @@ export function createPreservationBundle({ reason, workspace, gameDay, location,
     } : null,
     drafts,
     durable,
+    durableUnavailable,
   };
 }
 
@@ -57,6 +61,7 @@ export function describePreservation(bundle) {
     parts.push("no loaded workspace (this tab is in recovery)");
   }
   if (bundle.drafts.length) parts.push(`${bundle.drafts.length} unfinished draft${bundle.drafts.length === 1 ? "" : "s"}`);
+  if (bundle.durableUnavailable) parts.push(`saved records could not be read (${bundle.durableUnavailable})`);
   const keys = Object.keys(bundle.durable).length;
   parts.push(`${keys} saved record${keys === 1 ? "" : "s"} exactly as stored`);
   return parts.join(" · ");
@@ -92,19 +97,36 @@ function checkedAdjustment(saved, workspace, what) {
   return { ...saved, playbookId: book.id, snapshot: normalizePlay(saved.snapshot) };
 }
 
-/** The workspace and adjustment the file recorded as stored, if they can be restored. */
+/** One shape for comparing adjustments, whichever key or loader produced them. */
+const canonicalAdjustment = (gameDay) => (gameDay
+  ? { playbookId: gameDay.playbookId, playId: gameDay.playId, startedAt: gameDay.startedAt ?? null, snapshot: normalizePlay(gameDay.snapshot) }
+  : null);
+
+/**
+ * The version the file recorded as stored, chosen exactly as the app chooses
+ * what to open: the first present workspace key (current or legacy) and the
+ * first present adjustment key (current or legacy), through the same loaders.
+ * Returns `{ error }` when a stored version exists but cannot be restored
+ * whole -- a damaged workspace, or an adjustment that is damaged or does not
+ * belong to it -- rather than offering it without its adjustment.
+ */
 function storedVersion(durable) {
+  if (!durable || typeof durable !== "object") return null;
+  const reader = { getItem: (key) => (Object.hasOwn(durable, key) ? durable[key] : null) };
+  const saved = loadWorkspaceState(reader);
+  if (saved.sourceKey === null) return null;
+  if (!saved.writable) return { error: `The stored workspace (${saved.sourceKey}) is damaged, so it cannot be restored from this file.` };
+  const adjustment = loadGameDayState(reader, saved.workspace);
+  if (!adjustment.writable) return { error: `The stored game-day adjustment (${adjustment.sourceKey}) is damaged, so the stored version cannot be restored whole.` };
   try {
-    const workspace = normalizeWorkspace(JSON.parse(durable?.[WORKSPACE_KEY]));
-    if (!workspace) return null;
-    let saved = null;
-    try { saved = JSON.parse(durable?.[GAME_DAY_KEY] ?? "null"); } catch { saved = null; }
-    const gameDay = saved && !saved.resolved && adjustmentBelongs(saved, workspace) ? checkedAdjustment(saved, workspace, "The stored") : null;
-    return { workspace, gameDay };
-  } catch {
-    return null;
+    return { workspace: saved.workspace, gameDay: checkedAdjustment(adjustment.gameDay, saved.workspace, "The stored"), sourceKey: saved.sourceKey, gameDaySourceKey: adjustment.gameDay ? adjustment.sourceKey : null };
+  } catch (error) {
+    return { error: error.message };
   }
 }
+
+const sameState = (a, b) => JSON.stringify({ workspace: a.workspace, gameDay: canonicalAdjustment(a.gameDay) })
+  === JSON.stringify({ workspace: b.workspace, gameDay: canonicalAdjustment(b.gameDay) });
 
 const summary = (workspace) => ({
   playbookCount: workspace.playbooks.length,
@@ -135,16 +157,21 @@ export function parseRestoreFile(text, { version = "live" } = {}) {
   const drafts = Array.isArray(parsed.drafts) ? parsed.drafts : [];
   const base = { exportedAt: parsed.createdAt ?? null, upconvertedFrom: null, preservation: true, drafts };
   if (version === "stored") {
-    if (!stored) throw new Error("The preservation file holds no restorable stored version.");
+    if (!stored) throw new Error("The preservation file holds no stored version.");
+    if (stored.error) throw new Error(stored.error);
     return { ...base, version: "stored", storedAvailable: true, liveAvailable: Boolean(parsed.live), ...stored, ...summary(stored.workspace) };
   }
   if (!parsed.live) {
+    if (stored?.error) throw new Error(stored.error);
     if (stored) return { ...base, version: "stored", storedAvailable: true, liveAvailable: false, ...stored, ...summary(stored.workspace) };
     throw new Error("That preservation file holds only raw saved records (the tab that wrote it was in recovery). Open it to copy data out; it cannot be restored directly.");
   }
   const workspace = normalizeWorkspace(parsed.live.workspace);
   if (!workspace) throw new Error("The preservation file's workspace is incomplete or contains invalid play data.");
   const gameDay = checkedAdjustment(parsed.live.gameDay ?? null, workspace, "The preservation file's");
-  const storedDiffers = Boolean(stored) && JSON.stringify(stored.workspace) !== JSON.stringify(workspace);
-  return { ...base, version: "live", storedAvailable: storedDiffers, liveAvailable: true, workspace, gameDay, ...summary(workspace) };
+  // Offered whenever the stored version is restorable and differs from the
+  // tab's in workspace *or* adjustment -- identical playbooks with different
+  // adjustments are two different states.
+  const storedDiffers = Boolean(stored) && !stored.error && !sameState(stored, { workspace, gameDay });
+  return { ...base, version: "live", storedAvailable: storedDiffers, storedError: stored?.error ?? null, liveAvailable: true, workspace, gameDay, ...summary(workspace) };
 }
