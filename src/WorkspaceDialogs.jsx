@@ -29,7 +29,7 @@ function RecoveryReplaceNotice({ existing, acknowledged, onAck, onDownload, what
   if (existing.unavailable) {
     return (
       <div className="recovery-replace">
-        <p>Stored data could not be read ({existing.unavailable}), so whether an earlier recovery copy would be replaced cannot be checked. {what} is unavailable until storage can be read; the preservation file above still keeps this tab's work.</p>
+        <p>{existing.unavailable}, so whether an earlier recovery copy would be replaced cannot be checked. {what} is unavailable until storage can be read; the preservation file above still keeps this tab's work.</p>
       </div>
     );
   }
