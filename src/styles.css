@@ -1622,6 +1622,10 @@ button:active { scale: 0.96; }
     blank 84px button.
   */
   .run-button { min-height: 40px; padding-inline: 10px; font-size: 0; gap: 0; }
+  /* No room for the chip in a 232px bar; the accent Edit here icon and the inspector carry the state. */
+  .title-line .authority-chip { display: none; }
+  /* View-only adds Edit here to this 232px bar; Run gives up its extra width so nothing overlaps. */
+  .top-actions:has(.authority-edit) .run-button { min-width: 44px; }
 
   .inspector { grid-column: 3; grid-row: 2; height: auto; padding: 10px 12px; border-left: 1px solid var(--line); }
   .mobile-sheet-handle { display: none; }
@@ -1818,7 +1822,10 @@ button:active { scale: 0.96; }
  .reference-copy-button span { display:none; }
 }
 
-.storage-recovery { position: fixed; z-index: 40; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); max-height: 40dvh; overflow: auto; padding: 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--chrome); box-shadow: 0 8px 32px #0008; font-size: 12px; }
+.status-dock { position: fixed; z-index: 40; left: 50%; bottom: 12px; transform: translateX(-50%); display: grid; gap: 8px; width: min(620px, calc(100vw - 24px)); max-height: 46dvh; overflow: auto; pointer-events: none; }
+.status-dock:empty { display: none; }
+.status-dock > * { pointer-events: auto; }
+.storage-recovery { max-height: 40dvh; overflow: auto; padding: 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--chrome); box-shadow: 0 8px 32px #0008; font-size: 12px; }
 .storage-recovery p { margin: 8px 0; line-height: 1.5; }
 .storage-recovery button { min-height:44px; padding: 8px 12px; border-radius:8px; background:var(--accent-soft); color:var(--accent); }
 .game-day-recovery { margin-top:16px; padding:12px; border:1px solid var(--line-strong); border-radius:10px; font-size:12px; }
@@ -1872,3 +1879,35 @@ button:active { scale: 0.96; }
 .background-diagram.dim-offense .player,
 .background-diagram.dim-offense .player-label,
 .background-diagram.dim-offense .route[data-assignment-unit="offense"] { opacity: 0.55; }
+
+/*
+ * Editing authority. One tab edits; the others say so and offer the one safe
+ * next step. The notice docks with the storage notice at the bottom edge,
+ * away from the deep routes at the top of the field.
+ */
+.authority-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 22px; padding: 0 8px; border-radius: 999px; color: var(--text-mid); background: oklch(0.9 0.012 205 / 0.08); box-shadow: inset 0 0 0 1px var(--line-strong); font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; }
+.authority-banner { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 12px; color: var(--text); background: var(--chrome); box-shadow: 0 8px 32px #0008; font-size: 12px; line-height: 1.5; animation: surface-in var(--dur-slow) var(--ease-enter) both; }
+.authority-banner.is-problem { border-color: var(--coral); }
+.authority-banner strong { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.authority-banner p { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text-mid); }
+.authority-banner p svg { flex: 0 0 auto; }
+.authority-banner .authority-hint { color: var(--text-low); }
+.authority-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.authority-actions button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 8px 12px; border-radius: 8px; color: var(--accent); background: var(--accent-soft); font-size: 12px; font-weight: 650; }
+.authority-actions button.authority-primary { color: oklch(0.17 0.025 75); background: var(--accent); }
+.authority-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+.authority-banner .authority-actions { justify-content: flex-end; }
+.handover-notice { margin: 0 0 12px !important; padding: 10px 12px; border-radius: 8px; color: var(--accent) !important; background: var(--accent-soft); font-size: 12px !important; line-height: 1.5; text-align: start; }
+.restore-preview > .recovery-replace, .restore-preview > .data-note { grid-column: 1 / -1; }
+.recovery-replace { display: grid; gap: 8px; padding: 10px 12px; border-radius: 8px; color: var(--text); background: oklch(0.69 0.17 28 / 0.1); font-size: 12px; line-height: 1.5; }
+.recovery-replace p { margin: 0 !important; color: var(--text) !important; font-size: 12px !important; }
+.recovery-replace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.recovery-replace-actions button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--accent); background: var(--accent-soft); font-size: 11px; font-weight: 700; }
+.recovery-replace-actions label { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text); font-size: 12px; }
+.recovery-replace-actions input { width: 20px; height: 20px; accent-color: var(--accent); }
+.data-note { margin: 10px 0 0 !important; color: var(--text-mid) !important; font-size: 12px !important; line-height: 1.5; text-align: start; }
+.restore-preview button:disabled, .game-day-recovery button:disabled { opacity: 0.45; cursor: not-allowed; }
+.header-button.authority-edit { color: oklch(0.17 0.025 75); background: var(--accent); box-shadow: none; }
+.header-button.authority-edit:hover { background: oklch(0.86 0.14 76); }
+.view-only-note { margin-bottom: 12px; }
+.restore-preview > .restore-version-switch { grid-column: 1 / -1; min-height: 44px; color: var(--accent); background: var(--accent-soft); }

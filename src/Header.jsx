@@ -1,3 +1,4 @@
+import { ViewOnlyChip } from "./AuthorityBanner";
 import { SegmentedControl } from "./SegmentedControl";
 import { useDismissable } from "./useDismissable";
 import {
@@ -9,6 +10,7 @@ import {
   DownloadSimple,
   LockSimple,
   NotePencil,
+  PencilSimple,
   Pause,
   Play,
   PlusCircle,
@@ -78,6 +80,8 @@ function PlaybookSwitcher({ writable = true, activePlaybook, mainPlaybook, onCop
 
 export function Header({
   writable = true,
+  viewOnly = false,
+  onEditHere = null,
   activePlaybook,
   formationLegal,
   mainPlaybook,
@@ -118,7 +122,8 @@ export function Header({
           <span className="family-label">{reference ? `Concept · ${play.conceptName ?? play.name}` : `${play.family} Family`}</span>
           <div className="title-line">
             <h1>{primaryName}</h1>
-            {temporary ? <span className="temporary-chip">Temporary</span> : reference ? <span className="reference-chip"><LockSimple size={13} />Reference</span> : <NotePencil size={18} aria-hidden="true" />}
+            {temporary ? <span className="temporary-chip">Temporary</span> : reference ? <span className="reference-chip"><LockSimple size={13} />Reference</span> : viewOnly ? null : <NotePencil size={18} aria-hidden="true" />}
+            {viewOnly ? <ViewOnlyChip /> : null}
           </div>
           <div className="play-meta"><span>{play.personnel}</span><span>{play.formation}</span></div>
         </div>
@@ -134,6 +139,7 @@ export function Header({
               : offlineStatus.development ? "Local workspace" : "Preparing offline"}
         </span>
         <SegmentedControl value={view} onChange={onView} />
+        {onEditHere ? <button className="header-button authority-edit" aria-label="Edit here" title="Ask the editing tab to hand over" onClick={onEditHere}><PencilSimple size={20} weight="duotone" />Edit here</button> : null}
         <button className="header-button" onClick={onPresent}><Presentation size={20} weight="duotone" />{present ? "Edit" : "Present"}</button>
         {/* No caret: this toggles playback and opens no menu. */}
         <button className={`run-button ${running ? "is-running" : ""}`} onClick={onRun}>

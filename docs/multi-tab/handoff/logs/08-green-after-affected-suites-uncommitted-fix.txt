@@ -1,0 +1,324 @@
+tree: HEAD 20ea61245428446c1211a603f3354154560faf2b + uncommitted fixes
+TAP version 13
+# Subtest: a stale second tab can neither edit nor overwrite the editor's saved change on hide/close
+ok 1 - a stale second tab can neither edit nor overwrite the editor's saved change on hide/close
+  ---
+  duration_ms: 36239.153801
+  type: 'test'
+  ...
+# Subtest: simultaneous startup: exactly one tab edits, the other is view-only and writes nothing
+ok 2 - simultaneous startup: exactly one tab edits, the other is view-only and writes nothing
+  ---
+  duration_ms: 16411.500302
+  type: 'test'
+  ...
+# Subtest: stale edits across plays and books: navigation in a view-only tab publishes nothing, and its edits after taking over start from the reread base
+ok 3 - stale edits across plays and books: navigation in a view-only tab publishes nothing, and its edits after taking over start from the reread base
+  ---
+  duration_ms: 8732.882331
+  type: 'test'
+  ...
+# Subtest: a dirty dialog holds the handover until it is saved; the saved values are what the next editor gets
+ok 4 - a dirty dialog holds the handover until it is saved; the saved values are what the next editor gets
+  ---
+  duration_ms: 8928.087202
+  type: 'test'
+  ...
+# Subtest: cancelling the dirty dialog hands over without saving what was typed
+ok 5 - cancelling the dirty dialog hands over without saving what was typed
+  ---
+  duration_ms: 7140.198948
+  type: 'test'
+  ...
+# Subtest: a drag in progress holds the handover; releasing it saves the drop and then hands over
+ok 6 - a drag in progress holds the handover; releasing it saves the drop and then hands over
+  ---
+  duration_ms: 7840.167298
+  type: 'test'
+  ...
+# Subtest: a responsibility-area drag preview holds the handover and is committed on release, not discarded
+ok 7 - a responsibility-area drag preview holds the handover and is committed on release, not discarded
+  ---
+  duration_ms: 7846.727281
+  type: 'test'
+  ...
+# Subtest: revoked callbacks cannot write: hide, close, keys and a suspend/resume of the former editor leave the new editor's data alone
+ok 8 - revoked callbacks cannot write: hide, close, keys and a suspend/resume of the former editor leave the new editor's data alone
+  ---
+  duration_ms: 9754.790091
+  type: 'test'
+  ...
+# Subtest: a suspended editor keeps ownership with no timeout; on resume it hands over
+ok 9 - a suspended editor keeps ownership with no timeout; on resume it hands over
+  ---
+  duration_ms: 12101.624614
+  type: 'test'
+  ...
+# Subtest: a terminated editor releases the lock: the waiting tab takes over from what was durably saved
+ok 10 - a terminated editor releases the lock: the waiting tab takes over from what was durably saved
+  ---
+  duration_ms: 10092.945557
+  type: 'test'
+  ...
+# Subtest: after the editor closes, a view-only tab sees nobody editing; Edit here acquires and rereads before editing
+ok 11 - after the editor closes, a view-only tab sees nobody editing; Edit here acquires and rereads before editing
+  ---
+  duration_ms: 7286.678338
+  type: 'test'
+  ...
+# Subtest: missing notifications: with BroadcastChannel silenced in both tabs the handover still happens
+ok 12 - missing notifications: with BroadcastChannel silenced in both tabs the handover still happens
+  ---
+  duration_ms: 5569.380145
+  type: 'test'
+  ...
+# Subtest: a quota failure keeps the editor in charge and offers a preservation file with the game-day original; it hands over once saving works
+ok 13 - a quota failure keeps the editor in charge and offers a preservation file with the game-day original; it hands over once saving works
+  ---
+  duration_ms: 11792.956422
+  type: 'test'
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with discard
+ok 14 - an active game-day adjustment moves to the next editor, which resolves it with discard
+  ---
+  duration_ms: 7862.234865
+  type: 'test'
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with replace
+ok 15 - an active game-day adjustment moves to the next editor, which resolves it with replace
+  ---
+  duration_ms: 7756.666908
+  type: 'test'
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with variation
+ok 16 - an active game-day adjustment moves to the next editor, which resolves it with variation
+  ---
+  duration_ms: 8012.198768
+  type: 'test'
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with new
+ok 17 - an active game-day adjustment moves to the next editor, which resolves it with new
+  ---
+  duration_ms: 7838.185254
+  type: 'test'
+  ...
+# Subtest: a stale restore dialog in a view-only tab cannot restore; after taking over it restores over the reread workspace
+ok 18 - a stale restore dialog in a view-only tab cannot restore; after taking over it restores over the reread workspace
+  ---
+  duration_ms: 8945.913858
+  type: 'test'
+  ...
+# Subtest: a confirmed recovery copy that changed out of band is not replaced
+ok 19 - a confirmed recovery copy that changed out of band is not replaced
+  ---
+  duration_ms: 5941.744682
+  type: 'test'
+  ...
+# Subtest: a stale damaged-adjustment recovery in a view-only tab is disabled and disappears once the editor recovers it
+ok 20 - a stale damaged-adjustment recovery in a view-only tab is disabled and disappears once the editor recovers it
+  ---
+  duration_ms: 6843.154115
+  type: 'test'
+  ...
+# Subtest: repeated restore never silently replaces the only recovery copy; confirmation survives navigation and leaves no play-local undo
+ok 21 - repeated restore never silently replaces the only recovery copy; confirmation survives navigation and leaves no play-local undo
+  ---
+  duration_ms: 7488.636297
+  type: 'test'
+  ...
+# Subtest: restoring during an active adjustment keeps the adjusted play's original in the recovery copy
+ok 22 - restoring during an active adjustment keeps the adjusted play's original in the recovery copy
+  ---
+  duration_ms: 6334.361422
+  type: 'test'
+  ...
+# Subtest: an out-of-band write (an older app version) pauses saving, overwrites nothing, and is resolved only after preserving both versions
+ok 23 - an out-of-band write (an older app version) pauses saving, overwrites nothing, and is resolved only after preserving both versions
+  ---
+  duration_ms: 10888.52727
+  type: 'test'
+  ...
+# Subtest: without Web Locks the app fails closed: view-only, explained, and nothing is written
+ok 24 - without Web Locks the app fails closed: view-only, explained, and nothing is written
+  ---
+  duration_ms: 2701.331772
+  type: 'test'
+  ...
+# Subtest: a preservation file downloaded before a conflict does not unlock the conflict's destructive choices
+ok 25 - a preservation file downloaded before a conflict does not unlock the conflict's destructive choices
+  ---
+  duration_ms: 5361.998792
+  type: 'test'
+  ...
+# Subtest: a locked layer's label field cannot hold a draft that blocks the handover
+ok 26 - a locked layer's label field cannot hold a draft that blocks the handover
+  ---
+  duration_ms: 5327.589729
+  type: 'test'
+  ...
+# Subtest: closing a tab whose changes could not be saved asks first, until a preservation file covers them
+ok 27 - closing a tab whose changes could not be saved asks first, until a preservation file covers them
+  ---
+  duration_ms: 5622.947797
+  type: 'test'
+  ...
+# Subtest: gap 1: a restore while the adjustment could not be saved keeps the live original recoverable
+ok 28 - gap 1: a restore while the adjustment could not be saved keeps the live original recoverable
+  ---
+  duration_ms: 8126.996612
+  type: 'test'
+  ...
+# Subtest: gap 2: a position label draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+ok 29 - gap 2: a position label draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9120.736916
+  type: 'test'
+  ...
+# Subtest: gap 2: a route condition draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+ok 30 - gap 2: a route condition draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9118.885166
+  type: 'test'
+  ...
+# Subtest: gap 2: a area preview draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+ok 31 - gap 2: a area preview draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9404.413862
+  type: 'test'
+  ...
+# Subtest: gap 2: a draft typed right after taking over blocks the automatic reread; it becomes a conflict instead
+ok 32 - gap 2: a draft typed right after taking over blocks the automatic reread; it becomes a conflict instead
+  ---
+  duration_ms: 3454.872883
+  type: 'test'
+  ...
+# Subtest: gap 3: a draft typed after a preservation download makes the file stale and keeps the close prompt; an ordinary dirty dialog prompts too
+ok 33 - gap 3: a draft typed after a preservation download makes the file stale and keeps the close prompt; an ordinary dirty dialog prompts too
+  ---
+  duration_ms: 5449.034942
+  type: 'test'
+  ...
+# Subtest: gap 4: storage denied at startup: the app renders, explains, and exports a file marking storage unavailable
+ok 34 - gap 4: storage denied at startup: the app renders, explains, and exports a file marking storage unavailable
+  ---
+  duration_ms: 3030.499383
+  type: 'test'
+  ...
+# Subtest: gap 4: a read failure after editing pauses saving with a message, and the live export still works
+ok 35 - gap 4: a read failure after editing pauses saving with a message, and the live export still works
+  ---
+  duration_ms: 4872.858861
+  type: 'test'
+  ...
+# Subtest: gap 4: key enumeration failing during export still downloads the live workspace and marks storage unavailable
+ok 36 - gap 4: key enumeration failing during export still downloads the live workspace and marks storage unavailable
+  ---
+  duration_ms: 4351.105294
+  type: 'test'
+  ...
+# Subtest: gap 5: a stored version held as current workspace plus a legacy adjustment restores through the UI with its adjustment
+ok 37 - gap 5: a stored version held as current workspace plus a legacy adjustment restores through the UI with its adjustment
+  ---
+  duration_ms: 4649.569513
+  type: 'test'
+  ...
+# Subtest: gap 6: a restore whose rollback also fails reports the records left changed and keeps the recovery copy
+ok 38 - gap 6: a restore whose rollback also fails reports the records left changed and keeps the recovery copy
+  ---
+  duration_ms: 5388.046766
+  type: 'test'
+  ...
+# Subtest: gap 5: a stored version held only under a legacy workspace key restores through the UI, migrated
+ok 39 - gap 5: a stored version held only under a legacy workspace key restores through the UI, migrated
+  ---
+  duration_ms: 4524.811481
+  type: 'test'
+  ...
+# Subtest: gap 5: identical workspaces with different adjustments are offered as two versions; the stored adjustment restores
+ok 40 - gap 5: identical workspaces with different adjustments are offered as two versions; the stored adjustment restores
+  ---
+  duration_ms: 4703.653839
+  type: 'test'
+  ...
+# Subtest: an export that could not read stored records keeps Keep this tab's version blocked, and B stays untouched
+ok 41 - an export that could not read stored records keeps Keep this tab's version blocked, and B stays untouched
+  ---
+  duration_ms: 11228.448405
+  type: 'test'
+  ...
+# Subtest: a successful restore whose reread fails never lets the old live state overwrite the restored one
+ok 42 - a successful restore whose reread fails never lets the old live state overwrite the restored one
+  ---
+  duration_ms: 7818.69205
+  type: 'test'
+  ...
+# Subtest: a restore over unsaved work stays refused while the preservation file could not include what is stored
+ok 43 - a restore over unsaved work stays refused while the preservation file could not include what is stored
+  ---
+  duration_ms: 5459.476202
+  type: 'test'
+  ...
+# Subtest: saved v9 workspace upgrades without losing custom data or old key
+ok 44 - saved v9 workspace upgrades without losing custom data or old key
+  ---
+  duration_ms: 3009.830402
+  type: 'test'
+  ...
+# Subtest: saved v10 workspace upgrades without losing custom data or old key
+ok 45 - saved v10 workspace upgrades without losing custom data or old key
+  ---
+  duration_ms: 2660.357791
+  type: 'test'
+  ...
+# Subtest: corrupt current data stays intact through reload and recovers only after confirmed restore
+ok 46 - corrupt current data stays intact through reload and recovers only after confirmed restore
+  ---
+  duration_ms: 5591.18689
+  type: 'test'
+  ...
+# Subtest: quota failure is persistent and a failed recovery copy cannot replace the workspace
+ok 47 - quota failure is persistent and a failed recovery copy cannot replace the workspace
+  ---
+  duration_ms: 3972.895996
+  type: 'test'
+  ...
+# Subtest: corrupt game-day data is retained and does not get deleted by the null-state effect
+ok 48 - corrupt game-day data is retained and does not get deleted by the null-state effect
+  ---
+  duration_ms: 2615.866401
+  type: 'test'
+  ...
+# Subtest: personal retired-catalog name survives creation/edit/reload (fresh)
+ok 49 - personal retired-catalog name survives creation/edit/reload (fresh)
+  ---
+  duration_ms: 5651.777215
+  type: 'test'
+  ...
+# Subtest: personal retired-catalog name survives creation/edit/reload (migrated)
+ok 50 - personal retired-catalog name survives creation/edit/reload (migrated)
+  ---
+  duration_ms: 6748.268943
+  type: 'test'
+  ...
+# Subtest: game-day recovery preserves damaged bytes and enables new adjustments after reload
+ok 51 - game-day recovery preserves damaged bytes and enables new adjustments after reload
+  ---
+  duration_ms: 4374.992065
+  type: 'test'
+  ...
+# Subtest: failed game-day recovery write leaves damaged bytes and the recovery action available
+ok 52 - failed game-day recovery write leaves damaged bytes and the recovery action available
+  ---
+  duration_ms: 3080.554314
+  type: 'test'
+  ...
+1..52
+# tests 52
+# suites 0
+# pass 52
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 386678.838088
+EXIT=0

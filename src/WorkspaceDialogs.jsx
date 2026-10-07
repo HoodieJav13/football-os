@@ -13,6 +13,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { Modal } from "./Modal";
+import { useDraft } from "./draftRegistry";
 import { PlayCanvas } from "./PlayCanvas";
 
 const printLayers = {
@@ -22,8 +23,41 @@ const printLayers = {
 };
 const noop = () => {};
 
+/** Asks before an existing recovery copy is replaced, and offers to keep it first. */
+function RecoveryReplaceNotice({ existing, acknowledged, onAck, onDownload, what }) {
+  if (!existing) return null;
+  if (existing.unavailable) {
+    return (
+      <div className="recovery-replace">
+        <p>{existing.unavailable}, so whether an earlier recovery copy would be replaced cannot be checked. {what} is unavailable until storage can be read; the preservation file above still keeps this tab's work.</p>
+      </div>
+    );
+  }
+  const when = existing.createdAt ? new Date(existing.createdAt).toLocaleString() : "an earlier date";
+  return (
+    <div className="recovery-replace">
+      <p>{what} replaces the earlier recovery copy from {when}. It is the only copy of what it holds.</p>
+      <div className="recovery-replace-actions">
+        <button type="button" onClick={() => onDownload(existing.key)}><DownloadSimple size={17} />Download earlier copy</button>
+        <label><input type="checkbox" checked={acknowledged} onChange={(event) => onAck(event.target.checked ? existing.raw : null)} />Replace the earlier recovery copy</label>
+      </div>
+    </div>
+  );
+}
+
 export function DataToolsDialog({
   writable = true,
+  canRestore = true,
+  gameDayActive = false,
+  existingRecovery = null,
+  existingGameDayRecovery = null,
+  recoveryAck = null,
+  onRecoveryAck = noop,
+  onDownloadRecovery = noop,
+  onPreserve = noop,
+  onRestoreVersion = noop,
+  restoreNeedsPreservation = false,
+  preservationIncomplete = false,
   gameDayRecovery,
   onRecoverGameDay,
   activePlaybook,
@@ -58,6 +92,10 @@ export function DataToolsDialog({
           <DownloadSimple size={22} />
           <span><strong>Download backup</strong><small>Everything in one restorable .footballos file</small></span>
         </button>
+        <button type="button" onClick={onPreserve}>
+          <FloppyDisk size={22} />
+          <span><strong>Download preservation file</strong><small>{gameDayActive ? "Also keeps the game-day original and unfinished drafts" : "This tab's workspace, unfinished drafts and the saved records as stored"}</small></span>
+        </button>
         <label className="file-action">
           <UploadSimple size={22} />
           <span><strong>Choose backup to restore</strong><small>Your current workspace stays safe until confirmation</small></span>
@@ -77,11 +115,14 @@ export function DataToolsDialog({
         </button>
       </div>
 
+      {gameDayActive ? <p className="data-note">A game-day adjustment is active. A backup holds its temporary version only; the preservation file also keeps the original play.</p> : null}
       {gameDayRecovery ? (
         <section className="game-day-recovery">
           <strong>Recover saved game-day adjustment</strong>
           <p>Keep the original adjustment as a local recovery copy, then reset the temporary adjustment so Game Day Adjust is available again.</p>
-          <button type="button" disabled={!gameDayRecovery.sourceKey} onClick={onRecoverGameDay}>Preserve and reset adjustment</button>
+          <RecoveryReplaceNotice existing={existingGameDayRecovery} acknowledged={Boolean(existingGameDayRecovery) && recoveryAck === existingGameDayRecovery.raw} onAck={onRecoveryAck} onDownload={onDownloadRecovery} what="Resetting" />
+          {!canRestore ? <p className="data-note">View only: choose Edit here before recovering.</p> : null}
+          <button type="button" disabled={!gameDayRecovery.sourceKey || !canRestore || Boolean(existingGameDayRecovery?.unavailable) || (existingGameDayRecovery && recoveryAck !== existingGameDayRecovery.raw)} onClick={onRecoverGameDay}>Preserve and reset adjustment</button>
         </section>
       ) : null}
       {restoreError ? <p className="restore-error">{restoreError}</p> : null}
@@ -89,10 +130,31 @@ export function DataToolsDialog({
         <div className="restore-preview">
           <CheckCircle size={22} weight="fill" />
           <div>
-            <strong>Valid Football OS backup</strong>
-            <span>{restoreCandidate.playbookCount} playbooks · {restoreCandidate.playCount} plays · {restoreCandidate.conceptCount} concepts</span>
+            <strong>{restoreCandidate.preservation ? "Valid Football OS preservation file" : "Valid Football OS backup"}</strong>
+            <span>{restoreCandidate.playbookCount} playbooks · {restoreCandidate.playCount} plays · {restoreCandidate.conceptCount} concepts{restoreCandidate.gameDay ? " · game-day adjustment with its original" : ""}</span>
+            {restoreCandidate.preservation && restoreCandidate.liveAvailable && restoreCandidate.storedAvailable
+              ? <span>{restoreCandidate.version === "stored" ? "The version that was in storage when the file was made" : "The version the tab that made the file was holding"}</span>
+              : null}
+            {restoreCandidate.drafts?.length ? <span>{restoreCandidate.drafts.length} unfinished draft{restoreCandidate.drafts.length === 1 ? "" : "s"} stay in the file for reference and are not applied</span> : null}
           </div>
-          <button type="button" onClick={onConfirmRestore}>Restore this backup</button>
+          <button type="button" disabled={!canRestore || Boolean(existingRecovery?.unavailable) || (existingRecovery && recoveryAck !== existingRecovery.raw)} onClick={onConfirmRestore}>Restore this backup</button>
+          {canRestore && restoreNeedsPreservation ? (
+            <div className="recovery-replace">
+              <p>{preservationIncomplete
+                ? "The last preservation file could not include what is stored (storage could not be read), so restoring over it stays blocked. Download again once storage can be read."
+                : "This tab holds changes that are not saved, including any game-day original. Download a preservation file before restoring: it keeps this tab's version and what is stored."}</p>
+              <div className="recovery-replace-actions">
+                <button type="button" onClick={onPreserve}><FloppyDisk size={17} />Download preservation file</button>
+              </div>
+            </div>
+          ) : null}
+          {restoreCandidate.preservation && restoreCandidate.liveAvailable && restoreCandidate.storedAvailable ? (
+            <button type="button" className="restore-version-switch" onClick={() => onRestoreVersion(restoreCandidate.version === "stored" ? "live" : "stored")}>
+              {restoreCandidate.version === "stored" ? "Restore the tab's version instead" : "Restore the stored version instead"}
+            </button>
+          ) : null}
+          <RecoveryReplaceNotice existing={existingRecovery} acknowledged={Boolean(existingRecovery) && recoveryAck === existingRecovery.raw} onAck={onRecoveryAck} onDownload={onDownloadRecovery} what="Restoring" />
+          {!canRestore ? <p className="data-note">View only: choose Edit here before restoring. The current workspace is unchanged.</p> : null}
         </div>
       ) : null}
       <button className="modal-close" type="button" onClick={onClose}><X size={18} />Close</button>
@@ -145,6 +207,7 @@ export function PrintCollectionPreview({ playbook, plays, onClose, view = "end",
 
 export function SaveConceptDialog({ concepts, play, onClose, onSave }) {
   const [name, setName] = useState(play.family === "Unsorted" ? "" : play.family);
+  useDraft("save-concept", { dirty: name !== (play.family === "Unsorted" ? "" : play.family), label: "Save concept dialog", values: { playId: play.id, name } });
   const existing = concepts.find((concept) => concept.name.toLowerCase() === name.trim().toLowerCase());
   return (
     <Modal label="Save concept template" className="adjustment-modal details-modal" onClose={onClose} as="form" onSubmit={(event) => {

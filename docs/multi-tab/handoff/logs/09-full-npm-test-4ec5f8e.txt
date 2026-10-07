@@ -1,0 +1,2130 @@
+HEAD 4ec5f8ed19bf9ea1c371e735e31da6194d7bb696 tree e496dc383994534d90542e9922ff92e720aef241 uncommitted=0
+
+> football-os-prototype@0.0.0 test
+> npm run test:unit && npm run test:sites && npm run build && npm run test:browser
+
+
+> football-os-prototype@0.0.0 test:unit
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: editable lesson has legal offense, independent geometry, stable owners and distinct W/M hooks
+ok 1 - editable lesson has legal offense, independent geometry, stable owners and distinct W/M hooks
+  ---
+  duration_ms: 48.776121
+  type: 'test'
+  ...
+# Subtest: writes need the lease the data was adopted under
+ok 2 - writes need the lease the data was adopted under
+  ---
+  duration_ms: 1.554566
+  type: 'test'
+  ...
+# Subtest: unknown keys are refused
+ok 3 - unknown keys are refused
+  ---
+  duration_ms: 0.213923
+  type: 'test'
+  ...
+# Subtest: an out-of-band write, legacy keys included, stops the transaction before anything is written
+ok 4 - an out-of-band write, legacy keys included, stops the transaction before anything is written
+  ---
+  duration_ms: 1.562991
+  type: 'test'
+  ...
+# Subtest: a failing later write puts earlier writes back
+ok 5 - a failing later write puts earlier writes back
+  ---
+  duration_ms: 0.352931
+  type: 'test'
+  ...
+# Subtest: a rollback that itself fails names the keys left changed
+ok 6 - a rollback that itself fails names the keys left changed
+  ---
+  duration_ms: 0.290438
+  type: 'test'
+  ...
+# Subtest: unchanged values are not rewritten
+ok 7 - unchanged values are not rewritten
+  ---
+  duration_ms: 0.151552
+  type: 'test'
+  ...
+# Subtest: a rollback stops at the first failure, keeping the earlier writes the failed key depends on
+ok 8 - a rollback stops at the first failure, keeping the earlier writes the failed key depends on
+  ---
+  duration_ms: 0.349924
+  type: 'test'
+  ...
+# Subtest: read failures are typed, and a snapshot reports them instead of throwing
+ok 9 - read failures are typed, and a snapshot reports them instead of throwing
+  ---
+  duration_ms: 0.445897
+  type: 'test'
+  ...
+# Subtest: simultaneous startup yields exactly one editor and one viewer
+ok 10 - simultaneous startup yields exactly one editor and one viewer
+  ---
+  duration_ms: 11.789459
+  type: 'test'
+  ...
+# Subtest: a request waits for drafts, then hands over; the receiver rereads under a new lease and the old lease cannot write
+ok 11 - a request waits for drafts, then hands over; the receiver rereads under a new lease and the old lease cannot write
+  ---
+  duration_ms: 2.827268
+  type: 'test'
+  ...
+# Subtest: a lost BroadcastChannel message is recovered by polling the lock queue
+ok 12 - a lost BroadcastChannel message is recovered by polling the lock queue
+  ---
+  duration_ms: 1.234046
+  type: 'test'
+  ...
+# Subtest: a failed save keeps the lock with the editor; it hands over once a save succeeds
+ok 13 - a failed save keeps the lock with the editor; it hands over once a save succeeds
+  ---
+  duration_ms: 4.874182
+  type: 'test'
+  ...
+# Subtest: an owner that dies releases the lock to a queued tab; a passive viewer does not take it
+ok 14 - an owner that dies releases the lock to a queued tab; a passive viewer does not take it
+  ---
+  duration_ms: 3.414549
+  type: 'test'
+  ...
+# Subtest: cancelling a request leaves the editor in place and clears its notice
+ok 15 - cancelling a request leaves the editor in place and clears its notice
+  ---
+  duration_ms: 2.327046
+  type: 'test'
+  ...
+# Subtest: without Web Locks the tab fails closed and never acquires
+ok 16 - without Web Locks the tab fails closed and never acquires
+  ---
+  duration_ms: 4.984731
+  type: 'test'
+  ...
+# Subtest: a lease the browser no longer reports as held stops writing at once
+ok 17 - a lease the browser no longer reports as held stops writing at once
+  ---
+  duration_ms: 0.988974
+  type: 'test'
+  ...
+# Subtest: a requester that cancelled while the editor was blocked is not handed a lock nobody takes
+ok 18 - a requester that cancelled while the editor was blocked is not handed a lock nobody takes
+  ---
+  duration_ms: 2.140856
+  type: 'test'
+  ...
+# Subtest: a tab queued before the current lease began is deferred, not handed the lock the moment the new editor gets it
+ok 19 - a tab queued before the current lease began is deferred, not handed the lock the moment the new editor gets it
+  ---
+  duration_ms: 2.892867
+  type: 'test'
+  ...
+# Subtest: a lost lease also lets go of the editor lock, so neither this tab nor another waits forever
+ok 20 - a lost lease also lets go of the editor lock, so neither this tab nor another waits forever
+  ---
+  duration_ms: 2.305326
+  type: 'test'
+  ...
+# Subtest: a lock query answered from before the lease lock was granted is discarded
+ok 21 - a lock query answered from before the lease lock was granted is discarded
+  ---
+  duration_ms: 0.940958
+  type: 'test'
+  ...
+# Subtest: a lost lease lets the app keep its drafts before anything re-renders as view-only
+ok 22 - a lost lease lets the app keep its drafts before anything re-renders as view-only
+  ---
+  duration_ms: 1.176997
+  type: 'test'
+  ...
+# Subtest: missing field side defaults to none while explicit sides survive save, backup and game-day restore
+ok 23 - missing field side defaults to none while explicit sides survive save, backup and game-day restore
+  ---
+  duration_ms: 131.124886
+  type: 'test'
+  ...
+# Subtest: invalid explicit field side rejects import and retains corrupt storage for recovery
+ok 24 - invalid explicit field side rejects import and retains corrupt storage for recovery
+  ---
+  duration_ms: 174.039195
+  type: 'test'
+  ...
+# Subtest: lesson display labels leave stable owner IDs and geometry intact
+ok 25 - lesson display labels leave stable owner IDs and geometry intact
+  ---
+  duration_ms: 1.280177
+  type: 'test'
+  ...
+# Subtest: both axes share one scale, so a yard is a yard in every direction
+ok 26 - both axes share one scale, so a yard is a yard in every direction
+  ---
+  duration_ms: 1.789278
+  type: 'test'
+  ...
+# Subtest: the viewBox matches the viewport aspect, so nothing is stretched or letterboxed
+ok 27 - the viewBox matches the viewport aspect, so nothing is stretched or letterboxed
+  ---
+  duration_ms: 0.405375
+  type: 'test'
+  ...
+# Subtest: the required window always fits, and the loose axis shows more field rather than less
+ok 28 - the required window always fits, and the loose axis shows more field rather than less
+  ---
+  duration_ms: 0.241381
+  type: 'test'
+  ...
+# Subtest: the scale is identical for every play, so plays are comparable
+ok 29 - the scale is identical for every play, so plays are comparable
+  ---
+  duration_ms: 0.179865
+  type: 'test'
+  ...
+# Subtest: the line of scrimmage is the origin in both views
+ok 30 - the line of scrimmage is the origin in both views
+  ---
+  duration_ms: 1.643139
+  type: 'test'
+  ...
+# Subtest: downfield is up in the end-zone view and right in the sideline view
+ok 31 - downfield is up in the end-zone view and right in the sideline view
+  ---
+  duration_ms: 0.2508
+  type: 'test'
+  ...
+# Subtest: projecting and unprojecting round trips
+ok 32 - projecting and unprojecting round trips
+  ---
+  duration_ms: 0.613353
+  type: 'test'
+  ...
+# Subtest: pointer input maps back to the field point under the cursor
+ok 33 - pointer input maps back to the field point under the cursor
+  ---
+  duration_ms: 0.281932
+  type: 'test'
+  ...
+# Subtest: a fixed pixel size converts to a constant on-screen length
+ok 34 - a fixed pixel size converts to a constant on-screen length
+  ---
+  duration_ms: 0.47895
+  type: 'test'
+  ...
+# Subtest: yard lines land on real five-yard increments and include the line of scrimmage
+ok 35 - yard lines land on real five-yard increments and include the line of scrimmage
+  ---
+  duration_ms: 0.550572
+  type: 'test'
+  ...
+# Subtest: yard numbers sit on the yard line they name
+ok 36 - yard numbers sit on the yard line they name
+  ---
+  duration_ms: 0.357552
+  type: 'test'
+  ...
+# Subtest: polyline points are emitted in projected order
+ok 37 - polyline points are emitted in projected order
+  ---
+  duration_ms: 0.206033
+  type: 'test'
+  ...
+# Subtest: a narrow canvas frames the play; a wide one keeps the fixed window
+ok 38 - a narrow canvas frames the play; a wide one keeps the fixed window
+  ---
+  duration_ms: 14.110164
+  type: 'test'
+  ...
+# Subtest: a fitted window still contains the whole play and the line of scrimmage
+ok 39 - a fitted window still contains the whole play and the line of scrimmage
+  ---
+  duration_ms: 15.954797
+  type: 'test'
+  ...
+# Subtest: fitting never distorts: one scale still governs both axes
+ok 40 - fitting never distorts: one scale still governs both axes
+  ---
+  duration_ms: 15.276717
+  type: 'test'
+  ...
+# Subtest: pointer input stays accurate under a fitted window
+ok 41 - pointer input stays accurate under a fitted window
+  ---
+  duration_ms: 7.56959
+  type: 'test'
+  ...
+# Subtest: a token's motion path starts at zero and mirrors the absolute geometry
+ok 42 - a token's motion path starts at zero and mirrors the absolute geometry
+  ---
+  duration_ms: 0.249162
+  type: 'test'
+  ...
+# Subtest: a token's motion path never emits negative zero
+ok 43 - a token's motion path never emits negative zero
+  ---
+  duration_ms: 0.132802
+  type: 'test'
+  ...
+# Subtest: the sideline view frames the play at any canvas width
+ok 44 - the sideline view frames the play at any canvas width
+  ---
+  duration_ms: 8.06975
+  type: 'test'
+  ...
+# Subtest: zoom multiplies the scale and keeps its centre put
+ok 45 - zoom multiplies the scale and keeps its centre put
+  ---
+  duration_ms: 0.206044
+  type: 'test'
+  ...
+# Subtest: zoom clamps to its maximum and a unit factor is a no-op
+ok 46 - zoom clamps to its maximum and a unit factor is a no-op
+  ---
+  duration_ms: 0.104593
+  type: 'test'
+  ...
+# Subtest: panning cannot leave the base framing
+ok 47 - panning cannot leave the base framing
+  ---
+  duration_ms: 0.091027
+  type: 'test'
+  ...
+# Subtest: pointer input stays accurate through a zoom
+ok 48 - pointer input stays accurate through a zoom
+  ---
+  duration_ms: 0.115045
+  type: 'test'
+  ...
+# Subtest: presentation frames the play, and never shrinks it
+ok 49 - presentation frames the play, and never shrinks it
+  ---
+  duration_ms: 9.902526
+  type: 'test'
+  ...
+# Subtest: editing keeps the fixed, comparable window wherever it fits
+ok 50 - editing keeps the fixed, comparable window wherever it fits
+  ---
+  duration_ms: 10.478742
+  type: 'test'
+  ...
+# Subtest: large imported extents do not allocate unbounded yard markings
+ok 51 - large imported extents do not allocate unbounded yard markings
+  ---
+  duration_ms: 0.137104
+  type: 'test'
+  ...
+# Subtest: journal: every crash point of "game-day discard" recovers to all-old or all-new
+ok 52 - journal: every crash point of "game-day discard" recovers to all-old or all-new
+  ---
+  duration_ms: 1.801111
+  type: 'test'
+  ...
+# Subtest: today's ordered writes: which crash points of "game-day discard" leave a mixed state
+ok 53 - today's ordered writes: which crash points of "game-day discard" leave a mixed state
+  ---
+  duration_ms: 1.71132
+  type: 'test'
+  ...
+# Subtest: journal: every crash point of "restore during an adjustment" recovers to all-old or all-new
+ok 54 - journal: every crash point of "restore during an adjustment" recovers to all-old or all-new
+  ---
+  duration_ms: 0.731094
+  type: 'test'
+  ...
+# Subtest: today's ordered writes: which crash points of "restore during an adjustment" leave a mixed state
+ok 55 - today's ordered writes: which crash points of "restore during an adjustment" leave a mixed state
+  ---
+  duration_ms: 0.35162
+  type: 'test'
+  ...
+# Subtest: journal replay is refused, and the journal kept, when a key changed outside it
+ok 56 - journal replay is refused, and the journal kept, when a key changed outside it
+  ---
+  duration_ms: 0.873967
+  type: 'test'
+  ...
+# Subtest: a journal that cannot be written changes nothing
+ok 57 - a journal that cannot be written changes nothing
+  ---
+  duration_ms: 0.298783
+  type: 'test'
+  ...
+# Subtest: the default offense is a legal eleven-player formation
+ok 58 - the default offense is a legal eleven-player formation
+  ---
+  duration_ms: 2.32446
+  type: 'test'
+  ...
+# Subtest: every player carries a stable id that is independent of its label
+ok 59 - every player carries a stable id that is independent of its label
+  ---
+  duration_ms: 0.415988
+  type: 'test'
+  ...
+# Subtest: coordinates are stored in yards from the line of scrimmage
+ok 60 - coordinates are stored in yards from the line of scrimmage
+  ---
+  duration_ms: 0.230819
+  type: 'test'
+  ...
+# Subtest: presentation framing contains all seeded paths without rewriting field data
+ok 61 - presentation framing contains all seeded paths without rewriting field data
+  ---
+  duration_ms: 19.118718
+  type: 'test'
+  ...
+# Subtest: every seeded assignment is anchored on a player that exists in its play
+ok 62 - every seeded assignment is anchored on a player that exists in its play
+  ---
+  duration_ms: 11.159416
+  type: 'test'
+  ...
+# Subtest: normalization always produces an explicit unit and phase
+ok 63 - normalization always produces an explicit unit and phase
+  ---
+  duration_ms: 10.713656
+  type: 'test'
+  ...
+# Subtest: seeded plays carry distinct, player-owned assignment data
+ok 64 - seeded plays carry distinct, player-owned assignment data
+  ---
+  duration_ms: 0.346507
+  type: 'test'
+  ...
+# Subtest: playbook cloning protects the source during temporary changes
+ok 65 - playbook cloning protects the source during temporary changes
+  ---
+  duration_ms: 0.560277
+  type: 'test'
+  ...
+# Subtest: source playbooks remain separate from the main personal playbook
+ok 66 - source playbooks remain separate from the main personal playbook
+  ---
+  duration_ms: 0.466067
+  type: 'test'
+  ...
+# Subtest: migrated personal plays keep their content and gain pace data
+ok 67 - migrated personal plays keep their content and gain pace data
+  ---
+  duration_ms: 9.977217
+  type: 'test'
+  ...
+# Subtest: player pace changes animation duration
+ok 68 - player pace changes animation duration
+  ---
+  duration_ms: 0.278514
+  type: 'test'
+  ...
+# Subtest: assignment duration is driven by true yard distance
+ok 69 - assignment duration is driven by true yard distance
+  ---
+  duration_ms: 0.111711
+  type: 'test'
+  ...
+# Subtest: a lateral yard and a vertical yard cost the same distance
+ok 70 - a lateral yard and a vertical yard cost the same distance
+  ---
+  duration_ms: 0.07049
+  type: 'test'
+  ...
+# Subtest: every reusable seed formation is legal
+ok 71 - every reusable seed formation is legal
+  ---
+  duration_ms: 0.089755
+  type: 'test'
+  ...
+# Subtest: creating a play from a formation copies player state without assignments
+ok 72 - creating a play from a formation copies player state without assignments
+  ---
+  duration_ms: 0.248305
+  type: 'test'
+  ...
+# Subtest: structured routes mirror release and break direction across the formation
+ok 73 - structured routes mirror release and break direction across the formation
+  ---
+  duration_ms: 0.137823
+  type: 'test'
+  ...
+# Subtest: a structured stem depth lands at exactly that depth downfield
+ok 74 - a structured stem depth lands at exactly that depth downfield
+  ---
+  duration_ms: 0.073358
+  type: 'test'
+  ...
+# Subtest: double moves generate ordered route segments
+ok 75 - double moves generate ordered route segments
+  ---
+  duration_ms: 0.077563
+  type: 'test'
+  ...
+# Subtest: existing diagrams receive an editable inferred definition and source evidence
+ok 76 - existing diagrams receive an editable inferred definition and source evidence
+  ---
+  duration_ms: 0.221895
+  type: 'test'
+  ...
+# Subtest: route inference measures the stem in yards
+ok 77 - route inference measures the stem in yards
+  ---
+  duration_ms: 0.064234
+  type: 'test'
+  ...
+# Subtest: explicit PDF measurements override conflicting traced geometry
+ok 78 - explicit PDF measurements override conflicting traced geometry
+  ---
+  duration_ms: 12.151507
+  type: 'test'
+  ...
+# Subtest: legacy plays gain editable defensive personnel and assignment timing
+ok 79 - legacy plays gain editable defensive personnel and assignment timing
+  ---
+  duration_ms: 0.480131
+  type: 'test'
+  ...
+# Subtest: assignments whose player no longer exists are dropped
+ok 80 - assignments whose player no longer exists are dropped
+  ---
+  duration_ms: 0.410905
+  type: 'test'
+  ...
+# Subtest: football block techniques produce distinct assignment geometry
+ok 81 - football block techniques produce distinct assignment geometry
+  ---
+  duration_ms: 0.215457
+  type: 'test'
+  ...
+# Subtest: defensive responsibilities generate unit-appropriate landmarks
+ok 82 - defensive responsibilities generate unit-appropriate landmarks
+  ---
+  duration_ms: 0.21013
+  type: 'test'
+  ...
+# Subtest: man coverage tracks the offensive player it is assigned to
+ok 83 - man coverage tracks the offensive player it is assigned to
+  ---
+  duration_ms: 0.374868
+  type: 'test'
+  ...
+# Subtest: applying a formation translates matching assignments and preserves defense
+ok 84 - applying a formation translates matching assignments and preserves defense
+  ---
+  duration_ms: 0.880825
+  type: 'test'
+  ...
+# Subtest: applying a formation keeps player ids so assignments stay attached
+ok 85 - applying a formation keeps player ids so assignments stay attached
+  ---
+  duration_ms: 0.579272
+  type: 'test'
+  ...
+# Subtest: animation timing honors pre-snap and post-snap delays
+ok 86 - animation timing honors pre-snap and post-snap delays
+  ---
+  duration_ms: 0.168715
+  type: 'test'
+  ...
+# Subtest: a player can own separate pre-snap and post-snap assignments
+ok 87 - a player can own separate pre-snap and post-snap assignments
+  ---
+  duration_ms: 0.31901
+  type: 'test'
+  ...
+# Subtest: concept templates translate assignments to matching positions
+ok 88 - concept templates translate assignments to matching positions
+  ---
+  duration_ms: 2.810506
+  type: 'test'
+  ...
+# Subtest: concepts store their position label so they survive an id change
+ok 89 - concepts store their position label so they survive an id change
+  ---
+  duration_ms: 0.788636
+  type: 'test'
+  ...
+# Subtest: reapplying a concept preserves explicit play-level overrides
+ok 90 - reapplying a concept preserves explicit play-level overrides
+  ---
+  duration_ms: 2.147231
+  type: 'test'
+  ...
+# Subtest: legacy plays are detected by shape, not by a version field
+ok 91 - legacy plays are detected by shape, not by a version field
+  ---
+  duration_ms: 1.096365
+  type: 'test'
+  ...
+# Subtest: legacy percent coordinates convert to yards from the line of scrimmage
+ok 92 - legacy percent coordinates convert to yards from the line of scrimmage
+  ---
+  duration_ms: 0.503009
+  type: 'test'
+  ...
+# Subtest: legacy assignments rebind from labels and defender ids to player ids
+ok 93 - legacy assignments rebind from labels and defender ids to player ids
+  ---
+  duration_ms: 0.325523
+  type: 'test'
+  ...
+# Subtest: migration is idempotent
+ok 94 - migration is idempotent
+  ---
+  duration_ms: 0.74032
+  type: 'test'
+  ...
+# Subtest: migrating a roster preserves ids that already exist
+ok 95 - migrating a roster preserves ids that already exist
+  ---
+  duration_ms: 0.377234
+  type: 'test'
+  ...
+# Subtest: migrating a roster keeps duplicate labels on separate ids
+ok 96 - migrating a roster keeps duplicate labels on separate ids
+  ---
+  duration_ms: 0.246965
+  type: 'test'
+  ...
+# Subtest: a migrated legacy play keeps its own alignment rather than the reseeded one
+ok 97 - a migrated legacy play keeps its own alignment rather than the reseeded one
+  ---
+  duration_ms: 0.230723
+  type: 'test'
+  ...
+# Subtest: dragging snaps to another player's row and column, and says whose
+ok 98 - dragging snaps to another player's row and column, and says whose
+  ---
+  duration_ms: 0.583435
+  type: 'test'
+  ...
+# Subtest: dragging beyond the snap window moves freely, rounded to a tenth
+ok 99 - dragging beyond the snap window moves freely, rounded to a tenth
+  ---
+  duration_ms: 0.252635
+  type: 'test'
+  ...
+# Subtest: Alt drags free even inside the snap window
+ok 100 - Alt drags free even inside the snap window
+  ---
+  duration_ms: 0.153708
+  type: 'test'
+  ...
+# Subtest: an offensive player near the line snaps onto it, outranking a row magnet
+ok 101 - an offensive player near the line snaps onto it, outranking a row magnet
+  ---
+  duration_ms: 0.11436
+  type: 'test'
+  ...
+# Subtest: a defender is never pulled onto the LOS by the offensive line snap
+ok 102 - a defender is never pulled onto the LOS by the offensive line snap
+  ---
+  duration_ms: 0.089768
+  type: 'test'
+  ...
+# Subtest: the dragged player is not its own magnet
+ok 103 - the dragged player is not its own magnet
+  ---
+  duration_ms: 0.143078
+  type: 'test'
+  ...
+# Subtest: a play diffs empty against itself and against no base
+ok 104 - a play diffs empty against itself and against no base
+  ---
+  duration_ms: 0.273131
+  type: 'test'
+  ...
+# Subtest: family variants flag exactly the assignments that differ from the base
+ok 105 - family variants flag exactly the assignments that differ from the base
+  ---
+  duration_ms: 1.811692
+  type: 'test'
+  ...
+# Subtest: re-spacing is ignored, a re-route or shape change is flagged
+ok 106 - re-spacing is ignored, a re-route or shape change is flagged
+  ---
+  duration_ms: 2.023565
+  type: 'test'
+  ...
+# Subtest: structured filters combine personnel, formation, family, protection, and blocking scheme
+ok 107 - structured filters combine personnel, formation, family, protection, and blocking scheme
+  ---
+  duration_ms: 2.114989
+  type: 'test'
+  ...
+# Subtest: search and folder narrow the same structured result set
+ok 108 - search and folder narrow the same structured result set
+  ---
+  duration_ms: 0.217296
+  type: 'test'
+  ...
+# Subtest: reference search finds both the source call and the clean concept name
+ok 109 - reference search finds both the source call and the clean concept name
+  ---
+  duration_ms: 14.094802
+  type: 'test'
+  ...
+# Subtest: filter options are sorted, unique, and omit empty values
+ok 110 - filter options are sorted, unique, and omit empty values
+  ---
+  duration_ms: 6.980532
+  type: 'test'
+  ...
+# Subtest: family bases remain stable regardless of filtered results
+ok 111 - family bases remain stable regardless of filtered results
+  ---
+  duration_ms: 0.154043
+  type: 'test'
+  ...
+# Subtest: a preservation file keeps the game-day original and drafts, and restores both workspace and adjustment
+ok 112 - a preservation file keeps the game-day original and drafts, and restores both workspace and adjustment
+  ---
+  duration_ms: 46.385611
+  type: 'test'
+  ...
+# Subtest: a preservation file whose adjustment does not belong to its workspace is refused whole
+ok 113 - a preservation file whose adjustment does not belong to its workspace is refused whole
+  ---
+  duration_ms: 59.990401
+  type: 'test'
+  ...
+# Subtest: an ordinary backup still parses through the same entry point
+ok 114 - an ordinary backup still parses through the same entry point
+  ---
+  duration_ms: 100.342389
+  type: 'test'
+  ...
+# Subtest: restore keeps the raw game-day record in the recovery copy and ends the adjustment before replacing the workspace
+ok 115 - restore keeps the raw game-day record in the recovery copy and ends the adjustment before replacing the workspace
+  ---
+  duration_ms: 56.020213
+  type: 'test'
+  ...
+# Subtest: an existing recovery copy is replaced only with confirmation of exactly those bytes
+ok 116 - an existing recovery copy is replaced only with confirmation of exactly those bytes
+  ---
+  duration_ms: 144.391681
+  type: 'test'
+  ...
+# Subtest: both versions in a conflict preservation file are restorable: this tab's, and the one found in storage
+ok 117 - both versions in a conflict preservation file are restorable: this tab's, and the one found in storage
+  ---
+  duration_ms: 113.777827
+  type: 'test'
+  ...
+# Subtest: an adjustment the loader would reject as damaged is refused at restore, not written
+ok 118 - an adjustment the loader would reject as damaged is refused at restore, not written
+  ---
+  duration_ms: 28.938552
+  type: 'test'
+  ...
+# Subtest: a stored version held only under a legacy workspace key is restorable, migrated
+ok 119 - a stored version held only under a legacy workspace key is restorable, migrated
+  ---
+  duration_ms: 59.910983
+  type: 'test'
+  ...
+# Subtest: a current workspace with only a legacy adjustment (its migration write failed) restores with that adjustment
+ok 120 - a current workspace with only a legacy adjustment (its migration write failed) restores with that adjustment
+  ---
+  duration_ms: 37.548391
+  type: 'test'
+  ...
+# Subtest: identical workspaces with different adjustments are two states, and the stored one is offered
+ok 121 - identical workspaces with different adjustments are two states, and the stored one is offered
+  ---
+  duration_ms: 109.053185
+  type: 'test'
+  ...
+# Subtest: a stored version whose adjustment is damaged is refused rather than offered without it
+ok 122 - a stored version whose adjustment is damaged is refused rather than offered without it
+  ---
+  duration_ms: 72.73207
+  type: 'test'
+  ...
+# Subtest: the recovery copy records the live adjustment even when no adjustment is stored
+ok 123 - the recovery copy records the live adjustment even when no adjustment is stored
+  ---
+  duration_ms: 43.607516
+  type: 'test'
+  ...
+# Subtest: the verified reference pack uses canonical and source labels without losing either
+ok 124 - the verified reference pack uses canonical and source labels without losing either
+  ---
+  duration_ms: 1.229658
+  type: 'test'
+  ...
+# Subtest: reference calls remain primary while clean concept names remain available
+ok 125 - reference calls remain primary while clean concept names remain available
+  ---
+  duration_ms: 16.71914
+  type: 'test'
+  ...
+# Subtest: reference defense follows the cited page instead of a generic shell
+ok 126 - reference defense follows the cited page instead of a generic shell
+  ---
+  duration_ms: 9.449409
+  type: 'test'
+  ...
+# Subtest: Tiger, Troop, and Texas Tech Mesh routes originate from the source owners
+ok 127 - Tiger, Troop, and Texas Tech Mesh routes originate from the source owners
+  ---
+  duration_ms: 9.657729
+  type: 'test'
+  ...
+# Subtest: reference route evidence distinguishes explicit, traced, and neutral geometry
+ok 128 - reference route evidence distinguishes explicit, traced, and neutral geometry
+  ---
+  duration_ms: 10.662136
+  type: 'test'
+  ...
+# Subtest: conditional route alternatives survive normalization and change preview geometry
+ok 129 - conditional route alternatives survive normalization and change preview geometry
+  ---
+  duration_ms: 9.94777
+  type: 'test'
+  ...
+# Subtest: Crack-and-Go keeps motion and the post-snap crack on the same player
+ok 130 - Crack-and-Go keeps motion and the post-snap crack on the same player
+  ---
+  duration_ms: 10.24161
+  type: 'test'
+  ...
+# Subtest: v9 and v10 custom contents survive catalog upgrades
+ok 131 - v9 and v10 custom contents survive catalog upgrades
+  ---
+  duration_ms: 43.7314
+  type: 'test'
+  ...
+# Subtest: verified catalogs coexist with all 48 independent imported Air Raid plays
+ok 132 - verified catalogs coexist with all 48 independent imported Air Raid plays
+  ---
+  duration_ms: 30.880736
+  type: 'test'
+  ...
+# Subtest: old sample content is archived, not erased
+ok 133 - old sample content is archived, not erased
+  ---
+  duration_ms: 26.948422
+  type: 'test'
+  ...
+# Subtest: backup normalization retains the current catalog order and complete book data
+ok 134 - backup normalization retains the current catalog order and complete book data
+  ---
+  duration_ms: 78.938826
+  type: 'test'
+  ...
+# Subtest: personal books colliding with governed IDs retain content, selection, and provenance
+ok 135 - personal books colliding with governed IDs retain content, selection, and provenance
+  ---
+  duration_ms: 216.641782
+  type: 'test'
+  ...
+# Subtest: a new personal book named after a retired catalog is not archived on reload
+ok 136 - a new personal book named after a retired catalog is not archived on reload
+  ---
+  duration_ms: 64.434117
+  type: 'test'
+  ...
+# Subtest: valid authored regions clone independently and never clip to the editor
+ok 137 - valid authored regions clone independently and never clip to the editor
+  ---
+  duration_ms: 2.230769
+  type: 'test'
+  ...
+# Subtest: malformed region values reject without repair
+ok 138 - malformed region values reject without repair
+  ---
+  duration_ms: 1.131787
+  type: 'test'
+  ...
+# Subtest: workspace v11 and backup v3 round trip plays and concepts without adding regions
+ok 139 - workspace v11 and backup v3 round trip plays and concepts without adding regions
+  ---
+  duration_ms: 123.69788
+  type: 'test'
+  ...
+# Subtest: invalid geometry and ambiguous ownership reject before normalization can drop it
+ok 140 - invalid geometry and ambiguous ownership reject before normalization can drop it
+  ---
+  duration_ms: 145.55917
+  type: 'test'
+  ...
+# Subtest: older workspace or backup envelopes cannot carry new region data
+ok 141 - older workspace or backup envelopes cannot carry new region data
+  ---
+  duration_ms: 38.065058
+  type: 'test'
+  ...
+# Subtest: area extrema participate in fitting in both views without changing stored geometry
+ok 142 - area extrema participate in fitting in both views without changing stored geometry
+  ---
+  duration_ms: 15.519564
+  type: 'test'
+  ...
+# Subtest: copy keeps independent region coordinates while translating only path points
+ok 143 - copy keeps independent region coordinates while translating only path points
+  ---
+  duration_ms: 2.473557
+  type: 'test'
+  ...
+# Subtest: copy refuses missing, other-unit, occupied-stage, duplicate-id targets without changes
+ok 144 - copy refuses missing, other-unit, occupied-stage, duplicate-id targets without changes
+  ---
+  duration_ms: 0.841465
+  type: 'test'
+  ...
+# Subtest: mirror transforms only the path and keeps independent area geometry
+ok 145 - mirror transforms only the path and keeps independent area geometry
+  ---
+  duration_ms: 0.457051
+  type: 'test'
+  ...
+# Subtest: region concepts refuse ambiguous labels, missing owners, and colliding target slots atomically
+ok 146 - region concepts refuse ambiguous labels, missing owners, and colliding target slots atomically
+  ---
+  duration_ms: 2.604923
+  type: 'test'
+  ...
+# Subtest: unique concept mapping retains field geometry and respects explicit overrides
+ok 147 - unique concept mapping retains field geometry and respects explicit overrides
+  ---
+  duration_ms: 1.335318
+  type: 'test'
+  ...
+# Subtest: formation changes and normalization preserve authored defensive areas
+ok 148 - formation changes and normalization preserve authored defensive areas
+  ---
+  duration_ms: 0.834108
+  type: 'test'
+  ...
+# Subtest: every route in the vocabulary resolves into a drawable path
+ok 149 - every route in the vocabulary resolves into a drawable path
+  ---
+  duration_ms: 4.400675
+  type: 'test'
+  ...
+# Subtest: an unknown route is a loud failure, not a silent straight line
+ok 150 - an unknown route is a loud failure, not a silent straight line
+  ---
+  duration_ms: 1.016079
+  type: 'test'
+  ...
+# Subtest: a route run from either slot is the mirror of itself
+ok 151 - a route run from either slot is the mirror of itself
+  ---
+  duration_ms: 0.889623
+  type: 'test'
+  ...
+# Subtest: crossing routes finish on the far side of the field
+ok 152 - crossing routes finish on the far side of the field
+  ---
+  duration_ms: 0.45593
+  type: 'test'
+  ...
+# Subtest: a middle curl settles in the middle rather than crossing out of it
+ok 153 - a middle curl settles in the middle rather than crossing out of it
+  ---
+  duration_ms: 0.250945
+  type: 'test'
+  ...
+# Subtest: routes that release to the flat gain ground out of the backfield
+ok 154 - routes that release to the flat gain ground out of the backfield
+  ---
+  duration_ms: 0.257536
+  type: 'test'
+  ...
+# Subtest: the Air Raid playbook holds all 48 diagrams from the source
+ok 155 - the Air Raid playbook holds all 48 diagrams from the source
+  ---
+  duration_ms: 0.533745
+  type: 'test'
+  ...
+# Subtest: every Air Raid alignment is a legal formation
+ok 156 - every Air Raid alignment is a legal formation
+  ---
+  duration_ms: 1.161409
+  type: 'test'
+  ...
+# Subtest: every Air Raid play assigns all five eligible receivers and nobody twice
+ok 157 - every Air Raid play assigns all five eligible receivers and nobody twice
+  ---
+  duration_ms: 0.601931
+  type: 'test'
+  ...
+# Subtest: no Air Raid route leaves the field or the play window
+ok 158 - no Air Raid route leaves the field or the play window
+  ---
+  duration_ms: 2.303017
+  type: 'test'
+  ...
+# Subtest: every Air Raid assignment records the call it was transcribed from
+ok 159 - every Air Raid assignment records the call it was transcribed from
+  ---
+  duration_ms: 0.602722
+  type: 'test'
+  ...
+# Subtest: the transcription matches the page, call for call
+ok 160 - the transcription matches the page, call for call
+  ---
+  duration_ms: 0.184813
+  type: 'test'
+  ...
+# Subtest: a concept taught from two alignments keeps both, with the same calls
+ok 161 - a concept taught from two alignments keeps both, with the same calls
+  ---
+  duration_ms: 0.184927
+  type: 'test'
+  ...
+# Subtest: the back stays in front of the quarterback when he is kept in to protect
+ok 162 - the back stays in front of the quarterback when he is kept in to protect
+  ---
+  duration_ms: 0.228825
+  type: 'test'
+  ...
+# Subtest: serves existing static assets without a fallback
+ok 163 - serves existing static assets without a fallback
+  ---
+  duration_ms: 51.43795
+  type: 'test'
+  ...
+# Subtest: falls back to index.html for an unknown app route
+ok 164 - falls back to index.html for an unknown app route
+  ---
+  duration_ms: 1.561491
+  type: 'test'
+  ...
+# Subtest: does not turn missing API or write requests into the app shell
+ok 165 - does not turn missing API or write requests into the app shell
+  ---
+  duration_ms: 0.863275
+  type: 'test'
+  ...
+# Subtest: legacy workspaces migrate to the current version with concept libraries
+ok 166 - legacy workspaces migrate to the current version with concept libraries
+  ---
+  duration_ms: 30.200021
+  type: 'test'
+  ...
+# Subtest: every supported legacy version converts percent coordinates to yards
+ok 167 - every supported legacy version converts percent coordinates to yards
+  ---
+  duration_ms: 38.159536
+  type: 'test'
+  ...
+# Subtest: migration rewrites formations and concepts, not just plays
+ok 168 - migration rewrites formations and concepts, not just plays
+  ---
+  duration_ms: 19.176631
+  type: 'test'
+  ...
+# Subtest: a workspace already at the current version is left alone
+ok 169 - a workspace already at the current version is left alone
+  ---
+  duration_ms: 29.057831
+  type: 'test'
+  ...
+# Subtest: normalizing twice changes nothing
+ok 170 - normalizing twice changes nothing
+  ---
+  duration_ms: 21.839207
+  type: 'test'
+  ...
+# Subtest: workspace backups make a valid, restorable round trip
+ok 171 - workspace backups make a valid, restorable round trip
+  ---
+  duration_ms: 47.590038
+  type: 'test'
+  ...
+# Subtest: a format-1 backup still imports and reports that it was upconverted
+ok 172 - a format-1 backup still imports and reports that it was upconverted
+  ---
+  duration_ms: 16.508577
+  type: 'test'
+  ...
+# Subtest: restore rejects unrelated JSON before touching current data
+ok 173 - restore rejects unrelated JSON before touching current data
+  ---
+  duration_ms: 0.508946
+  type: 'test'
+  ...
+# Subtest: restore refuses a backup from a newer format than it understands
+ok 174 - restore refuses a backup from a newer format than it understands
+  ---
+  duration_ms: 12.310338
+  type: 'test'
+  ...
+# Subtest: restore rejects a backup whose plays are structurally invalid
+ok 175 - restore rejects a backup whose plays are structurally invalid
+  ---
+  duration_ms: 11.242743
+  type: 'test'
+  ...
+# Subtest: missing storage starts writable; newest corrupt key never falls back or writes
+ok 176 - missing storage starts writable; newest corrupt key never falls back or writes
+  ---
+  duration_ms: 95.391489
+  type: 'test'
+  ...
+# Subtest: blocked storage returns a read-only recovery state
+ok 177 - blocked storage returns a read-only recovery state
+  ---
+  duration_ms: 18.647033
+  type: 'test'
+  ...
+# Subtest: restore preserves raw corrupt workspace before replacing it and aborts on recovery failure
+ok 178 - restore preserves raw corrupt workspace before replacing it and aborts on recovery failure
+  ---
+  duration_ms: 67.93704
+  type: 'test'
+  ...
+# Subtest: game-day corrupt and future data suppress writes/deletes; old keys remain intact
+ok 179 - game-day corrupt and future data suppress writes/deletes; old keys remain intact
+  ---
+  duration_ms: 10.815627
+  type: 'test'
+  ...
+# Subtest: a resolved current marker prevents an old adjustment from reviving
+ok 180 - a resolved current marker prevents an old adjustment from reviving
+  ---
+  duration_ms: 7.67938
+  type: 'test'
+  ...
+# Subtest: corrupt defender data cannot be replaced with a default defense on load
+ok 181 - corrupt defender data cannot be replaced with a default defense on load
+  ---
+  duration_ms: 21.985006
+  type: 'test'
+  ...
+# Subtest: a legacy library cannot smuggle an authored area into an old envelope
+ok 182 - a legacy library cannot smuggle an authored area into an old envelope
+  ---
+  duration_ms: 15.708622
+  type: 'test'
+  ...
+# Subtest: game-day recovery preserves original bytes and resets only after successful writes
+ok 183 - game-day recovery preserves original bytes and resets only after successful writes
+  ---
+  duration_ms: 0.678173
+  type: 'test'
+  ...
+# Subtest: a migrated custom-book collision keeps its game-day adjustment attached
+ok 184 - a migrated custom-book collision keeps its game-day adjustment attached
+  ---
+  duration_ms: 39.452852
+  type: 'test'
+  ...
+# Subtest: duplicate saved book IDs trigger recovery instead of cross-book edits
+ok 185 - duplicate saved book IDs trigger recovery instead of cross-book edits
+  ---
+  duration_ms: 24.648326
+  type: 'test'
+  ...
+# Subtest: only the durable store writes browser storage
+ok 186 - only the durable store writes browser storage
+  ---
+  duration_ms: 14.782535
+  type: 'test'
+  ...
+# Subtest: the journal prototype is not wired into the app
+ok 187 - the journal prototype is not wired into the app
+  ---
+  duration_ms: 0.537475
+  type: 'test'
+  ...
+1..187
+# tests 187
+# suites 0
+# pass 187
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1744.911471
+
+> football-os-prototype@0.0.0 test:sites
+> node --test tests/sites-worker.test.mjs
+
+TAP version 13
+# Subtest: serves existing static assets without a fallback
+ok 1 - serves existing static assets without a fallback
+  ---
+  duration_ms: 46.413881
+  type: 'test'
+  ...
+# Subtest: falls back to index.html for an unknown app route
+ok 2 - falls back to index.html for an unknown app route
+  ---
+  duration_ms: 1.471592
+  type: 'test'
+  ...
+# Subtest: does not turn missing API or write requests into the app shell
+ok 3 - does not turn missing API or write requests into the app shell
+  ---
+  duration_ms: 0.604033
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 127.332499
+
+> football-os-prototype@0.0.0 build
+> vite build && node scripts/prepare-sites-build.mjs
+
+vite v6.4.2 building for production...
+transforming...
+✓ 4608 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/index.html                                              0.87 kB │ gzip:   0.42 kB
+dist/client/assets/manrope-vietnamese-wght-normal-usUDDRr7.woff2    8.52 kB
+dist/client/assets/manrope-greek-wght-normal-DL7QRZyv.woff2         9.44 kB
+dist/client/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2     14.50 kB
+dist/client/assets/manrope-latin-ext-wght-normal-Ch3YOpNY.woff2    15.12 kB
+dist/client/assets/manrope-latin-wght-normal-DHIcAJRg.woff2        24.84 kB
+dist/client/assets/index-CghM85JO.css                              84.71 kB │ gzip:  18.06 kB
+dist/client/assets/index-DwXzl3xy.js                              551.55 kB │ gzip: 159.11 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.68s
+Prepared Sites build: dist/server/index.js and dist/.openai/hosting.json
+
+> football-os-prototype@0.0.0 test:browser
+> node scripts/with-preview.mjs node --test --test-concurrency=1 "tests/browser/*.test.mjs"
+
+TAP version 13
+# Subtest: the app renders a full board on desktop
+ok 1 - the app renders a full board on desktop
+  ---
+  duration_ms: 2636.921712
+  type: 'test'
+  ...
+# Subtest: the app renders a full board on small laptop
+ok 2 - the app renders a full board on small laptop
+  ---
+  duration_ms: 2518.047118
+  type: 'test'
+  ...
+# Subtest: the app renders a full board on phone landscape
+ok 3 - the app renders a full board on phone landscape
+  ---
+  duration_ms: 2531.926184
+  type: 'test'
+  ...
+# Subtest: the app renders a full board on phone portrait
+ok 4 - the app renders a full board on phone portrait
+  ---
+  duration_ms: 2515.473899
+  type: 'test'
+  ...
+# Subtest: the page never scrolls: the app owns exactly one viewport
+ok 5 - the page never scrolls: the app owns exactly one viewport
+  ---
+  duration_ms: 5789.059397
+  type: 'test'
+  ...
+# Subtest: every visible control carries an accessible name
+ok 6 - every visible control carries an accessible name
+  ---
+  duration_ms: 2534.125011
+  type: 'test'
+  ...
+# Subtest: the wheel zooms about the cursor, keeping that spot under it
+ok 7 - the wheel zooms about the cursor, keeping that spot under it
+  ---
+  duration_ms: 3807.474909
+  type: 'test'
+  ...
+# Subtest: zoomed in, empty field pans but a player still drags
+ok 8 - zoomed in, empty field pans but a player still drags
+  ---
+  duration_ms: 8645.73052
+  type: 'test'
+  ...
+# Subtest: Fit returns to the base framing, and so does zooming back out
+ok 9 - Fit returns to the base framing, and so does zooming back out
+  ---
+  duration_ms: 5241.636829
+  type: 'test'
+  ...
+# Subtest: drawing and pointer input stay accurate while zoomed
+ok 10 - drawing and pointer input stay accurate while zoomed
+  ---
+  duration_ms: 5999.618884
+  type: 'test'
+  ...
+# Subtest: routes reveal as one drawing stroke, not a marching dash pattern
+ok 11 - routes reveal as one drawing stroke, not a marching dash pattern
+  ---
+  duration_ms: 2729.15779
+  type: 'test'
+  ...
+# Subtest: dashed assignments keep their pattern after animating
+ok 12 - dashed assignments keep their pattern after animating
+  ---
+  duration_ms: 4538.001906
+  type: 'test'
+  ...
+# Subtest: stepping plays with [ and ] moves through the family and back
+ok 13 - stepping plays with [ and ] moves through the family and back
+  ---
+  duration_ms: 3773.389
+  type: 'test'
+  ...
+# Subtest: pinch magnifies on a phone, and never drags a player
+ok 14 - pinch magnifies on a phone, and never drags a player
+  ---
+  duration_ms: 4861.155067
+  type: 'test'
+  ...
+# Subtest: a coach can open a playbook, pick a play, edit a route, run it and export it
+ok 15 - a coach can open a playbook, pick a play, edit a route, run it and export it
+  ---
+  duration_ms: 12613.015037
+  type: 'test'
+  ...
+# Subtest: the workspace persists in localStorage and survives a reload, edit included
+ok 16 - the workspace persists in localStorage and survives a reload, edit included
+  ---
+  duration_ms: 6917.36848
+  type: 'test'
+  ...
+# Subtest: a .footballos backup downloads, validates and restores the same workspace
+ok 17 - a .footballos backup downloads, validates and restores the same workspace
+  ---
+  duration_ms: 11390.024735
+  type: 'test'
+  ...
+# Subtest: a tab that dies right after the first write of a game-day Discard never loses the original play
+ok 18 - a tab that dies right after the first write of a game-day Discard never loses the original play
+  ---
+  duration_ms: 6840.063488
+  type: 'test'
+  ...
+# Subtest: a tab that dies right after the first write of a game-day Discard leaves the resolution complete
+not ok 19 - a tab that dies right after the first write of a game-day Discard leaves the resolution complete # TODO needs the redo journal (owner approval pending)
+  ---
+  duration_ms: 6696.699014
+  type: 'test'
+  location: '/home/user/football-os/tests/browser/crash-windows.test.mjs:78:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        gameDay: {
+    +     active: true,
+    +     snapshotHasX: true
+    -     active: false
+        },
+        workspaceHasX: true
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    workspaceHasX: true
+    gameDay:
+      active: false
+  actual:
+    workspaceHasX: true
+    gameDay:
+      active: true
+      snapshotHasX: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/user/football-os/tests/browser/crash-windows.test.mjs:83:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a tab that dies after two writes of a restore during an adjustment leaves the restore complete
+not ok 20 - a tab that dies after two writes of a restore during an adjustment leaves the restore complete # TODO needs the redo journal (owner approval pending)
+  ---
+  duration_ms: 6658.445527
+  type: 'test'
+  location: '/home/user/football-os/tests/browser/crash-windows.test.mjs:87:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        gameDay: {
+          active: false
+        },
+    +   workspace: 'Mesh'
+    -   workspace: 'From Backup'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    workspace: 'From Backup'
+    gameDay:
+      active: false
+  actual:
+    workspace: 'Mesh'
+    gameDay:
+      active: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/user/football-os/tests/browser/crash-windows.test.mjs:102:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: diagram background preserves alignment and restores field at 1440x900
+ok 21 - diagram background preserves alignment and restores field at 1440x900
+  ---
+  duration_ms: 2804.314724
+  type: 'test'
+  ...
+# Subtest: diagram background preserves alignment and restores field at 1280x720
+ok 22 - diagram background preserves alignment and restores field at 1280x720
+  ---
+  duration_ms: 2696.92444
+  type: 'test'
+  ...
+# Subtest: diagram background preserves alignment and restores field at 834x1194
+ok 23 - diagram background preserves alignment and restores field at 834x1194
+  ---
+  duration_ms: 2718.819924
+  type: 'test'
+  ...
+# Subtest: diagram background preserves alignment and restores field at 390x844
+ok 24 - diagram background preserves alignment and restores field at 390x844
+  ---
+  duration_ms: 2725.004266
+  type: 'test'
+  ...
+# Subtest: diagram background preserves alignment and restores field at 844x390
+ok 25 - diagram background preserves alignment and restores field at 844x390
+  ---
+  duration_ms: 2695.932015
+  type: 'test'
+  ...
+# Subtest: diagram PNG removes field clutter, fits full lesson, and leaves saved workspace unchanged
+ok 26 - diagram PNG removes field clutter, fits full lesson, and leaves saved workspace unchanged
+  ---
+  duration_ms: 3030.567847
+  type: 'test'
+  ...
+# Subtest: field side is editable play metadata, undoable, and survives reload without moving any geometry
+ok 27 - field side is editable play metadata, undoable, and survives reload without moving any geometry
+  ---
+  duration_ms: 5566.694336
+  type: 'test'
+  ...
+# Subtest: field side control is reachable on phone landscape
+ok 28 - field side control is reachable on phone landscape
+  ---
+  duration_ms: 3200.944373
+  type: 'test'
+  ...
+# Subtest: exceptional long labels remain complete and tiny-area tags avoid their owner
+ok 29 - exceptional long labels remain complete and tiny-area tags avoid their owner
+  ---
+  duration_ms: 2881.79768
+  type: 'test'
+  ...
+# Subtest: dragging a player reads out the spot and snaps to a neighbour's column
+ok 30 - dragging a player reads out the spot and snaps to a neighbour's column
+  ---
+  duration_ms: 3689.659157
+  type: 'test'
+  ...
+# Subtest: Alt places a player freely, ignoring the magnets
+ok 31 - Alt places a player freely, ignoring the magnets
+  ---
+  duration_ms: 3216.821412
+  type: 'test'
+  ...
+# Subtest: a drag never selects the field's text
+ok 32 - a drag never selects the field's text
+  ---
+  duration_ms: 3291.287461
+  type: 'test'
+  ...
+# Subtest: rename, nudge, delete and undo all round-trip
+ok 33 - rename, nudge, delete and undo all round-trip
+  ---
+  duration_ms: 6102.424569
+  type: 'test'
+  ...
+# Subtest: an edit survives a reload
+ok 34 - an edit survives a reload
+  ---
+  duration_ms: 6425.08742
+  type: 'test'
+  ...
+# Subtest: a rename committed with Enter is exactly one undo step
+ok 35 - a rename committed with Enter is exactly one undo step
+  ---
+  duration_ms: 3532.186447
+  type: 'test'
+  ...
+# Subtest: discarding a game-day adjustment leaves nothing for undo to bring back
+ok 36 - discarding a game-day adjustment leaves nothing for undo to bring back
+  ---
+  duration_ms: 6701.812124
+  type: 'test'
+  ...
+# Subtest: saving a game-day adjustment as a variation keeps the variation's edits out of the original's undo
+ok 37 - saving a game-day adjustment as a variation keeps the variation's edits out of the original's undo
+  ---
+  duration_ms: 7533.82813
+  type: 'test'
+  ...
+# Subtest: Tab reaches the players, and the offence comes first
+ok 38 - Tab reaches the players, and the offence comes first
+  ---
+  duration_ms: 3213.033198
+  type: 'test'
+  ...
+# Subtest: Enter selects the focused player, and the arrows then move them
+ok 39 - Enter selects the focused player, and the arrows then move them
+  ---
+  duration_ms: 3197.417674
+  type: 'test'
+  ...
+# Subtest: a locked layer leaves the tab order
+ok 40 - a locked layer leaves the tab order
+  ---
+  duration_ms: 2919.549971
+  type: 'test'
+  ...
+# Subtest: a hidden layer is neither visible nor tabbable
+ok 41 - a hidden layer is neither visible nor tabbable
+  ---
+  duration_ms: 2989.808596
+  type: 'test'
+  ...
+# Subtest: the timeline is a slider the keyboard can drive
+ok 42 - the timeline is a slider the keyboard can drive
+  ---
+  duration_ms: 3476.507635
+  type: 'test'
+  ...
+# Subtest: Present is reachable on a phone, in both orientations
+ok 43 - Present is reachable on a phone, in both orientations
+  ---
+  duration_ms: 3910.143595
+  type: 'test'
+  ...
+# Subtest: every icon-only control still shows its icon
+ok 44 - every icon-only control still shows its icon
+  ---
+  duration_ms: 1921.314252
+  type: 'test'
+  ...
+# Subtest: a stale second tab can neither edit nor overwrite the editor's saved change on hide/close
+ok 45 - a stale second tab can neither edit nor overwrite the editor's saved change on hide/close
+  ---
+  duration_ms: 36226.245973
+  type: 'test'
+  ...
+# Subtest: simultaneous startup: exactly one tab edits, the other is view-only and writes nothing
+ok 46 - simultaneous startup: exactly one tab edits, the other is view-only and writes nothing
+  ---
+  duration_ms: 16317.584447
+  type: 'test'
+  ...
+# Subtest: stale edits across plays and books: navigation in a view-only tab publishes nothing, and its edits after taking over start from the reread base
+ok 47 - stale edits across plays and books: navigation in a view-only tab publishes nothing, and its edits after taking over start from the reread base
+  ---
+  duration_ms: 8788.923236
+  type: 'test'
+  ...
+# Subtest: a dirty dialog holds the handover until it is saved; the saved values are what the next editor gets
+ok 48 - a dirty dialog holds the handover until it is saved; the saved values are what the next editor gets
+  ---
+  duration_ms: 8861.875024
+  type: 'test'
+  ...
+# Subtest: cancelling the dirty dialog hands over without saving what was typed
+ok 49 - cancelling the dirty dialog hands over without saving what was typed
+  ---
+  duration_ms: 7489.261167
+  type: 'test'
+  ...
+# Subtest: a drag in progress holds the handover; releasing it saves the drop and then hands over
+ok 50 - a drag in progress holds the handover; releasing it saves the drop and then hands over
+  ---
+  duration_ms: 7809.653962
+  type: 'test'
+  ...
+# Subtest: a responsibility-area drag preview holds the handover and is committed on release, not discarded
+ok 51 - a responsibility-area drag preview holds the handover and is committed on release, not discarded
+  ---
+  duration_ms: 8138.256521
+  type: 'test'
+  ...
+# Subtest: revoked callbacks cannot write: hide, close, keys and a suspend/resume of the former editor leave the new editor's data alone
+ok 52 - revoked callbacks cannot write: hide, close, keys and a suspend/resume of the former editor leave the new editor's data alone
+  ---
+  duration_ms: 9919.662371
+  type: 'test'
+  ...
+# Subtest: a suspended editor keeps ownership with no timeout; on resume it hands over
+ok 53 - a suspended editor keeps ownership with no timeout; on resume it hands over
+  ---
+  duration_ms: 12051.803717
+  type: 'test'
+  ...
+# Subtest: a terminated editor releases the lock: the waiting tab takes over from what was durably saved
+ok 54 - a terminated editor releases the lock: the waiting tab takes over from what was durably saved
+  ---
+  duration_ms: 9628.462392
+  type: 'test'
+  ...
+# Subtest: after the editor closes, a view-only tab sees nobody editing; Edit here acquires and rereads before editing
+ok 55 - after the editor closes, a view-only tab sees nobody editing; Edit here acquires and rereads before editing
+  ---
+  duration_ms: 7377.464653
+  type: 'test'
+  ...
+# Subtest: missing notifications: with BroadcastChannel silenced in both tabs the handover still happens
+ok 56 - missing notifications: with BroadcastChannel silenced in both tabs the handover still happens
+  ---
+  duration_ms: 5581.126503
+  type: 'test'
+  ...
+# Subtest: a quota failure keeps the editor in charge and offers a preservation file with the game-day original; it hands over once saving works
+ok 57 - a quota failure keeps the editor in charge and offers a preservation file with the game-day original; it hands over once saving works
+  ---
+  duration_ms: 11742.635924
+  type: 'test'
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with discard
+ok 58 - an active game-day adjustment moves to the next editor, which resolves it with discard
+  ---
+  duration_ms: 8188.740275
+  type: 'test'
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with replace
+ok 59 - an active game-day adjustment moves to the next editor, which resolves it with replace
+  ---
+  duration_ms: 8257.200336
+  type: 'test'
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with variation
+ok 60 - an active game-day adjustment moves to the next editor, which resolves it with variation
+  ---
+  duration_ms: 8639.741333
+  type: 'test'
+  ...
+# Subtest: an active game-day adjustment moves to the next editor, which resolves it with new
+ok 61 - an active game-day adjustment moves to the next editor, which resolves it with new
+  ---
+  duration_ms: 8120.116235
+  type: 'test'
+  ...
+# Subtest: a stale restore dialog in a view-only tab cannot restore; after taking over it restores over the reread workspace
+ok 62 - a stale restore dialog in a view-only tab cannot restore; after taking over it restores over the reread workspace
+  ---
+  duration_ms: 8904.045715
+  type: 'test'
+  ...
+# Subtest: a confirmed recovery copy that changed out of band is not replaced
+ok 63 - a confirmed recovery copy that changed out of band is not replaced
+  ---
+  duration_ms: 5912.433964
+  type: 'test'
+  ...
+# Subtest: a stale damaged-adjustment recovery in a view-only tab is disabled and disappears once the editor recovers it
+ok 64 - a stale damaged-adjustment recovery in a view-only tab is disabled and disappears once the editor recovers it
+  ---
+  duration_ms: 7330.168439
+  type: 'test'
+  ...
+# Subtest: repeated restore never silently replaces the only recovery copy; confirmation survives navigation and leaves no play-local undo
+ok 65 - repeated restore never silently replaces the only recovery copy; confirmation survives navigation and leaves no play-local undo
+  ---
+  duration_ms: 7632.980986
+  type: 'test'
+  ...
+# Subtest: restoring during an active adjustment keeps the adjusted play's original in the recovery copy
+ok 66 - restoring during an active adjustment keeps the adjusted play's original in the recovery copy
+  ---
+  duration_ms: 6225.679838
+  type: 'test'
+  ...
+# Subtest: an out-of-band write (an older app version) pauses saving, overwrites nothing, and is resolved only after preserving both versions
+ok 67 - an out-of-band write (an older app version) pauses saving, overwrites nothing, and is resolved only after preserving both versions
+  ---
+  duration_ms: 10869.763711
+  type: 'test'
+  ...
+# Subtest: without Web Locks the app fails closed: view-only, explained, and nothing is written
+ok 68 - without Web Locks the app fails closed: view-only, explained, and nothing is written
+  ---
+  duration_ms: 2676.175927
+  type: 'test'
+  ...
+# Subtest: a preservation file downloaded before a conflict does not unlock the conflict's destructive choices
+ok 69 - a preservation file downloaded before a conflict does not unlock the conflict's destructive choices
+  ---
+  duration_ms: 5299.895399
+  type: 'test'
+  ...
+# Subtest: a locked layer's label field cannot hold a draft that blocks the handover
+ok 70 - a locked layer's label field cannot hold a draft that blocks the handover
+  ---
+  duration_ms: 5375.478783
+  type: 'test'
+  ...
+# Subtest: closing a tab whose changes could not be saved asks first, until a preservation file covers them
+ok 71 - closing a tab whose changes could not be saved asks first, until a preservation file covers them
+  ---
+  duration_ms: 5659.963104
+  type: 'test'
+  ...
+# Subtest: 'Offline ready' never appears before the service worker has primed the cache
+ok 72 - 'Offline ready' never appears before the service worker has primed the cache
+  ---
+  duration_ms: 831.515084
+  type: 'test'
+  ...
+# Subtest: with no service worker, the label never says 'Offline ready'
+ok 73 - with no service worker, the label never says 'Offline ready'
+  ---
+  duration_ms: 4744.082777
+  type: 'test'
+  ...
+# Subtest: once 'Offline ready', the app reloads with the network cut
+ok 74 - once 'Offline ready', the app reloads with the network cut
+  ---
+  duration_ms: 2312.851137
+  type: 'test'
+  ...
+# Subtest: Run moves the players themselves, labels included
+ok 75 - Run moves the players themselves, labels included
+  ---
+  duration_ms: 5368.738545
+  type: 'test'
+  ...
+# Subtest: a defender with an assignment runs it too
+ok 76 - a defender with an assignment runs it too
+  ---
+  duration_ms: 5475.147014
+  type: 'test'
+  ...
+# Subtest: pause freezes the play, and finishing returns everyone to alignment
+ok 77 - pause freezes the play, and finishing returns everyone to alignment
+  ---
+  duration_ms: 12056.728583
+  type: 'test'
+  ...
+# Subtest: Space still runs the play after clicking a player
+ok 78 - Space still runs the play after clicking a player
+  ---
+  duration_ms: 3254.02078
+  type: 'test'
+  ...
+# Subtest: routes light only while their player is running them
+ok 79 - routes light only while their player is running them
+  ---
+  duration_ms: 7517.518058
+  type: 'test'
+  ...
+# Subtest: the play clock survives a pause without drifting
+ok 80 - the play clock survives a pause without drifting
+  ---
+  duration_ms: 4259.471449
+  type: 'test'
+  ...
+# Subtest: gap 1: a restore while the adjustment could not be saved keeps the live original recoverable
+ok 81 - gap 1: a restore while the adjustment could not be saved keeps the live original recoverable
+  ---
+  duration_ms: 8556.399774
+  type: 'test'
+  ...
+# Subtest: gap 2: a position label draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+ok 82 - gap 2: a position label draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9183.170437
+  type: 'test'
+  ...
+# Subtest: gap 2: a route condition draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+ok 83 - gap 2: a route condition draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9107.983224
+  type: 'test'
+  ...
+# Subtest: gap 2: a area preview draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+ok 84 - gap 2: a area preview draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9446.734236
+  type: 'test'
+  ...
+# Subtest: gap 2: a draft typed right after taking over blocks the automatic reread; it becomes a conflict instead
+ok 85 - gap 2: a draft typed right after taking over blocks the automatic reread; it becomes a conflict instead
+  ---
+  duration_ms: 3503.127436
+  type: 'test'
+  ...
+# Subtest: gap 3: a draft typed after a preservation download makes the file stale and keeps the close prompt; an ordinary dirty dialog prompts too
+ok 86 - gap 3: a draft typed after a preservation download makes the file stale and keeps the close prompt; an ordinary dirty dialog prompts too
+  ---
+  duration_ms: 5510.270104
+  type: 'test'
+  ...
+# Subtest: gap 4: storage denied at startup: the app renders, explains, and exports a file marking storage unavailable
+ok 87 - gap 4: storage denied at startup: the app renders, explains, and exports a file marking storage unavailable
+  ---
+  duration_ms: 3108.246931
+  type: 'test'
+  ...
+# Subtest: gap 4: a read failure after editing pauses saving with a message, and the live export still works
+ok 88 - gap 4: a read failure after editing pauses saving with a message, and the live export still works
+  ---
+  duration_ms: 4926.384308
+  type: 'test'
+  ...
+# Subtest: gap 4: key enumeration failing during export still downloads the live workspace and marks storage unavailable
+ok 89 - gap 4: key enumeration failing during export still downloads the live workspace and marks storage unavailable
+  ---
+  duration_ms: 4392.318914
+  type: 'test'
+  ...
+# Subtest: gap 5: a stored version held as current workspace plus a legacy adjustment restores through the UI with its adjustment
+ok 90 - gap 5: a stored version held as current workspace plus a legacy adjustment restores through the UI with its adjustment
+  ---
+  duration_ms: 4646.050778
+  type: 'test'
+  ...
+# Subtest: gap 6: a restore whose rollback also fails reports the records left changed and keeps the recovery copy
+ok 91 - gap 6: a restore whose rollback also fails reports the records left changed and keeps the recovery copy
+  ---
+  duration_ms: 5630.758939
+  type: 'test'
+  ...
+# Subtest: gap 5: a stored version held only under a legacy workspace key restores through the UI, migrated
+ok 92 - gap 5: a stored version held only under a legacy workspace key restores through the UI, migrated
+  ---
+  duration_ms: 4553.812431
+  type: 'test'
+  ...
+# Subtest: gap 5: identical workspaces with different adjustments are offered as two versions; the stored adjustment restores
+ok 93 - gap 5: identical workspaces with different adjustments are offered as two versions; the stored adjustment restores
+  ---
+  duration_ms: 4482.644865
+  type: 'test'
+  ...
+# Subtest: verified reference is read-only and its active copy is editable
+ok 94 - verified reference is read-only and its active copy is editable
+  ---
+  duration_ms: 5612.046447
+  type: 'test'
+  ...
+# Subtest: filmstrip names stay inside the visible card area
+ok 95 - filmstrip names stay inside the visible card area
+  ---
+  duration_ms: 2549.857155
+  type: 'test'
+  ...
+# Subtest: an export that could not read stored records keeps Keep this tab's version blocked, and B stays untouched
+ok 96 - an export that could not read stored records keeps Keep this tab's version blocked, and B stays untouched
+  ---
+  duration_ms: 11253.122983
+  type: 'test'
+  ...
+# Subtest: a successful restore whose reread fails never lets the old live state overwrite the restored one
+ok 97 - a successful restore whose reread fails never lets the old live state overwrite the restored one
+  ---
+  duration_ms: 7672.017569
+  type: 'test'
+  ...
+# Subtest: a restore over unsaved work stays refused while the preservation file could not include what is stored
+ok 98 - a restore over unsaved work stays refused while the preservation file could not include what is stored
+  ---
+  duration_ms: 5500.377491
+  type: 'test'
+  ...
+# Subtest: author two independently owned areas, edit without changing drops, undo, persist and remove
+ok 99 - author two independently owned areas, edit without changing drops, undo, persist and remove
+  ---
+  duration_ms: 7200.338962
+  type: 'test'
+  ...
+# Subtest: handle drag is one undo step; Escape and pointer cancellation discard preview; layers lock editing
+ok 100 - handle drag is one undo step; Escape and pointer cancellation discard preview; layers lock editing
+  ---
+  duration_ms: 7491.712527
+  type: 'test'
+  ...
+# Subtest: relabel, duplicate, remove defender and change assignment type retain independent undoable areas
+ok 101 - relabel, duplicate, remove defender and change assignment type retain independent undoable areas
+  ---
+  duration_ms: 6649.339466
+  type: 'test'
+  ...
+# Subtest: undo and redo during a held area drag cannot reapply its stale snapshot
+ok 102 - undo and redo during a held area drag cannot reapply its stale snapshot
+  ---
+  duration_ms: 4326.723519
+  type: 'test'
+  ...
+# Subtest: rehearse example add, revision, reopen, backup/restore, presentation and outputs
+ok 103 - rehearse example add, revision, reopen, backup/restore, presentation and outputs
+  ---
+  duration_ms: 14433.771967
+  type: 'test'
+  ...
+# Subtest: lesson controls and presentation at 1440x900
+ok 104 - lesson controls and presentation at 1440x900
+  ---
+  duration_ms: 5039.200661
+  type: 'test'
+  ...
+# Subtest: lesson controls and presentation at 1280x720
+ok 105 - lesson controls and presentation at 1280x720
+  ---
+  duration_ms: 4836.483437
+  type: 'test'
+  ...
+# Subtest: lesson controls and presentation at 1024x768
+ok 106 - lesson controls and presentation at 1024x768
+  ---
+  duration_ms: 4628.912858
+  type: 'test'
+  ...
+# Subtest: lesson controls and presentation at 390x844
+ok 107 - lesson controls and presentation at 390x844
+  ---
+  duration_ms: 4538.290959
+  type: 'test'
+  ...
+# Subtest: lesson controls and presentation at 844x390
+ok 108 - lesson controls and presentation at 844x390
+  ---
+  duration_ms: 4332.939763
+  type: 'test'
+  ...
+# Subtest: unsafe concept apply keeps the dialog, play, and undo history unchanged
+ok 109 - unsafe concept apply keeps the dialog, play, and undo history unchanged
+  ---
+  duration_ms: 3481.738729
+  type: 'test'
+  ...
+# Subtest: copy notice, path mirror, player movement and undo retain independent region data
+ok 110 - copy notice, path mirror, player movement and undo retain independent region data
+  ---
+  duration_ms: 5657.037271
+  type: 'test'
+  ...
+# Subtest: clean end output retains complete areas, keyed legends, and actual PNG/PDF
+ok 111 - clean end output retains complete areas, keyed legends, and actual PNG/PDF
+  ---
+  duration_ms: 5194.696777
+  type: 'test'
+  ...
+# Subtest: clean side output retains complete areas, keyed legends, and actual PNG/PDF
+ok 112 - clean side output retains complete areas, keyed legends, and actual PNG/PDF
+  ---
+  duration_ms: 5265.826947
+  type: 'test'
+  ...
+# Subtest: clean outputs honor intentional defense and assignment visibility and dimming
+ok 113 - clean outputs honor intentional defense and assignment visibility and dimming
+  ---
+  duration_ms: 4043.230556
+  type: 'test'
+  ...
+# Subtest: area owners and drops share palette color; ordinary defenders stay flat and selection keeps ownership
+ok 114 - area owners and drops share palette color; ordinary defenders stay flat and selection keeps ownership
+  ---
+  duration_ms: 3050.294153
+  type: 'test'
+  ...
+# Subtest: phone PNG keeps readable legend and keyed owners without saving export or dimming state
+ok 115 - phone PNG keeps readable legend and keyed owners without saving export or dimming state
+  ---
+  duration_ms: 3554.754707
+  type: 'test'
+  ...
+# Subtest: with nothing selected, the field takes the inspector's width back
+ok 116 - with nothing selected, the field takes the inspector's width back
+  ---
+  duration_ms: 3748.527817
+  type: 'test'
+  ...
+# Subtest: surfaces animate in rather than popping
+ok 117 - surfaces animate in rather than popping
+  ---
+  duration_ms: 3208.123488
+  type: 'test'
+  ...
+# Subtest: the inspector keeps its section headings on screen and its editor usable
+ok 118 - the inspector keeps its section headings on screen and its editor usable
+  ---
+  duration_ms: 5248.585796
+  type: 'test'
+  ...
+# Subtest: Present hands the whole viewport to the field, and Escape gives it back
+ok 119 - Present hands the whole viewport to the field, and Escape gives it back
+  ---
+  duration_ms: 3962.743113
+  type: 'test'
+  ...
+# Subtest: presenting never draws the play smaller than editing does
+ok 120 - presenting never draws the play smaller than editing does
+  ---
+  duration_ms: 6012.086874
+  type: 'test'
+  ...
+# Subtest: thumbnails carry assignment colour and mark what each variant changes
+ok 121 - thumbnails carry assignment colour and mark what each variant changes
+  ---
+  duration_ms: 2546.177655
+  type: 'test'
+  ...
+# Subtest: break depths are off by default and toggle on from the Key
+ok 122 - break depths are off by default and toggle on from the Key
+  ---
+  duration_ms: 3385.790761
+  type: 'test'
+  ...
+# Subtest: surfaces animate out rather than popping
+ok 123 - surfaces animate out rather than popping
+  ---
+  duration_ms: 6694.957187
+  type: 'test'
+  ...
+# Subtest: floating canvas controls do not cover the layer bar
+ok 124 - floating canvas controls do not cover the layer bar
+  ---
+  duration_ms: 3079.586118
+  type: 'test'
+  ...
+# Subtest: saved v9 workspace upgrades without losing custom data or old key
+ok 125 - saved v9 workspace upgrades without losing custom data or old key
+  ---
+  duration_ms: 3054.054646
+  type: 'test'
+  ...
+# Subtest: saved v10 workspace upgrades without losing custom data or old key
+ok 126 - saved v10 workspace upgrades without losing custom data or old key
+  ---
+  duration_ms: 2687.413191
+  type: 'test'
+  ...
+# Subtest: corrupt current data stays intact through reload and recovers only after confirmed restore
+ok 127 - corrupt current data stays intact through reload and recovers only after confirmed restore
+  ---
+  duration_ms: 5588.246008
+  type: 'test'
+  ...
+# Subtest: quota failure is persistent and a failed recovery copy cannot replace the workspace
+ok 128 - quota failure is persistent and a failed recovery copy cannot replace the workspace
+  ---
+  duration_ms: 3991.061518
+  type: 'test'
+  ...
+# Subtest: corrupt game-day data is retained and does not get deleted by the null-state effect
+ok 129 - corrupt game-day data is retained and does not get deleted by the null-state effect
+  ---
+  duration_ms: 2637.858408
+  type: 'test'
+  ...
+# Subtest: personal retired-catalog name survives creation/edit/reload (fresh)
+ok 130 - personal retired-catalog name survives creation/edit/reload (fresh)
+  ---
+  duration_ms: 5901.322327
+  type: 'test'
+  ...
+# Subtest: personal retired-catalog name survives creation/edit/reload (migrated)
+ok 131 - personal retired-catalog name survives creation/edit/reload (migrated)
+  ---
+  duration_ms: 6098.211499
+  type: 'test'
+  ...
+# Subtest: game-day recovery preserves damaged bytes and enables new adjustments after reload
+ok 132 - game-day recovery preserves damaged bytes and enables new adjustments after reload
+  ---
+  duration_ms: 4907.889531
+  type: 'test'
+  ...
+# Subtest: failed game-day recovery write leaves damaged bytes and the recovery action available
+ok 133 - failed game-day recovery write leaves damaged bytes and the recovery action available
+  ---
+  duration_ms: 3120.039497
+  type: 'test'
+  ...
+# Subtest: desktop 1280x800: no sideways scroll, the field dominates, controls are reachable
+ok 134 - desktop 1280x800: no sideways scroll, the field dominates, controls are reachable
+  ---
+  duration_ms: 2635.889342
+  type: 'test'
+  ...
+# Subtest: iPad 1024x1366: no sideways scroll, the field dominates, controls are reachable
+ok 135 - iPad 1024x1366: no sideways scroll, the field dominates, controls are reachable
+  ---
+  duration_ms: 2546.865464
+  type: 'test'
+  ...
+# Subtest: phone portrait 390x844: no sideways scroll, the field dominates, controls are reachable
+ok 136 - phone portrait 390x844: no sideways scroll, the field dominates, controls are reachable
+  ---
+  duration_ms: 2540.566195
+  type: 'test'
+  ...
+# Subtest: phone portrait 375x812: no sideways scroll, the field dominates, controls are reachable
+ok 137 - phone portrait 375x812: no sideways scroll, the field dominates, controls are reachable
+  ---
+  duration_ms: 2535.276511
+  type: 'test'
+  ...
+# Subtest: phone portrait 320x568: no sideways scroll, the field dominates, controls are reachable
+ok 138 - phone portrait 320x568: no sideways scroll, the field dominates, controls are reachable
+  ---
+  duration_ms: 2511.071295
+  type: 'test'
+  ...
+# Subtest: phone landscape 844x390: no sideways scroll, the field dominates, controls are reachable
+ok 139 - phone landscape 844x390: no sideways scroll, the field dominates, controls are reachable
+  ---
+  duration_ms: 2556.104234
+  type: 'test'
+  ...
+# Subtest: phone portrait 390x844: no chrome permanently covers the field
+ok 140 - phone portrait 390x844: no chrome permanently covers the field
+  ---
+  duration_ms: 4735.19341
+  type: 'test'
+  ...
+# Subtest: phone portrait 375x812: no chrome permanently covers the field
+ok 141 - phone portrait 375x812: no chrome permanently covers the field
+  ---
+  duration_ms: 4733.892932
+  type: 'test'
+  ...
+# Subtest: phone portrait 320x568: no chrome permanently covers the field
+ok 142 - phone portrait 320x568: no chrome permanently covers the field
+  ---
+  duration_ms: 4749.177831
+  type: 'test'
+  ...
+# Subtest: phone landscape 844x390: no chrome permanently covers the field
+ok 143 - phone landscape 844x390: no chrome permanently covers the field
+  ---
+  duration_ms: 3887.733362
+  type: 'test'
+  ...
+1..143
+# tests 143
+# suites 0
+# pass 141
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 2
+# duration_ms 816326.859327
+EXIT=0

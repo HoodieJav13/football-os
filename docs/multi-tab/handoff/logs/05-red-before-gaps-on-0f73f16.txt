@@ -1,0 +1,348 @@
+worktree @ 0f73f1693e3be594f57d4352141eca2eb8558767 (pre-fix) + final preservation-gaps tests
+TAP version 13
+# Subtest: gap 1: a restore while the adjustment could not be saved keeps the live original recoverable
+not ok 1 - gap 1: a restore while the adjustment could not be saved keeps the live original recoverable
+  ---
+  duration_ms: 7340.36038
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:66:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   blockedUntilPreserved: false,
+    +   recoveryLiveOriginal: null,
+    -   blockedUntilPreserved: true,
+    -   recoveryLiveOriginal: 'ORIGINAL',
+        recoveryLiveTemp: 'TEMP',
+        restored: 'Mesh'
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    blockedUntilPreserved: true
+    recoveryLiveOriginal: 'ORIGINAL'
+    recoveryLiveTemp: 'TEMP'
+    restored: 'Mesh'
+  actual:
+    blockedUntilPreserved: false
+    recoveryLiveOriginal: ~
+    recoveryLiveTemp: 'TEMP'
+    restored: 'Mesh'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:91:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: gap 2: a position label draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+not ok 2 - gap 2: a position label draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9154.067533
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:116:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    []
+    + actual - expected
+    
+      {
+    +   draftKept: false,
+    -   draftKept: true,
+        writesAfterConflict: 0
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    writesAfterConflict: 0
+    draftKept: true
+  actual:
+    writesAfterConflict: 0
+    draftKept: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:149:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: gap 2: a route condition draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+not ok 3 - gap 2: a route condition draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9209.266422
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:116:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    []
+    + actual - expected
+    
+      {
+    +   draftKept: false,
+    -   draftKept: true,
+        writesAfterConflict: 0
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    writesAfterConflict: 0
+    draftKept: true
+  actual:
+    writesAfterConflict: 0
+    draftKept: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:149:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: gap 2: a area preview draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+not ok 4 - gap 2: a area preview draft in progress when a conflict demotes the editor is preserved exactly, with no writes after it
+  ---
+  duration_ms: 9751.640465
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:116:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    []
+    + actual - expected
+    
+      {
+    +   draftKept: false,
+    -   draftKept: true,
+        writesAfterConflict: 0
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    writesAfterConflict: 0
+    draftKept: true
+  actual:
+    writesAfterConflict: 0
+    draftKept: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:149:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: gap 2: a draft typed right after taking over blocks the automatic reread; it becomes a conflict instead
+not ok 5 - gap 2: a draft typed right after taking over blocks the automatic reread; it becomes a conflict instead
+  ---
+  duration_ms: 33541.439722
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:158:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Saving paused/. Input:
+    
+    ''
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: ''
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:166:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: gap 3: a draft typed after a preservation download makes the file stale and keeps the close prompt; an ordinary dirty dialog prompts too
+not ok 6 - gap 3: a draft typed after a preservation download makes the file stale and keeps the close prompt; an ordinary dirty dialog prompts too
+  ---
+  duration_ms: 3185.077067
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:170:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    an ordinary dirty dialog asks before leaving
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:175:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: gap 4: storage denied at startup: the app renders, explains, and exports a file marking storage unavailable
+not ok 7 - gap 4: storage denied at startup: the app renders, explains, and exports a file marking storage unavailable
+  ---
+  duration_ms: 3413.721888
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:195:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    the data dialog opens (page errors: SecurityError: The operation is insecure.)
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:201:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: gap 4: a read failure after editing pauses saving with a message, and the live export still works
+not ok 8 - gap 4: a read failure after editing pauses saving with a message, and the live export still works
+  ---
+  duration_ms: 35484.35543
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:208:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.innerText: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.storage-recovery')[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:216:56)
+  ...
+# Subtest: gap 4: key enumeration failing during export still downloads the live workspace and marks storage unavailable
+not ok 9 - gap 4: key enumeration failing during export still downloads the live workspace and marks storage unavailable
+  ---
+  duration_ms: 34978.922242
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:226:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    page.waitForEvent: Timeout 30000ms exceeded while waiting for event "download"
+    =========================== logs ===========================
+    waiting for event "download"
+    ============================================================
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    download (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:42:24)
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:233:24)
+  ...
+# Subtest: gap 5: a stored version held as current workspace plus a legacy adjustment restores through the UI with its adjustment
+not ok 10 - gap 5: a stored version held as current workspace plus a legacy adjustment restores through the UI with its adjustment
+  ---
+  duration_ms: 4553.371203
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:242:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /game-day adjustment/. Input:
+    
+    'Valid Football OS preservation file\n' +
+      '5 playbooks · 69 plays · 0 concepts\n' +
+      'The version that was in storage when the file was made\n' +
+      'Restore this backup\n' +
+      "Restore the tab's version instead"
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    Valid Football OS preservation file
+    5 playbooks · 69 plays · 0 concepts
+    The version that was in storage when the file was made
+    Restore this backup
+    Restore the tab's version instead
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:260:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: gap 6: a restore whose rollback also fails reports the records left changed and keeps the recovery copy
+not ok 11 - gap 6: a restore whose rollback also fails reports the records left changed and keeps the recovery copy
+  ---
+  duration_ms: 10602.945666
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:273:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Backup was not restored: The quota has been exceeded.. The current workspace is unchanged.
+    + actual - expected
+    
+      {
+    +   claimsUnchanged: true,
+    +   namesGameDay: false,
+    +   recoveryKeepsAdjustment: false,
+    -   claimsUnchanged: false,
+    -   namesGameDay: true,
+    -   recoveryKeepsAdjustment: true,
+        workspaceUntouched: true
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    claimsUnchanged: false
+    namesGameDay: true
+    workspaceUntouched: true
+    recoveryKeepsAdjustment: true
+  actual:
+    claimsUnchanged: true
+    namesGameDay: false
+    workspaceUntouched: true
+    recoveryKeepsAdjustment: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:291:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: gap 5: a stored version held only under a legacy workspace key restores through the UI, migrated
+not ok 12 - gap 5: a stored version held only under a legacy workspace key restores through the UI, migrated
+  ---
+  duration_ms: 35281.453592
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:305:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Restore the stored version instead' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:317:82)
+  ...
+# Subtest: gap 5: identical workspaces with different adjustments are offered as two versions; the stored adjustment restores
+not ok 13 - gap 5: identical workspaces with different adjustments are offered as two versions; the stored adjustment restores
+  ---
+  duration_ms: 35619.875792
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:327:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.click: Timeout 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Restore the stored version instead' })[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    TestContext.<anonymous> (/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/wt0f7/tests/browser/preservation-gaps.test.mjs:340:82)
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 0
+# fail 13
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 232621.402222
+EXIT=1

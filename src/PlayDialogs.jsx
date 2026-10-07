@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal } from "./Modal";
+import { useDraft } from "./draftRegistry";
 import { basePlayers, defaultFormations, formationStatus } from "./playData";
 import {
   BookOpen,
@@ -49,6 +50,9 @@ export function PlayDetailsDialog({ play, onClose, onSave }) {
   const [fieldSide, setFieldSide] = useState(play.fieldSide ?? "none");
   const status = formationStatus(play.players ?? basePlayers);
   const canSave = name.trim().length > 0 && status.legal;
+  const values = { name, family, folder, personnel, protection, blockingScheme, fieldSide };
+  const initial = { name: play.name, family: play.family ?? "", folder: play.folder ?? "Offense", personnel: play.personnel ?? "", protection: play.protection ?? "", blockingScheme: play.blockingScheme ?? "", fieldSide: play.fieldSide ?? "none" };
+  useDraft("play-details", { dirty: JSON.stringify(values) !== JSON.stringify(initial), label: `Play details for ${play.name}`, values: { playId: play.id, ...values } });
   return (
     <Modal label="Play details" className="adjustment-modal details-modal" onClose={onClose} as="form" onSubmit={(event) => {
       event.preventDefault();
@@ -101,6 +105,7 @@ export function CreatePlayDialog({ currentPlay, formations, onClose, onCreate })
       : formation?.players;
   const status = formationStatus(candidatePlayers ?? []);
   const canCreate = name.trim().length > 0 && status.legal;
+  useDraft("create-play", { dirty: name.trim().length > 0, label: "New play dialog", values: { name, mode, formationId } });
 
   return (
     <Modal label="Create a play" className="adjustment-modal details-modal create-play-modal" onClose={onClose} as="form" onSubmit={(event) => {
@@ -135,6 +140,7 @@ export function CreatePlayDialog({ currentPlay, formations, onClose, onCreate })
 
 export function SaveFormationDialog({ play, onClose, onSave }) {
   const [name, setName] = useState(play.formation || "");
+  useDraft("save-formation", { dirty: name !== (play.formation || ""), label: "Save formation dialog", values: { playId: play.id, name } });
   const status = formationStatus(play.players);
   const canSave = name.trim().length > 0 && status.legal;
   return (
@@ -202,6 +208,7 @@ export function DeletePlayDialog({ canDelete, onClose, onDelete, play }) {
 
 export function NewPlaybookDialog({ onClose, onCreate }) {
   const [name, setName] = useState("");
+  useDraft("new-playbook", { dirty: name.trim().length > 0, label: "New playbook dialog", values: { name } });
   const canCreate = name.trim().length > 0;
   return (
     <Modal label="Create a playbook" className="adjustment-modal details-modal" onClose={onClose} as="form" onSubmit={(event) => {

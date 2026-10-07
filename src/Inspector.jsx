@@ -1,5 +1,6 @@
 import { ResponsibilityAreaControls } from './ResponsibilityAreaControls';
 import { useEffect, useRef, useState } from "react";
+import { useDraft } from "./draftRegistry";
 import {
   AssignmentStagePicker,
   AssignmentTransfer,
@@ -20,10 +21,14 @@ import {
 import { CaretDown, CaretRight, CaretUp, Copy, GitMerge, LockSimple, Play, Plus, Trash, X } from "@phosphor-icons/react";
 
 /** The right edge player inspector: identity, assignment stage, and the detail editors. */
-function PositionLabelControl({ label, onSave }) {
+function PositionLabelControl({ label, onSave, disabled = false }) {
   const [value, setValue] = useState(label);
+  // Commits on blur; until then the typed label exists only here. A locked
+  // field cannot hold a draft: its commit would be refused and the draft would
+  // hold a handover open forever.
+  useDraft("position-label", { dirty: !disabled && value.trim().toUpperCase() !== label && value.trim() !== "", label: `Position label ${label} → ${value.trim().toUpperCase()}`, values: { from: label, to: value } });
 
-  useEffect(() => setValue(label), [label]);
+  useEffect(() => setValue(label), [label, disabled]);
 
   const commit = () => {
     const next = value.trim().toUpperCase();
@@ -39,6 +44,7 @@ function PositionLabelControl({ label, onSave }) {
       <span>Position label</span>
       <input
         aria-label="Position label"
+        disabled={disabled}
         maxLength={4}
         value={value}
         onBlur={commit}
@@ -57,18 +63,19 @@ function PositionLabelControl({ label, onSave }) {
   );
 }
 
-function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
+function RouteDefinitionEditor({ route, onChange, onRegenerate, disabled = false }) {
   const definition = sanitizeRouteDefinition(route.definition ?? inferRouteDefinition(route));
   const evidence = route.evidence;
   const detected = route.geometryMode === "detected";
   const manual = route.geometryMode === "manual";
   const [conditionDraft, setConditionDraft] = useState(definition.condition);
   const conditionDraftRef = useRef(definition.condition);
+  useDraft("route-condition", { dirty: !disabled && conditionDraft !== definition.condition, label: "Route condition text", values: { assignmentId: route.id, condition: conditionDraft } });
 
   useEffect(() => {
     setConditionDraft(definition.condition);
     conditionDraftRef.current = definition.condition;
-  }, [definition.condition, route.id]);
+  }, [definition.condition, route.id, disabled]);
 
   const changeDefinition = (updater) => {
     const next = typeof updater === "function" ? updater(definition) : updater;
@@ -166,6 +173,7 @@ function RouteDefinitionEditor({ route, onChange, onRegenerate }) {
 
       <label className="route-condition">Condition / conversion
         <textarea
+          disabled={disabled}
           value={conditionDraft}
           placeholder="e.g. Convert to bender vs MFO"
           onChange={(event) => {
@@ -211,8 +219,10 @@ export function Inspector({
   unavailableTypes,
   unit,
   reference = false,
+  viewOnly = null,
   lockReason,
 }) {
+  const readOnly = reference || Boolean(viewOnly);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   /*
    * On a phone this sheet appears directly under the finger that selected the
@@ -274,7 +284,9 @@ export function Inspector({
         </div>
         <button className="icon-control" aria-label="Close player inspector" onClick={onClose}><X size={21} /></button>
       </div>
-      {!reference ? <AssignmentStagePicker
+      {/* Pinned with the identity, so a phone's peek height still says why nothing is editable. */}
+      {viewOnly ? <div className="reference-lock-note view-only-note"><LockSimple size={18} /><span><strong>View only</strong><small>{viewOnly}</small></span></div> : null}
+      {!readOnly ? <AssignmentStagePicker
         disabled={locked}
         activeId={route?.id ?? null}
         assignments={assignments}
@@ -283,9 +295,9 @@ export function Inspector({
         unit={unit}
       /> : null}
       <div className="inspector-body">
-        {reference ? (
+        {readOnly ? (
           <div className="reference-inspector">
-            <div className="reference-lock-note"><LockSimple size={18} /><span><strong>Verified reference</strong><small>Copy this play to Personal Active before editing.</small></span></div>
+            {viewOnly ? null : <div className="reference-lock-note"><LockSimple size={18} /><span><strong>Verified reference</strong><small>Copy this play to Personal Active before editing.</small></span></div>}
             <dl>
               <div><dt>Position</dt><dd>{label}{route?.evidence?.sourcePositionLabel && route.evidence.sourcePositionLabel !== label ? ` · source ${route.evidence.sourcePositionLabel}` : ""}</dd></div>
               <div><dt>Assignment</dt><dd>{route?.preset ?? route?.type ?? "None"}</dd></div>
@@ -303,7 +315,7 @@ export function Inspector({
             <span>{route.templateOverride ? "Play-level override" : `Inherited from ${route.inheritedFrom.conceptName}`}</span>
           </div>
         ) : null}
-        <PositionLabelControl label={label} onSave={onRenamePlayer} />
+        <PositionLabelControl label={label} onSave={onRenamePlayer} disabled={locked} />
         <div className="control-group">
           <span>Assignment</span>
           <AssignmentTypePicker unit={unit} value={route?.type ?? ""} onChange={onSetAssignmentType} unavailable={unavailableTypes} />
@@ -322,7 +334,7 @@ export function Inspector({
           <details className="inspector-section" open>
             <summary><span>{detailLabel}</span><small>{route.preset ?? route.type}</small><CaretRight size={16} /></summary>
             <div className="section-body">
-              {route.type === "Route" ? <RouteDefinitionEditor route={route} onChange={onDefinition} onRegenerate={onRegenerate} /> : null}
+              {route.type === "Route" ? <RouteDefinitionEditor route={route} onChange={onDefinition} onRegenerate={onRegenerate} disabled={locked} /> : null}
               {route.type === "Block" ? <BlockEditor definition={route.definition} onChange={onAssignmentDefinition} /> : null}
               {route.type === "Motion" ? <MotionEditor definition={route.definition} onChange={onAssignmentDefinition} /> : null}
               {unit === "defense" ? <DefensiveEditor assignment={route} offensePlayers={offensePlayers} onChange={onAssignmentDefinition} /> : null}

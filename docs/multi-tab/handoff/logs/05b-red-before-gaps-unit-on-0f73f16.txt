@@ -1,0 +1,296 @@
+src @ 0f73f16 + new unit tests
+TAP version 13
+# file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/durable-store.test.mjs:82
+# import { StorageReadError } from "../src/durableStore.js";
+#          ^^^^^^^^^^^^^^^^
+# SyntaxError: The requested module '../src/durableStore.js' does not provide an export named 'StorageReadError'
+#     at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
+#     at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
+#     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+#     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+# Node.js v22.22.0
+# Subtest: tests/durable-store.test.mjs
+not ok 1 - tests/durable-store.test.mjs
+  ---
+  duration_ms: 80.710487
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/durable-store.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: simultaneous startup yields exactly one editor and one viewer
+ok 2 - simultaneous startup yields exactly one editor and one viewer
+  ---
+  duration_ms: 11.700212
+  type: 'test'
+  ...
+# Subtest: a request waits for drafts, then hands over; the receiver rereads under a new lease and the old lease cannot write
+ok 3 - a request waits for drafts, then hands over; the receiver rereads under a new lease and the old lease cannot write
+  ---
+  duration_ms: 2.760061
+  type: 'test'
+  ...
+# Subtest: a lost BroadcastChannel message is recovered by polling the lock queue
+ok 4 - a lost BroadcastChannel message is recovered by polling the lock queue
+  ---
+  duration_ms: 1.030903
+  type: 'test'
+  ...
+# Subtest: a failed save keeps the lock with the editor; it hands over once a save succeeds
+ok 5 - a failed save keeps the lock with the editor; it hands over once a save succeeds
+  ---
+  duration_ms: 3.05306
+  type: 'test'
+  ...
+# Subtest: an owner that dies releases the lock to a queued tab; a passive viewer does not take it
+ok 6 - an owner that dies releases the lock to a queued tab; a passive viewer does not take it
+  ---
+  duration_ms: 1.423968
+  type: 'test'
+  ...
+# Subtest: cancelling a request leaves the editor in place and clears its notice
+ok 7 - cancelling a request leaves the editor in place and clears its notice
+  ---
+  duration_ms: 2.098913
+  type: 'test'
+  ...
+# Subtest: without Web Locks the tab fails closed and never acquires
+ok 8 - without Web Locks the tab fails closed and never acquires
+  ---
+  duration_ms: 4.976667
+  type: 'test'
+  ...
+# Subtest: a lease the browser no longer reports as held stops writing at once
+ok 9 - a lease the browser no longer reports as held stops writing at once
+  ---
+  duration_ms: 1.001717
+  type: 'test'
+  ...
+# Subtest: a requester that cancelled while the editor was blocked is not handed a lock nobody takes
+ok 10 - a requester that cancelled while the editor was blocked is not handed a lock nobody takes
+  ---
+  duration_ms: 1.17718
+  type: 'test'
+  ...
+# Subtest: a tab queued before the current lease began is deferred, not handed the lock the moment the new editor gets it
+ok 11 - a tab queued before the current lease began is deferred, not handed the lock the moment the new editor gets it
+  ---
+  duration_ms: 1.856454
+  type: 'test'
+  ...
+# Subtest: a lost lease also lets go of the editor lock, so neither this tab nor another waits forever
+ok 12 - a lost lease also lets go of the editor lock, so neither this tab nor another waits forever
+  ---
+  duration_ms: 2.544215
+  type: 'test'
+  ...
+# Subtest: a lock query answered from before the lease lock was granted is discarded
+ok 13 - a lock query answered from before the lease lock was granted is discarded
+  ---
+  duration_ms: 0.825802
+  type: 'test'
+  ...
+# Subtest: a lost lease lets the app keep its drafts before anything re-renders as view-only
+not ok 14 - a lost lease lets the app keep its drafts before anything re-renders as view-only
+  ---
+  duration_ms: 1.765309
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/editor-authority.test.mjs:234:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    -   'demote while editor',
+        'emit viewer'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'demote while editor'
+    1: 'emit viewer'
+  actual:
+    0: 'emit viewer'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/editor-authority.test.mjs:244:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a preservation file keeps the game-day original and drafts, and restores both workspace and adjustment
+ok 15 - a preservation file keeps the game-day original and drafts, and restores both workspace and adjustment
+  ---
+  duration_ms: 45.526268
+  type: 'test'
+  ...
+# Subtest: a preservation file whose adjustment does not belong to its workspace is refused whole
+ok 16 - a preservation file whose adjustment does not belong to its workspace is refused whole
+  ---
+  duration_ms: 31.313493
+  type: 'test'
+  ...
+# Subtest: an ordinary backup still parses through the same entry point
+ok 17 - an ordinary backup still parses through the same entry point
+  ---
+  duration_ms: 47.095191
+  type: 'test'
+  ...
+# Subtest: restore keeps the raw game-day record in the recovery copy and ends the adjustment before replacing the workspace
+ok 18 - restore keeps the raw game-day record in the recovery copy and ends the adjustment before replacing the workspace
+  ---
+  duration_ms: 35.573116
+  type: 'test'
+  ...
+# Subtest: an existing recovery copy is replaced only with confirmation of exactly those bytes
+ok 19 - an existing recovery copy is replaced only with confirmation of exactly those bytes
+  ---
+  duration_ms: 73.121862
+  type: 'test'
+  ...
+# Subtest: both versions in a conflict preservation file are restorable: this tab's, and the one found in storage
+ok 20 - both versions in a conflict preservation file are restorable: this tab's, and the one found in storage
+  ---
+  duration_ms: 80.594412
+  type: 'test'
+  ...
+# Subtest: an adjustment the loader would reject as damaged is refused at restore, not written
+ok 21 - an adjustment the loader would reject as damaged is refused at restore, not written
+  ---
+  duration_ms: 24.774657
+  type: 'test'
+  ...
+# Subtest: a stored version held only under a legacy workspace key is restorable, migrated
+not ok 22 - a stored version held only under a legacy workspace key is restorable, migrated
+  ---
+  duration_ms: 26.63817
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:105:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:108:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a current workspace with only a legacy adjustment (its migration write failed) restores with that adjustment
+not ok 23 - a current workspace with only a legacy adjustment (its migration write failed) restores with that adjustment
+  ---
+  duration_ms: 36.636206
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:113:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of null (reading 'playId')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:119:36)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: identical workspaces with different adjustments are two states, and the stored one is offered
+not ok 24 - identical workspaces with different adjustments are two states, and the stored one is offered
+  ---
+  duration_ms: 45.478035
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:122:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        null,
+    +   false
+    -   true
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: ~
+    1: true
+  actual:
+    0: ~
+    1: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:126:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a stored version whose adjustment is damaged is refused rather than offered without it
+not ok 25 - a stored version whose adjustment is damaged is refused rather than offered without it
+  ---
+  duration_ms: 67.524044
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:132:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:136:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: the recovery copy records the live adjustment even when no adjustment is stored
+not ok 26 - the recovery copy records the live adjustment even when no adjustment is stored
+  ---
+  duration_ms: 40.471569
+  type: 'test'
+  location: '/tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:139:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'snapshot')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/claude-0/-home-user-football-os/a67ab6c6-de97-553c-9bd1-e25792d6e374/scratchpad/red0f7/tests/preservation.test.mjs:144:60)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 19
+# fail 7
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 698.136269
+EXIT=1
