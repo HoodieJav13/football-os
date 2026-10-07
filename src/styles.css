@@ -1623,7 +1623,9 @@ button:active { scale: 0.96; }
   */
   .run-button { min-height: 40px; padding-inline: 10px; font-size: 0; gap: 0; }
   /* No room for the chip in a 232px bar; the accent Edit here icon and the inspector carry the state. */
-  .authority-chip { display: none; }
+  .title-line .authority-chip { display: none; }
+  /* View-only adds Edit here to this 232px bar; Run gives up its extra width so nothing overlaps. */
+  .top-actions:has(.authority-edit) .run-button { min-width: 44px; }
 
   .inspector { grid-column: 3; grid-row: 2; height: auto; padding: 10px 12px; border-left: 1px solid var(--line); }
   .mobile-sheet-handle { display: none; }
