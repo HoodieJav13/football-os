@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {useBrowser,token} from './harness.mjs';
+const open=useBrowser();
+test('verified reference is read-only and its active copy is editable',async()=>{
+ const app=await open();const {page}=app;
+ await page.locator('.playbook-trigger').click();
+ const book=page.getByRole('menuitem').filter({hasText:'Air Raid Reference'});
+ await book.waitFor({state:'visible'});
+ assert.equal(await book.count(),1,'verified reference catalog available');
+ await book.click();await token(page,'X').click();
+ assert.match(await page.locator('.inspector').innerText(),/Copy this play/);
+ assert.equal(await page.locator('.inspector input').count(),0);
+ const sourceBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem('football-os.playbooks.v11')).playbooks.find(b=>b.id==='air-raid-reference').plays);
+ await page.keyboard.press('ArrowRight');
+ await page.keyboard.press('Delete');
+ assert.equal(await page.getByRole('button',{name:'More',exact:true}).isDisabled(),true);
+ await page.getByRole('button',{name:'Add to Personal Active',exact:true}).click();
+ await page.locator('.playbook-trigger').click();
+ await page.getByRole('menuitem').filter({hasText:'Personal Active'}).click();
+ const cards=page.locator('.film-card:not(.create-card)');await cards.last().click();
+ await token(page,'X').click();assert.ok(await page.locator('.inspector input').count()>0);
+ const stem=page.locator('.inspector input[type=number]').first();
+ await stem.fill('17'); await page.waitForTimeout(700);
+ const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('football-os.playbooks.v11')));
+ assert.deepEqual(stored.playbooks.find(b=>b.id==='air-raid-reference').plays,sourceBefore);
+ const copied=stored.playbooks[0].plays.at(-1);
+ assert.equal(copied.assignments.find(a=>a.playerId===copied.players.find(p=>p.label==='X').id).definition.stemYards,17);
+ await page.reload({waitUntil:'networkidle'});
+ await page.locator('.film-card:not(.create-card)').last().click();await token(page,'X').click();
+ assert.equal(await page.locator('.inspector input[type=number]').first().inputValue(),'17');
+ app.assertNoErrors();await app.close();
+});
+test('filmstrip names stay inside the visible card area',async()=>{
+ const app=await open();
+ const clipped=await app.page.evaluate(()=>{const strip=document.querySelector('.filmstrip-scroll').getBoundingClientRect();return [...document.querySelectorAll('.film-card-label')].filter(el=>el.getBoundingClientRect().bottom>strip.bottom+1).length;});
+ assert.equal(clipped,0,'play names cannot be clipped below the filmstrip');await app.close();
+});

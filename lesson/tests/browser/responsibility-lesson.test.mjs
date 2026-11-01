@@ -1,0 +1,54 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {createDefaultWorkspace,WORKSPACE_KEY} from '../../src/workspaceData.js';
+import {createCover3Lesson} from '../../src/cover3Lesson.js';
+import {useBrowser} from './harness.mjs';
+const open=useBrowser(),out=join(tmpdir(),'football-qa');
+const saved=page=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),WORKSPACE_KEY);
+async function dataTools(page){await page.locator('.playbook-trigger').click();await page.getByRole('button',{name:/Backup and export/}).click();}
+test('rehearse example add, revision, reopen, backup/restore, presentation and outputs',async()=>{
+ await mkdir(out,{recursive:true});const app=await open(),{page}=app;const timings={};let start=Date.now();
+ await page.getByRole('button',{name:'More',exact:true}).click();await page.getByRole('menuitem',{name:'Add Cover 3 teaching example',exact:true}).click();await page.waitForTimeout(650);
+ let w=await saved(page);const p=w.playbooks[0].plays.at(-1);assert.equal(p.assignments.length,7);
+ timings.addMs=Date.now()-start;start=Date.now();
+ await page.locator(`g.defender[data-player="${p.id}-ml"]`).click();
+ await page.getByLabel('Area label',{exact:true}).fill('W hook — teaching revision');await page.getByLabel('Area label',{exact:true}).press('Tab');
+ await page.getByLabel('Area width (yards)').fill('18');await page.getByLabel('Area width (yards)').press('Tab');await page.getByRole('button',{name:'Move area right',exact:true}).click();await page.waitForTimeout(650);
+ const revised=(await saved(page)).playbooks[0].plays.at(-1);timings.revisionMs=Date.now()-start;
+ await page.reload({waitUntil:'networkidle'});await page.waitForTimeout(700);
+ // Active play selection is session-local; choose the saved example again.
+ await page.locator('.film-card').filter({hasText:'Cover 3 — teaching example'}).click();
+ assert.deepEqual((await saved(page)).playbooks[0].plays.at(-1),revised);
+ await dataTools(page);const dl=page.waitForEvent('download');await page.getByRole('button',{name:/Download backup/}).click();await(await dl).saveAs(`${out}/cover3-rehearsal.footballos`);
+ const bytes=await readFile(`${out}/cover3-rehearsal.footballos`);const hash=createHash('sha256').update(bytes).digest('hex');
+ await page.locator('input[type=file]').setInputFiles(`${out}/cover3-rehearsal.footballos`);await page.getByRole('button',{name:'Restore this backup',exact:true}).click();await page.waitForTimeout(700);
+ assert.deepEqual((await saved(page)).playbooks[0].plays.at(-1),revised);
+ await page.locator('.film-card').filter({hasText:'Cover 3 — teaching example'}).click();
+ await page.getByRole('button',{name:'Present',exact:true}).click();await page.waitForTimeout(500);assert.equal(await page.locator('.play-canvas .responsibility-legend text').count(),7);await page.screenshot({path:`${out}/cover3-presentation.png`});
+ await page.getByRole('button',{name:'Exit presentation',exact:true}).click();start=Date.now();await dataTools(page);
+ const png=page.waitForEvent('download');await page.getByRole('button',{name:/Export current play as PNG/}).click();await(await png).saveAs(`${out}/cover3-lesson.png`);
+ await page.getByRole('button',{name:/Open PDF collection preview/}).click();await page.waitForTimeout(400);await page.pdf({path:`${out}/cover3-collection.pdf`,printBackground:true,preferCSSPageSize:true});timings.exportMs=Date.now()-start;
+ await writeFile(`${out}/rehearsal.json`,JSON.stringify({playId:p.id,backupSha256:hash,timings,measurement:'Automated interaction elapsed times, including waits; not coach labor or time-savings evidence.'},null,2));
+ app.assertNoErrors();await app.close();
+});
+for(const [width,height,touch]of[[1440,900,false],[1280,720,false],[1024,768,true],[390,844,true],[844,390,true]])test(`lesson controls and presentation at ${width}x${height}`,async()=>{
+ await mkdir(out,{recursive:true});
+ const w=createDefaultWorkspace(),lesson=createCover3Lesson('viewport-lesson');w.playbooks[0].plays=[lesson];const app=await open({workspace:w,viewport:{width,height},touch}),{page}=app;
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.locator('g.defender[data-player="viewport-lesson-ml"]').click();
+ const expand=page.getByRole('button',{name:'Expand player inspector',exact:true});if(await expand.isVisible())await expand.click();
+ const input=page.getByLabel('Area label',{exact:true});await input.fill('W hook revised');await input.press('Tab');
+ await page.getByRole('button',{name:'Move area right',exact:true}).click();await page.waitForTimeout(650);
+ assert.equal((await saved(page)).playbooks[0].plays[0].assignments[4].definition.responsibilityArea.center[0],-6.75);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ assert.ok(await page.locator('.inspector').evaluate(e=>{const b=e.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;}),'inspector stays inside viewport');
+ assert.ok(await page.locator('.inspector').evaluate(e=>e.querySelector('.assignment-stage-picker').getBoundingClientRect().bottom<=e.querySelector('.inspector-body').getBoundingClientRect().top+1),'stage does not overlap body');
+ await page.screenshot({path:`${out}/lesson-controls-${width}.png`});
+ await page.getByRole('button',{name:'Close player inspector',exact:true}).click();await page.getByRole('button',{name:'Present',exact:true}).click();await page.waitForTimeout(400);
+ assert.equal(await page.locator('.play-canvas .responsibility-legend text').count(),7);assert.equal(await page.locator('[data-region-handle]').count(),0);
+ await page.screenshot({path:`${out}/lesson-present-${width}.png`});app.assertNoErrors();await app.close();
+});

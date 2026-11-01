@@ -78,3 +78,7 @@ designer. This policy makes the shared protocol concrete without weakening it.
 - Stop for owner input when football terminology, play truth, or interaction behavior cannot be determined from the approved scope and verified project evidence.
 - Stop before any commit, push, merge, deployment, destructive action, dependency addition, or hosted mutation not explicitly authorized.
 - Report owner gates as resumable pauses with the concrete decision, evidence, options, and consequences.
+
+## Approved reconciliation scope — November 1, 2026
+
+The owner approved one history-preserving draft PR descending from PR #9, using the already reviewed/published Coaching Workspace. The existing editor is retained under `lesson/`; Practice, Packet, root routing and normal coach review join it as separate components with explicit file transfers. Inspection, scoped reconciliation edits, tests, local commits, configured-authenticated push and creation of this draft PR are authorized. Merge, deployment, fresh login, credential changes, private data movement and feature expansion remain outside this grant. The original `.agentic` protocol is unchanged. This appendix changes neither football truth nor privacy/data invariants.

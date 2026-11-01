@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coaching session packet — FICTIONAL / REFERENCE</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="src/main.js"></script>
+</head>
+<body>
+  <header class="app-bar chrome"><nav aria-label="Coaching tools"><a href="/">Coach home</a> · <a href="/author/">Author</a> · <a href="/practice/">Practice</a> · <a href="/author/?coach=review">Coach review</a></nav>
+    <p class="app-kicker">FICTIONAL / REFERENCE · authored DRAFT</p>
+    <h1>Coaching session packet</h1>
+  </header>
+
+  <main class="layout">
+    <section class="controls chrome" aria-label="Packet controls">
+      <section class="step">
+        <h2>1. Source</h2>
+        <div class="button-row">
+          <button type="button" id="load-sample">Load sample</button>
+          <label class="file-button">
+            <span>Import JSON file</span>
+            <input type="file" id="import-file" accept=".json,application/json">
+          </label>
+        </div>
+        <details>
+          <summary>Paste JSON instead</summary>
+          <label for="import-text">Practice export or packet JSON</label>
+          <textarea id="import-text" rows="4" spellcheck="false" autocomplete="off"></textarea>
+          <button type="button" id="import-text-button">Import pasted JSON</button>
+        </details>
+      </section>
+
+      <section class="step">
+        <h2>2. Session</h2>
+        <label for="day-select">Practice day</label>
+        <select id="day-select" aria-describedby="day-hint" disabled>
+          <option value="">Choose a practice day…</option>
+        </select>
+        <p class="hint" id="day-hint">Load the sample or import Practice JSON first.</p>
+        <label for="example-select">Teaching example</label>
+        <select id="example-select">
+          <option value="0" selected>Bundled teaching example</option>
+        </select>
+      </section>
+
+      <section class="step">
+        <fieldset class="output-tabs">
+          <legend>3. Output</legend>
+          <label class="output-tab"><input type="radio" name="output" value="coach" checked><span>Coach packet</span></label>
+          <label class="output-tab"><input type="radio" name="output" value="assignment"><span>Assignment sheet</span></label>
+          <label class="output-tab"><input type="radio" name="output" value="identify"><span>Identify cards</span></label>
+        </fieldset>
+      </section>
+
+      <section class="step">
+        <h2>4. Keep or print</h2>
+        <div class="button-row">
+          <button type="button" id="save-local" disabled>Save in this browser</button>
+          <button type="button" id="export-packet" disabled>Download packet JSON</button>
+        </div>
+        <button type="button" class="primary" id="print-packet" disabled>Print / Save PDF</button>
+        <p class="hint">Packet JSON is coach material. Do not hand it to learners.</p>
+        <p class="status-row">
+          <span class="status-pill" id="status-local" data-state="unsaved">Unsaved</span>
+          <span class="status-pill" id="status-export" hidden></span>
+        </p>
+        <p class="notice" id="notice" role="status" aria-live="polite"></p>
+      </section>
+    </section>
+
+    <section class="preview" id="preview" aria-label="Packet preview"></section>
+  </main>
+  <noscript><p class="noscript">This local companion needs JavaScript.</p></noscript>
+</body>
+</html>

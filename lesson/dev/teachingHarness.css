@@ -1,0 +1,16 @@
+* { box-sizing: border-box; }
+body { margin: 0; color: #17231f; background: #f3f5f1; }
+main { width: 100%; }
+button, select, input { min-height: 44px; max-width: 100%; font: inherit; }
+button { margin: 6px; padding: 8px 12px; border: 1px solid #61716a; border-radius: 6px; color: #152a20; background: #fff; cursor: pointer; }
+button:disabled { opacity: .55; }
+textarea { display: block; width: 100%; max-width: 100%; min-height: 92px; padding: 10px; margin: 8px 0; font: inherit; }
+svg { display: block; max-width: 100%; height: auto; }
+section { min-width: 0; }
+[data-harness="assignment"] { margin: 24px 0; padding: 16px; border: 1px solid #9caea2; border-radius: 8px; background: #fff; }
+[data-harness="coach"] { margin-top: 24px; padding: 16px; background: #e8eee7; }
+article { margin: 16px 0; }
+input[type="file"] { width: 100%; padding: 8px 0; }
+input, select { padding: 8px; }
+label { display: block; margin: 8px 0; }
+:focus-visible { outline: 3px solid #426bce; outline-offset: 2px; }

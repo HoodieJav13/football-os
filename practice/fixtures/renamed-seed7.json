@@ -1,0 +1,3386 @@
+{
+  "schema": "practice-week-planner.project",
+  "schemaVersion": 1,
+  "project": {
+    "id": "prj-02zpieg8jq",
+    "name": "Practice Week Planner — FICTIONAL example",
+    "fictional": true,
+    "timezone": "America/Chicago",
+    "rev": 0,
+    "seed": 7,
+    "scenario": "renamed"
+  },
+  "week": {
+    "id": "wk-95ri7dajaz",
+    "version": 1,
+    "opponentLabel": "FICTIONAL — Northfield Comets (sample opponent)",
+    "notes": "Fictional sample week. Edit freely; nothing here is a real schedule, roster or game plan.",
+    "days": [
+      {
+        "id": "day-8v655ajr2w",
+        "label": "Monday",
+        "date": "",
+        "startMin": 930,
+        "plannedMinutes": 90,
+        "version": 1,
+        "notes": "Walk-tempo install of the opponent looks.",
+        "periods": [
+          {
+            "id": "per-jmoymxt16c",
+            "title": "Warm-up",
+            "minutes": 10,
+            "category": "individual",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-f03rdfgypo",
+            "title": "Formation recognition flash",
+            "minutes": 10,
+            "category": "walkthrough",
+            "objective": "Name the formation and its strength within a three-count.",
+            "callLabel": "Name it",
+            "drillId": "drill-formation-flash",
+            "cardIds": [
+              "card-trips-rt",
+              "card-twins-lt",
+              "card-empty-32"
+            ],
+            "groupIds": [],
+            "equipment": [
+              "Scout card stack",
+              "Whiteboard"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-bc44wb6mc1",
+            "title": "Alignment & assignment walkthrough",
+            "minutes": 20,
+            "category": "walkthrough",
+            "objective": "Every defender can name alignment, key and first step against the shown look.",
+            "callLabel": "Base vs. Trips",
+            "drillId": "drill-align-walk",
+            "cardIds": [
+              "card-trips-rt"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Cones (4)",
+              "Scout cards"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-oxjtnx4jnw",
+            "title": "Water break",
+            "minutes": 5,
+            "category": "break",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-yulyyjt0ib",
+            "title": "Zone drop landmarks",
+            "minutes": 15,
+            "category": "individual",
+            "objective": "Open to the correct landmark and find the nearest threat.",
+            "callLabel": "",
+            "drillId": "drill-zone-drops",
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [
+              "Landmark cones (6)",
+              "Footballs (2)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-qjrzktfnqj",
+            "title": "Team vs. scout look",
+            "minutes": 20,
+            "category": "team",
+            "objective": "Execute the call as a unit against a sequence of scout looks.",
+            "callLabel": "Walk-tempo script",
+            "drillId": "drill-team-scout",
+            "cardIds": [
+              "card-trips-rt",
+              "card-bunch-rt"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Scout cards",
+              "Pinnies (scout)",
+              "Footballs (2)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-b800xum0ml",
+            "title": "Review & wrap",
+            "minutes": 10,
+            "category": "walkthrough",
+            "objective": "Each position group states one key from today.",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          }
+        ]
+      },
+      {
+        "id": "day-pzaznsmt5z",
+        "label": "Tuesday",
+        "date": "",
+        "startMin": 930,
+        "plannedMinutes": 120,
+        "version": 1,
+        "notes": "Run fits and pursuit against the scout run looks.",
+        "periods": [
+          {
+            "id": "per-ik5e7tvqnz",
+            "title": "Warm-up",
+            "minutes": 10,
+            "category": "individual",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-lqyh8lsu6j",
+            "title": "Pursuit angles (no contact)",
+            "minutes": 10,
+            "category": "individual",
+            "objective": "Take a leverage angle to the ball and finish to a cone landmark.",
+            "callLabel": "",
+            "drillId": "drill-pursuit",
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [
+              "Cones (8)",
+              "Pinnie (1)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-hi69fh6060",
+            "title": "Block-shed fits (fit tempo)",
+            "minutes": 15,
+            "category": "individual",
+            "objective": "Fit into the assigned gap with hands inside and eyes on the ball.",
+            "callLabel": "",
+            "drillId": "drill-shed-fits",
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [
+              "Hand shields (4)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-3vz26ehqdc",
+            "title": "Water break",
+            "minutes": 5,
+            "category": "break",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-spsjsekair",
+            "title": "Run fit vs. scout look",
+            "minutes": 20,
+            "category": "group",
+            "objective": "Fill assigned gaps against the scout look's run.",
+            "callLabel": "Base vs. Pro I",
+            "drillId": "drill-run-fit",
+            "cardIds": [
+              "card-pro-i",
+              "card-heavy"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Scout cards",
+              "Pinnies (scout)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-29ttrfcx9d",
+            "title": "Rush-lane integrity",
+            "minutes": 10,
+            "category": "group",
+            "objective": "Keep rush lanes so the passer has no clean escape.",
+            "callLabel": "",
+            "drillId": "drill-rush-lanes",
+            "cardIds": [],
+            "groupIds": [
+              "grp-line"
+            ],
+            "equipment": [
+              "Bags (4)",
+              "Cone for the passer"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-htezjfcjav",
+            "title": "Water break",
+            "minutes": 5,
+            "category": "break",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-kzuhfpxjn5",
+            "title": "Team vs. scout look",
+            "minutes": 25,
+            "category": "team",
+            "objective": "Execute the call as a unit against a sequence of scout looks.",
+            "callLabel": "Run downs script",
+            "drillId": "drill-team-scout",
+            "cardIds": [
+              "card-pro-i",
+              "card-doubles"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Scout cards",
+              "Pinnies (scout)",
+              "Footballs (2)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-oeluda3oqy",
+            "title": "Ball-security / takeaway circuit",
+            "minutes": 10,
+            "category": "individual",
+            "objective": "Finish plays by attacking the ball in a controlled circuit.",
+            "callLabel": "",
+            "drillId": "drill-takeaway",
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [
+              "Footballs (6)",
+              "Cones (6)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-b92pxsty8z",
+            "title": "Review & wrap",
+            "minutes": 10,
+            "category": "walkthrough",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          }
+        ]
+      },
+      {
+        "id": "day-ajeprmqml9",
+        "label": "Wednesday",
+        "date": "",
+        "startMin": 930,
+        "plannedMinutes": 120,
+        "version": 1,
+        "notes": "Pattern reads and third-down looks, with two parallel stations.",
+        "periods": [
+          {
+            "id": "per-th5qgkjvy5",
+            "title": "Warm-up",
+            "minutes": 10,
+            "category": "individual",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-3aiewujwah",
+            "title": "Zone drop landmarks",
+            "minutes": 10,
+            "category": "individual",
+            "objective": "Open to the correct landmark and find the nearest threat.",
+            "callLabel": "",
+            "drillId": "drill-zone-drops",
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [
+              "Landmark cones (6)",
+              "Footballs (2)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-xoscwyu06r",
+            "title": "Pattern read vs. skeleton look",
+            "minutes": 15,
+            "category": "group",
+            "objective": "Recognize the route pattern and match the threat to the zone.",
+            "callLabel": "",
+            "drillId": "drill-pattern-read",
+            "cardIds": [
+              "card-empty-32",
+              "card-bunch-rt"
+            ],
+            "groupIds": [
+              "grp-pass"
+            ],
+            "equipment": [
+              "Footballs (3)",
+              "Cones (4)",
+              "Scout cards"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-32w9l9sp2g",
+            "title": "Water break",
+            "minutes": 5,
+            "category": "break",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-z23dso9h3h",
+            "title": "Station A — inside run",
+            "minutes": 20,
+            "category": "group",
+            "objective": "Fill assigned gaps against the scout look's run.",
+            "callLabel": "Base vs. Twins",
+            "drillId": "drill-run-fit",
+            "cardIds": [
+              "card-twins-lt"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Scout cards",
+              "Pinnies (scout)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-fj6raot16p",
+            "title": "Station B — skeleton",
+            "minutes": 20,
+            "category": "group",
+            "objective": "Recognize the route pattern and match the threat to the zone.",
+            "callLabel": "Cover call vs. Trips",
+            "drillId": "drill-pattern-read",
+            "cardIds": [
+              "card-trips-rt"
+            ],
+            "groupIds": [
+              "grp-pass"
+            ],
+            "equipment": [
+              "Footballs (3)",
+              "Cones (4)",
+              "Scout cards"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": true,
+            "fixedStart": null
+          },
+          {
+            "id": "per-waunb33zo9",
+            "title": "Water break",
+            "minutes": 5,
+            "category": "break",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-i2ifs5q687",
+            "title": "Third-down team",
+            "minutes": 25,
+            "category": "team",
+            "objective": "Execute the call as a unit against a sequence of scout looks.",
+            "callLabel": "3rd & medium script",
+            "drillId": "drill-team-scout",
+            "cardIds": [
+              "card-doubles",
+              "card-empty-32"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Scout cards",
+              "Pinnies (scout)",
+              "Footballs (2)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-v11xxhkp6i",
+            "title": "Situations: call-and-check",
+            "minutes": 10,
+            "category": "team",
+            "objective": "Recognize down, distance and look; get the call in and check correctly.",
+            "callLabel": "",
+            "drillId": "drill-situations",
+            "cardIds": [
+              "card-bunch-rt"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Down markers",
+              "Scout cards",
+              "Call board"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-2lpu2kd2x9",
+            "title": "Ball-security / takeaway circuit",
+            "minutes": 10,
+            "category": "individual",
+            "objective": "Finish plays by attacking the ball in a controlled circuit.",
+            "callLabel": "",
+            "drillId": "drill-takeaway",
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [
+              "Footballs (6)",
+              "Cones (6)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-5acstvrpvm",
+            "title": "Review & wrap",
+            "minutes": 10,
+            "category": "walkthrough",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          }
+        ]
+      },
+      {
+        "id": "day-pobenb8hlo",
+        "label": "Thursday",
+        "date": "",
+        "startMin": 930,
+        "plannedMinutes": 100,
+        "version": 1,
+        "notes": "Situations, red zone and two-minute at controlled tempo.",
+        "periods": [
+          {
+            "id": "per-fp8qifet4j",
+            "title": "Warm-up",
+            "minutes": 10,
+            "category": "individual",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-jnm2fypipb",
+            "title": "Formation recognition flash",
+            "minutes": 10,
+            "category": "walkthrough",
+            "objective": "Name the formation and its strength within a three-count.",
+            "callLabel": "",
+            "drillId": "drill-formation-flash",
+            "cardIds": [
+              "card-pistol-wing",
+              "card-heavy",
+              "card-ace-twins-rt"
+            ],
+            "groupIds": [],
+            "equipment": [
+              "Scout card stack",
+              "Whiteboard"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-z2rg8h8uzj",
+            "title": "Situations: call-and-check",
+            "minutes": 20,
+            "category": "team",
+            "objective": "Recognize down, distance and look; get the call in and check correctly.",
+            "callLabel": "Situation script A",
+            "drillId": "drill-situations",
+            "cardIds": [
+              "card-pistol-wing",
+              "card-heavy"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Down markers",
+              "Scout cards",
+              "Call board"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-y5h61pr70h",
+            "title": "Water break",
+            "minutes": 5,
+            "category": "break",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-nbjxajpa3m",
+            "title": "Red zone team",
+            "minutes": 20,
+            "category": "team",
+            "objective": "Execute the call as a unit against a sequence of scout looks.",
+            "callLabel": "Red zone script",
+            "drillId": "drill-team-scout",
+            "cardIds": [
+              "card-bunch-rt",
+              "card-ace-twins-rt"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Scout cards",
+              "Pinnies (scout)",
+              "Footballs (2)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-4jgotqkrir",
+            "title": "Two-minute call-and-check",
+            "minutes": 15,
+            "category": "team",
+            "objective": "Recognize down, distance and look; get the call in and check correctly.",
+            "callLabel": "",
+            "drillId": "drill-situations",
+            "cardIds": [
+              "card-doubles"
+            ],
+            "groupIds": [
+              "grp-pass"
+            ],
+            "equipment": [
+              "Down markers",
+              "Scout cards",
+              "Call board"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-mmlorpvuom",
+            "title": "Review & wrap",
+            "minutes": 10,
+            "category": "walkthrough",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          }
+        ]
+      },
+      {
+        "id": "day-59z7w1qit9",
+        "label": "Friday",
+        "date": "",
+        "startMin": 900,
+        "plannedMinutes": 60,
+        "version": 1,
+        "notes": "Short walk-tempo review of every look.",
+        "periods": [
+          {
+            "id": "per-6bpnb3bx35",
+            "title": "Alignment & assignment walkthrough",
+            "minutes": 15,
+            "category": "walkthrough",
+            "objective": "Every defender can name alignment, key and first step against the shown look.",
+            "callLabel": "Every look once",
+            "drillId": "drill-align-walk",
+            "cardIds": [
+              "card-trips-rt",
+              "card-pro-i",
+              "card-empty-32"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Cones (4)",
+              "Scout cards"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-9q0p0ziyld",
+            "title": "Special situations walk",
+            "minutes": 15,
+            "category": "team",
+            "objective": "Recognize down, distance and look; get the call in and check correctly.",
+            "callLabel": "",
+            "drillId": "drill-situations",
+            "cardIds": [
+              "card-heavy"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Down markers",
+              "Scout cards",
+              "Call board"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-r9dnrjqdm8",
+            "title": "Team walkthrough",
+            "minutes": 20,
+            "category": "team",
+            "objective": "Execute the call as a unit against a sequence of scout looks.",
+            "callLabel": "",
+            "drillId": "drill-team-scout",
+            "cardIds": [
+              "card-doubles",
+              "card-bunch-rt"
+            ],
+            "groupIds": [
+              "grp-skill",
+              "grp-line"
+            ],
+            "equipment": [
+              "Scout cards",
+              "Pinnies (scout)",
+              "Footballs (2)"
+            ],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          },
+          {
+            "id": "per-2e8r5b3cxv",
+            "title": "Wrap",
+            "minutes": 10,
+            "category": "walkthrough",
+            "objective": "",
+            "callLabel": "",
+            "drillId": null,
+            "cardIds": [],
+            "groupIds": [],
+            "equipment": [],
+            "notes": "",
+            "scheduled": true,
+            "parallel": false,
+            "fixedStart": null
+          }
+        ]
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "grp-skill",
+      "label": "Scout Skill A",
+      "roles": [
+        {
+          "slotId": "grp-skill-qb",
+          "roleKey": "QB",
+          "label": "QB"
+        },
+        {
+          "slotId": "grp-skill-rb",
+          "roleKey": "RB",
+          "label": "RB"
+        },
+        {
+          "slotId": "grp-skill-wr1",
+          "roleKey": "WR",
+          "label": "WR 1"
+        },
+        {
+          "slotId": "grp-skill-wr2",
+          "roleKey": "WR",
+          "label": "WR 2"
+        },
+        {
+          "slotId": "grp-skill-te",
+          "roleKey": "TE",
+          "label": "TE"
+        }
+      ]
+    },
+    {
+      "id": "grp-line",
+      "label": "Scout Line",
+      "roles": [
+        {
+          "slotId": "grp-line-lt",
+          "roleKey": "OL",
+          "label": "LT"
+        },
+        {
+          "slotId": "grp-line-lg",
+          "roleKey": "OL",
+          "label": "LG"
+        },
+        {
+          "slotId": "grp-line-c",
+          "roleKey": "OL",
+          "label": "C"
+        },
+        {
+          "slotId": "grp-line-rg",
+          "roleKey": "OL",
+          "label": "RG"
+        },
+        {
+          "slotId": "grp-line-rt",
+          "roleKey": "OL",
+          "label": "RT"
+        }
+      ]
+    },
+    {
+      "id": "grp-pass",
+      "label": "Scout Pass B",
+      "roles": [
+        {
+          "slotId": "grp-pass-qb",
+          "roleKey": "QB",
+          "label": "QB"
+        },
+        {
+          "slotId": "grp-pass-rb",
+          "roleKey": "RB",
+          "label": "RB"
+        },
+        {
+          "slotId": "grp-pass-wr1",
+          "roleKey": "WR",
+          "label": "WR 1"
+        },
+        {
+          "slotId": "grp-pass-wr2",
+          "roleKey": "WR",
+          "label": "WR 2"
+        },
+        {
+          "slotId": "grp-pass-wr3",
+          "roleKey": "WR",
+          "label": "WR 3"
+        },
+        {
+          "slotId": "grp-pass-te",
+          "roleKey": "TE",
+          "label": "TE"
+        }
+      ]
+    }
+  ],
+  "participants": [
+    {
+      "id": "ppl-oeispna6yt",
+      "label": "Fict Scout 01",
+      "roleKeys": [
+        "OL"
+      ],
+      "groupIds": [
+        "grp-line"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-o16l8af63h",
+      "label": "Fict Scout 02",
+      "roleKeys": [
+        "OL"
+      ],
+      "groupIds": [
+        "grp-line"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-d00mfa1frv",
+      "label": "Fict Scout 03",
+      "roleKeys": [
+        "QB"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-n8kgjeolu3",
+      "label": "Fict Scout 04",
+      "roleKeys": [
+        "WR",
+        "TE"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-6oqsrsixwj",
+      "label": "Fict Scout 05",
+      "roleKeys": [
+        "WR",
+        "RB"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-x6eqrifxz5",
+      "label": "Fict Scout 06",
+      "roleKeys": [
+        "WR"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-yxcwsheahy",
+      "label": "Fict Scout 07 (renamed)",
+      "roleKeys": [
+        "WR"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-qcrqmpmt3s",
+      "label": "Fict Scout 08",
+      "roleKeys": [
+        "WR"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-oynngc3bkm",
+      "label": "Fict Scout 09",
+      "roleKeys": [
+        "OL"
+      ],
+      "groupIds": [
+        "grp-line"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-w292hpx2ry",
+      "label": "Fict Scout 10",
+      "roleKeys": [
+        "OL"
+      ],
+      "groupIds": [
+        "grp-line"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-gnwa0kh11e",
+      "label": "Fict Scout 11",
+      "roleKeys": [
+        "RB",
+        "WR"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-gl3y2mi6sx",
+      "label": "Fict Scout 12",
+      "roleKeys": [
+        "TE",
+        "OL"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass",
+        "grp-line"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-jpzycvtsxp",
+      "label": "Fict Scout 13",
+      "roleKeys": [
+        "RB"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-6u2tbnct75",
+      "label": "Fict Scout 14",
+      "roleKeys": [
+        "TE"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-pbascr2kk8",
+      "label": "Fict Scout 15",
+      "roleKeys": [
+        "RB"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-lqv077eg5g",
+      "label": "Fict Scout 16",
+      "roleKeys": [
+        "QB"
+      ],
+      "groupIds": [
+        "grp-skill",
+        "grp-pass"
+      ],
+      "unavailable": []
+    },
+    {
+      "id": "ppl-gvug18t5ds",
+      "label": "Fict Scout 17",
+      "roleKeys": [
+        "OL"
+      ],
+      "groupIds": [
+        "grp-line"
+      ],
+      "unavailable": []
+    }
+  ],
+  "drills": [
+    {
+      "id": "drill-align-walk",
+      "title": "Alignment & assignment walkthrough",
+      "category": "walkthrough",
+      "defaultMinutes": 15,
+      "objective": "Every defender can name alignment, key and first step against the shown look.",
+      "setup": "Scout group sets the card at walk tempo. Defense in its base front.",
+      "steps": [
+        "Scout look sets on the coach's call.",
+        "Defense aligns and calls the formation out loud.",
+        "Coach checks alignment, then “go” at walk tempo.",
+        "Reset and show the next card."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Eyes to the key before the snap.",
+        "REFERENCE / FICTIONAL cue (generic): Talk: name the strength out loud."
+      ],
+      "tags": [
+        "walkthrough",
+        "install"
+      ],
+      "equipment": [
+        "Cones (4)",
+        "Scout cards"
+      ]
+    },
+    {
+      "id": "drill-formation-flash",
+      "title": "Formation recognition flash",
+      "category": "walkthrough",
+      "defaultMinutes": 10,
+      "objective": "Name the formation and its strength within a three-count.",
+      "setup": "Coach holds up scout cards; players answer as a unit.",
+      "steps": [
+        "Show a card for a three-count.",
+        "Unit calls formation and strength.",
+        "Coach confirms or corrects, next card."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Count receivers to each side first."
+      ],
+      "tags": [
+        "recognition"
+      ],
+      "equipment": [
+        "Scout card stack",
+        "Whiteboard"
+      ]
+    },
+    {
+      "id": "drill-pursuit",
+      "title": "Pursuit angles (no contact)",
+      "category": "individual",
+      "defaultMinutes": 10,
+      "objective": "Take a leverage angle to the ball and finish to a cone landmark.",
+      "setup": "Ball carrier in pinnie runs to a cone; defenders start from alignment.",
+      "steps": [
+        "Carrier breaks to a sideline cone.",
+        "Defenders take an angle that stays inside-out.",
+        "Finish through the landmark cone, no contact."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Aim in front of the ball, not at it."
+      ],
+      "tags": [
+        "pursuit",
+        "no-contact"
+      ],
+      "equipment": [
+        "Cones (8)",
+        "Pinnie (1)"
+      ]
+    },
+    {
+      "id": "drill-zone-drops",
+      "title": "Zone drop landmarks",
+      "category": "individual",
+      "defaultMinutes": 10,
+      "objective": "Open to the correct landmark and find the nearest threat.",
+      "setup": "Landmark cones at generic depths; coach signals the drop.",
+      "steps": [
+        "Coach signals the drop.",
+        "Open and work to the landmark.",
+        "Eyes to the throw-side threat, break on the point."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Get to depth before widening."
+      ],
+      "tags": [
+        "coverage"
+      ],
+      "equipment": [
+        "Landmark cones (6)",
+        "Footballs (2)"
+      ]
+    },
+    {
+      "id": "drill-shed-fits",
+      "title": "Block-shed fits (fit tempo)",
+      "category": "individual",
+      "defaultMinutes": 15,
+      "objective": "Fit into the assigned gap with hands inside and eyes on the ball.",
+      "setup": "Hand shields held by scout line; tempo set by the coach.",
+      "steps": [
+        "Shield holder shows a block angle.",
+        "Defender fits the gap at fit tempo.",
+        "Shed to the ball side on the whistle."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Hands inside, keep the outside arm free."
+      ],
+      "tags": [
+        "run-fit",
+        "tempo-controlled"
+      ],
+      "equipment": [
+        "Hand shields (4)"
+      ]
+    },
+    {
+      "id": "drill-run-fit",
+      "title": "Run fit vs. scout look",
+      "category": "group",
+      "defaultMinutes": 20,
+      "objective": "Fill assigned gaps against the scout look's run.",
+      "setup": "Scout skill + line show the card; defense fits on the snap.",
+      "steps": [
+        "Scout group runs the card at coach tempo.",
+        "Defense fits gaps, coach freezes on the whistle.",
+        "Check every gap is owned, then reset."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Every gap owned once, nobody twice."
+      ],
+      "tags": [
+        "run-fit",
+        "scout"
+      ],
+      "equipment": [
+        "Scout cards",
+        "Pinnies (scout)"
+      ]
+    },
+    {
+      "id": "drill-pattern-read",
+      "title": "Pattern read vs. skeleton look",
+      "category": "group",
+      "defaultMinutes": 15,
+      "objective": "Recognize the route pattern and match the threat to the zone.",
+      "setup": "Scout pass group runs card routes, no line.",
+      "steps": [
+        "Scout QB calls the card.",
+        "Routes run on the snap, ball thrown on time.",
+        "Coach reviews the read after each rep."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Read the inside receiver's release first."
+      ],
+      "tags": [
+        "coverage",
+        "scout"
+      ],
+      "equipment": [
+        "Footballs (3)",
+        "Cones (4)",
+        "Scout cards"
+      ]
+    },
+    {
+      "id": "drill-rush-lanes",
+      "title": "Rush-lane integrity",
+      "category": "group",
+      "defaultMinutes": 10,
+      "objective": "Keep rush lanes so the passer has no clean escape.",
+      "setup": "Scout line on bags; rushers work their lanes.",
+      "steps": [
+        "Line sets on bags.",
+        "Rushers attack their lane on the snap.",
+        "Freeze on the whistle and check lanes."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Stay in your lane; collapse together."
+      ],
+      "tags": [
+        "pass-rush"
+      ],
+      "equipment": [
+        "Bags (4)",
+        "Cone for the passer"
+      ]
+    },
+    {
+      "id": "drill-takeaway",
+      "title": "Ball-security / takeaway circuit",
+      "category": "individual",
+      "defaultMinutes": 10,
+      "objective": "Finish plays by attacking the ball in a controlled circuit.",
+      "setup": "Three stations, rotate on the whistle.",
+      "steps": [
+        "Station 1: scoop-and-secure.",
+        "Station 2: tip drill.",
+        "Station 3: high-point catch."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Eyes on the ball through the catch."
+      ],
+      "tags": [
+        "takeaway"
+      ],
+      "equipment": [
+        "Footballs (6)",
+        "Cones (6)"
+      ]
+    },
+    {
+      "id": "drill-situations",
+      "title": "Situations: call-and-check",
+      "category": "team",
+      "defaultMinutes": 15,
+      "objective": "Recognize down, distance and look; get the call in and check correctly.",
+      "setup": "Coach announces a situation; scout group shows a card.",
+      "steps": [
+        "Coach states down, distance, field position.",
+        "Signal the call; scout sets the look.",
+        "Defense checks if needed; run the rep at coach tempo."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Get the call, then get the look."
+      ],
+      "tags": [
+        "situations",
+        "communication"
+      ],
+      "equipment": [
+        "Down markers",
+        "Scout cards",
+        "Call board"
+      ]
+    },
+    {
+      "id": "drill-team-scout",
+      "title": "Team vs. scout look",
+      "category": "team",
+      "defaultMinutes": 20,
+      "objective": "Execute the call as a unit against a sequence of scout looks.",
+      "setup": "Full scout offense shows cards in script order.",
+      "steps": [
+        "Scout group huddles with the card.",
+        "Defense gets the call.",
+        "Rep at coach tempo; coach corrects between reps."
+      ],
+      "cues": [
+        "REFERENCE / FICTIONAL cue (generic): Communicate the strength before the snap."
+      ],
+      "tags": [
+        "team",
+        "scout"
+      ],
+      "equipment": [
+        "Scout cards",
+        "Pinnies (scout)",
+        "Footballs (2)"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "id": "tpl-mon",
+      "label": "Monday — install walkthrough",
+      "dayLabel": "Monday",
+      "description": "Walk-tempo install of the opponent looks.",
+      "startMin": 930,
+      "plannedMinutes": 90,
+      "periods": [
+        {
+          "title": "Warm-up",
+          "category": "individual",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Formation recognition flash",
+          "category": "walkthrough",
+          "minutes": 10,
+          "drillId": "drill-formation-flash",
+          "objective": "Name the formation and its strength within a three-count.",
+          "callLabel": "Name it",
+          "cardIds": [
+            "card-trips-rt",
+            "card-twins-lt",
+            "card-empty-32"
+          ],
+          "groupIds": [],
+          "equipment": [
+            "Scout card stack",
+            "Whiteboard"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Alignment & assignment walkthrough",
+          "category": "walkthrough",
+          "minutes": 20,
+          "drillId": "drill-align-walk",
+          "objective": "Every defender can name alignment, key and first step against the shown look.",
+          "callLabel": "Base vs. Trips",
+          "cardIds": [
+            "card-trips-rt"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Cones (4)",
+            "Scout cards"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Water break",
+          "category": "break",
+          "minutes": 5,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Zone drop landmarks",
+          "category": "individual",
+          "minutes": 15,
+          "drillId": "drill-zone-drops",
+          "objective": "Open to the correct landmark and find the nearest threat.",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [
+            "Landmark cones (6)",
+            "Footballs (2)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Team vs. scout look",
+          "category": "team",
+          "minutes": 20,
+          "drillId": "drill-team-scout",
+          "objective": "Execute the call as a unit against a sequence of scout looks.",
+          "callLabel": "Walk-tempo script",
+          "cardIds": [
+            "card-trips-rt",
+            "card-bunch-rt"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Scout cards",
+            "Pinnies (scout)",
+            "Footballs (2)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Review & wrap",
+          "category": "walkthrough",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "Each position group states one key from today.",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        }
+      ]
+    },
+    {
+      "id": "tpl-tue",
+      "label": "Tuesday — run defense emphasis",
+      "dayLabel": "Tuesday",
+      "description": "Run fits and pursuit against the scout run looks.",
+      "startMin": 930,
+      "plannedMinutes": 120,
+      "periods": [
+        {
+          "title": "Warm-up",
+          "category": "individual",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Pursuit angles (no contact)",
+          "category": "individual",
+          "minutes": 10,
+          "drillId": "drill-pursuit",
+          "objective": "Take a leverage angle to the ball and finish to a cone landmark.",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [
+            "Cones (8)",
+            "Pinnie (1)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Block-shed fits (fit tempo)",
+          "category": "individual",
+          "minutes": 15,
+          "drillId": "drill-shed-fits",
+          "objective": "Fit into the assigned gap with hands inside and eyes on the ball.",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [
+            "Hand shields (4)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Water break",
+          "category": "break",
+          "minutes": 5,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Run fit vs. scout look",
+          "category": "group",
+          "minutes": 20,
+          "drillId": "drill-run-fit",
+          "objective": "Fill assigned gaps against the scout look's run.",
+          "callLabel": "Base vs. Pro I",
+          "cardIds": [
+            "card-pro-i",
+            "card-heavy"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Scout cards",
+            "Pinnies (scout)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Rush-lane integrity",
+          "category": "group",
+          "minutes": 10,
+          "drillId": "drill-rush-lanes",
+          "objective": "Keep rush lanes so the passer has no clean escape.",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [
+            "grp-line"
+          ],
+          "equipment": [
+            "Bags (4)",
+            "Cone for the passer"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Water break",
+          "category": "break",
+          "minutes": 5,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Team vs. scout look",
+          "category": "team",
+          "minutes": 25,
+          "drillId": "drill-team-scout",
+          "objective": "Execute the call as a unit against a sequence of scout looks.",
+          "callLabel": "Run downs script",
+          "cardIds": [
+            "card-pro-i",
+            "card-doubles"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Scout cards",
+            "Pinnies (scout)",
+            "Footballs (2)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Ball-security / takeaway circuit",
+          "category": "individual",
+          "minutes": 10,
+          "drillId": "drill-takeaway",
+          "objective": "Finish plays by attacking the ball in a controlled circuit.",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [
+            "Footballs (6)",
+            "Cones (6)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Review & wrap",
+          "category": "walkthrough",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        }
+      ]
+    },
+    {
+      "id": "tpl-wed",
+      "label": "Wednesday — pass defense emphasis",
+      "dayLabel": "Wednesday",
+      "description": "Pattern reads and third-down looks, with two parallel stations.",
+      "startMin": 930,
+      "plannedMinutes": 120,
+      "periods": [
+        {
+          "title": "Warm-up",
+          "category": "individual",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Zone drop landmarks",
+          "category": "individual",
+          "minutes": 10,
+          "drillId": "drill-zone-drops",
+          "objective": "Open to the correct landmark and find the nearest threat.",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [
+            "Landmark cones (6)",
+            "Footballs (2)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Pattern read vs. skeleton look",
+          "category": "group",
+          "minutes": 15,
+          "drillId": "drill-pattern-read",
+          "objective": "Recognize the route pattern and match the threat to the zone.",
+          "callLabel": "",
+          "cardIds": [
+            "card-empty-32",
+            "card-bunch-rt"
+          ],
+          "groupIds": [
+            "grp-pass"
+          ],
+          "equipment": [
+            "Footballs (3)",
+            "Cones (4)",
+            "Scout cards"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Water break",
+          "category": "break",
+          "minutes": 5,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Station A — inside run",
+          "category": "group",
+          "minutes": 20,
+          "drillId": "drill-run-fit",
+          "objective": "Fill assigned gaps against the scout look's run.",
+          "callLabel": "Base vs. Twins",
+          "cardIds": [
+            "card-twins-lt"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Scout cards",
+            "Pinnies (scout)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Station B — skeleton",
+          "category": "group",
+          "minutes": 20,
+          "drillId": "drill-pattern-read",
+          "objective": "Recognize the route pattern and match the threat to the zone.",
+          "callLabel": "Cover call vs. Trips",
+          "cardIds": [
+            "card-trips-rt"
+          ],
+          "groupIds": [
+            "grp-pass"
+          ],
+          "equipment": [
+            "Footballs (3)",
+            "Cones (4)",
+            "Scout cards"
+          ],
+          "notes": "",
+          "parallel": true
+        },
+        {
+          "title": "Water break",
+          "category": "break",
+          "minutes": 5,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Third-down team",
+          "category": "team",
+          "minutes": 25,
+          "drillId": "drill-team-scout",
+          "objective": "Execute the call as a unit against a sequence of scout looks.",
+          "callLabel": "3rd & medium script",
+          "cardIds": [
+            "card-doubles",
+            "card-empty-32"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Scout cards",
+            "Pinnies (scout)",
+            "Footballs (2)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Situations: call-and-check",
+          "category": "team",
+          "minutes": 10,
+          "drillId": "drill-situations",
+          "objective": "Recognize down, distance and look; get the call in and check correctly.",
+          "callLabel": "",
+          "cardIds": [
+            "card-bunch-rt"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Down markers",
+            "Scout cards",
+            "Call board"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Ball-security / takeaway circuit",
+          "category": "individual",
+          "minutes": 10,
+          "drillId": "drill-takeaway",
+          "objective": "Finish plays by attacking the ball in a controlled circuit.",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [
+            "Footballs (6)",
+            "Cones (6)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Review & wrap",
+          "category": "walkthrough",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        }
+      ]
+    },
+    {
+      "id": "tpl-thu",
+      "label": "Thursday — situations & review",
+      "dayLabel": "Thursday",
+      "description": "Situations, red zone and two-minute at controlled tempo.",
+      "startMin": 930,
+      "plannedMinutes": 100,
+      "periods": [
+        {
+          "title": "Warm-up",
+          "category": "individual",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Formation recognition flash",
+          "category": "walkthrough",
+          "minutes": 10,
+          "drillId": "drill-formation-flash",
+          "objective": "Name the formation and its strength within a three-count.",
+          "callLabel": "",
+          "cardIds": [
+            "card-pistol-wing",
+            "card-heavy",
+            "card-ace-twins-rt"
+          ],
+          "groupIds": [],
+          "equipment": [
+            "Scout card stack",
+            "Whiteboard"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Situations: call-and-check",
+          "category": "team",
+          "minutes": 20,
+          "drillId": "drill-situations",
+          "objective": "Recognize down, distance and look; get the call in and check correctly.",
+          "callLabel": "Situation script A",
+          "cardIds": [
+            "card-pistol-wing",
+            "card-heavy"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Down markers",
+            "Scout cards",
+            "Call board"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Water break",
+          "category": "break",
+          "minutes": 5,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Red zone team",
+          "category": "team",
+          "minutes": 20,
+          "drillId": "drill-team-scout",
+          "objective": "Execute the call as a unit against a sequence of scout looks.",
+          "callLabel": "Red zone script",
+          "cardIds": [
+            "card-bunch-rt",
+            "card-ace-twins-rt"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Scout cards",
+            "Pinnies (scout)",
+            "Footballs (2)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Two-minute call-and-check",
+          "category": "team",
+          "minutes": 15,
+          "drillId": "drill-situations",
+          "objective": "Recognize down, distance and look; get the call in and check correctly.",
+          "callLabel": "",
+          "cardIds": [
+            "card-doubles"
+          ],
+          "groupIds": [
+            "grp-pass"
+          ],
+          "equipment": [
+            "Down markers",
+            "Scout cards",
+            "Call board"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Review & wrap",
+          "category": "walkthrough",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        }
+      ]
+    },
+    {
+      "id": "tpl-fri",
+      "label": "Friday — pre-game walkthrough",
+      "dayLabel": "Friday",
+      "description": "Short walk-tempo review of every look.",
+      "startMin": 900,
+      "plannedMinutes": 60,
+      "periods": [
+        {
+          "title": "Alignment & assignment walkthrough",
+          "category": "walkthrough",
+          "minutes": 15,
+          "drillId": "drill-align-walk",
+          "objective": "Every defender can name alignment, key and first step against the shown look.",
+          "callLabel": "Every look once",
+          "cardIds": [
+            "card-trips-rt",
+            "card-pro-i",
+            "card-empty-32"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Cones (4)",
+            "Scout cards"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Special situations walk",
+          "category": "team",
+          "minutes": 15,
+          "drillId": "drill-situations",
+          "objective": "Recognize down, distance and look; get the call in and check correctly.",
+          "callLabel": "",
+          "cardIds": [
+            "card-heavy"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Down markers",
+            "Scout cards",
+            "Call board"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Team walkthrough",
+          "category": "team",
+          "minutes": 20,
+          "drillId": "drill-team-scout",
+          "objective": "Execute the call as a unit against a sequence of scout looks.",
+          "callLabel": "",
+          "cardIds": [
+            "card-doubles",
+            "card-bunch-rt"
+          ],
+          "groupIds": [
+            "grp-skill",
+            "grp-line"
+          ],
+          "equipment": [
+            "Scout cards",
+            "Pinnies (scout)",
+            "Footballs (2)"
+          ],
+          "notes": "",
+          "parallel": false
+        },
+        {
+          "title": "Wrap",
+          "category": "walkthrough",
+          "minutes": 10,
+          "drillId": null,
+          "objective": "",
+          "callLabel": "",
+          "cardIds": [],
+          "groupIds": [],
+          "equipment": [],
+          "notes": "",
+          "parallel": false
+        }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "id": "card-trips-rt",
+      "version": 1,
+      "title": "Trips Right — gun",
+      "lookLabel": "Trips Right (gun)",
+      "family": "trips",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 8,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "x": 68,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 80,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "z",
+            "label": "Z",
+            "x": 93,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 34,
+            "side": "O"
+          },
+          {
+            "id": "rb",
+            "label": "RB",
+            "x": 45,
+            "y": 34,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 8,
+              "y": 26
+            },
+            "to": {
+              "x": 8,
+              "y": 4
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 68,
+              "y": 27
+            },
+            "to": {
+              "x": 66,
+              "y": 8
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a3",
+            "from": {
+              "x": 80,
+              "y": 27
+            },
+            "to": {
+              "x": 86,
+              "y": 14
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a4",
+            "from": {
+              "x": 93,
+              "y": 26
+            },
+            "to": {
+              "x": 93,
+              "y": 16
+            },
+            "kind": "route",
+            "label": ""
+          }
+        ]
+      },
+      "notes": "Sample trips look to the field. Count three receivers to the right and call strength right.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Strength is to the trips side in this sample."
+      ],
+      "fictional": true,
+      "provenance": null
+    },
+    {
+      "id": "card-twins-lt",
+      "version": 1,
+      "title": "Twins Left — under center",
+      "lookLabel": "Twins Left (under center)",
+      "family": "twins",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 8,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "x": 20,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 65,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "z",
+            "label": "Z",
+            "x": 92,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 29,
+            "side": "O"
+          },
+          {
+            "id": "rb",
+            "label": "RB",
+            "x": 50,
+            "y": 37,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 50,
+              "y": 37
+            },
+            "to": {
+              "x": 44,
+              "y": 22
+            },
+            "kind": "run",
+            "label": ""
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 20,
+              "y": 27
+            },
+            "to": {
+              "x": 26,
+              "y": 12
+            },
+            "kind": "route",
+            "label": ""
+          }
+        ]
+      },
+      "notes": "Two receivers left, inline tight end right, single back. Generic run look.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Two receivers to one side, tight end to the other."
+      ],
+      "fictional": true,
+      "provenance": null
+    },
+    {
+      "id": "card-empty-32",
+      "version": 1,
+      "title": "Empty 3x2",
+      "lookLabel": "Empty 3x2",
+      "family": "empty",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 6,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "x": 18,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "f",
+            "label": "F",
+            "x": 30,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 80,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "z",
+            "label": "Z",
+            "x": 94,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 34,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 30,
+              "y": 27
+            },
+            "to": {
+              "x": 40,
+              "y": 10
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 18,
+              "y": 27
+            },
+            "to": {
+              "x": 18,
+              "y": 6
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a3",
+            "from": {
+              "x": 80,
+              "y": 27
+            },
+            "to": {
+              "x": 72,
+              "y": 12
+            },
+            "kind": "route",
+            "label": ""
+          }
+        ]
+      },
+      "notes": "No back in the backfield. Three receivers left, two right.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Empty: five eligible receivers spread out."
+      ],
+      "fictional": true,
+      "provenance": null
+    },
+    {
+      "id": "card-bunch-rt",
+      "version": 1,
+      "title": "Bunch Right — gun",
+      "lookLabel": "Bunch Right (gun)",
+      "family": "bunch",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 8,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 70,
+            "y": 26.5,
+            "side": "O"
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "x": 73,
+            "y": 29.5,
+            "side": "O"
+          },
+          {
+            "id": "z",
+            "label": "Z",
+            "x": 76,
+            "y": 26.5,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 34,
+            "side": "O"
+          },
+          {
+            "id": "rb",
+            "label": "RB",
+            "x": 55,
+            "y": 34,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 70,
+              "y": 26.5
+            },
+            "to": {
+              "x": 66,
+              "y": 10
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 73,
+              "y": 29.5
+            },
+            "to": {
+              "x": 90,
+              "y": 18
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a3",
+            "from": {
+              "x": 76,
+              "y": 26.5
+            },
+            "to": {
+              "x": 80,
+              "y": 8
+            },
+            "kind": "route",
+            "label": ""
+          }
+        ]
+      },
+      "notes": "Three receivers stacked tight to the right. Releases cross quickly.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Bunch: tight split, releases cross."
+      ],
+      "fictional": true,
+      "provenance": null
+    },
+    {
+      "id": "card-pro-i",
+      "version": 1,
+      "title": "Pro I — offset fullback",
+      "lookLabel": "Pro I (offset)",
+      "family": "i-form",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 8,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 65,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "z",
+            "label": "Z",
+            "x": 92,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 29,
+            "side": "O"
+          },
+          {
+            "id": "fb",
+            "label": "FB",
+            "x": 53,
+            "y": 33,
+            "side": "O"
+          },
+          {
+            "id": "rb",
+            "label": "RB",
+            "x": 50,
+            "y": 38,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 50,
+              "y": 38
+            },
+            "to": {
+              "x": 56,
+              "y": 20
+            },
+            "kind": "run",
+            "label": ""
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 53,
+              "y": 33
+            },
+            "to": {
+              "x": 58,
+              "y": 22
+            },
+            "kind": "block",
+            "label": "lead"
+          }
+        ]
+      },
+      "notes": "Two backs stacked, fullback offset strong. Generic downhill run look.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Two backs: count the extra blocker."
+      ],
+      "fictional": true,
+      "provenance": null
+    },
+    {
+      "id": "card-doubles",
+      "version": 1,
+      "title": "Doubles 2x2 — gun",
+      "lookLabel": "Doubles 2x2 (gun)",
+      "family": "doubles",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 8,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "x": 22,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 78,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "z",
+            "label": "Z",
+            "x": 92,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 34,
+            "side": "O"
+          },
+          {
+            "id": "rb",
+            "label": "RB",
+            "x": 45,
+            "y": 34,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 22,
+              "y": 27
+            },
+            "to": {
+              "x": 22,
+              "y": 6
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 78,
+              "y": 27
+            },
+            "to": {
+              "x": 78,
+              "y": 6
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a3",
+            "from": {
+              "x": 8,
+              "y": 26
+            },
+            "to": {
+              "x": 14,
+              "y": 16
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a4",
+            "from": {
+              "x": 92,
+              "y": 26
+            },
+            "to": {
+              "x": 86,
+              "y": 16
+            },
+            "kind": "route",
+            "label": ""
+          }
+        ]
+      },
+      "notes": "Two receivers each side, one back. Balanced passing look.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Balanced: identify the back's side."
+      ],
+      "fictional": true,
+      "provenance": null
+    },
+    {
+      "id": "card-heavy",
+      "version": 1,
+      "title": "Heavy — two tight ends",
+      "lookLabel": "Heavy (2 TE)",
+      "family": "heavy",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 10,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "y2",
+            "label": "Y2",
+            "x": 35,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 65,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "w",
+            "label": "W",
+            "x": 68,
+            "y": 29,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 29,
+            "side": "O"
+          },
+          {
+            "id": "rb",
+            "label": "RB",
+            "x": 50,
+            "y": 37,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 50,
+              "y": 37
+            },
+            "to": {
+              "x": 62,
+              "y": 20
+            },
+            "kind": "run",
+            "label": ""
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 68,
+              "y": 29
+            },
+            "to": {
+              "x": 70,
+              "y": 22
+            },
+            "kind": "block",
+            "label": ""
+          }
+        ]
+      },
+      "notes": "Tight ends on both sides plus a wing. Short-yardage sample look.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Heavy: extra blockers on both edges."
+      ],
+      "fictional": true,
+      "provenance": null
+    },
+    {
+      "id": "card-pistol-wing",
+      "version": 1,
+      "title": "Pistol — wing right",
+      "lookLabel": "Pistol Wing Right",
+      "family": "pistol",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 8,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 65,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "w",
+            "label": "W",
+            "x": 68,
+            "y": 29.5,
+            "side": "O"
+          },
+          {
+            "id": "z",
+            "label": "Z",
+            "x": 92,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 31,
+            "side": "O"
+          },
+          {
+            "id": "rb",
+            "label": "RB",
+            "x": 50,
+            "y": 37,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 68,
+              "y": 29.5
+            },
+            "to": {
+              "x": 54,
+              "y": 30
+            },
+            "kind": "motion",
+            "label": "motion"
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 50,
+              "y": 37
+            },
+            "to": {
+              "x": 44,
+              "y": 20
+            },
+            "kind": "run",
+            "label": ""
+          }
+        ]
+      },
+      "notes": "Back directly behind the QB, wing off the tight end. Motion across is common in this sample.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Motion can change strength — re-count."
+      ],
+      "fictional": true,
+      "provenance": null
+    },
+    {
+      "id": "card-ace-twins-rt",
+      "version": 1,
+      "title": "Ace — twins right",
+      "lookLabel": "Ace Twins Right",
+      "family": "ace",
+      "diagram": {
+        "width": 100,
+        "height": 60,
+        "los": 24,
+        "tokens": [
+          {
+            "id": "lt",
+            "label": "LT",
+            "x": 40,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "lg",
+            "label": "LG",
+            "x": 45,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "c",
+            "label": "C",
+            "x": 50,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rg",
+            "label": "RG",
+            "x": 55,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "rt",
+            "label": "RT",
+            "x": 60,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "x",
+            "label": "X",
+            "x": 8,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "y",
+            "label": "Y",
+            "x": 35,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "x": 78,
+            "y": 27,
+            "side": "O"
+          },
+          {
+            "id": "z",
+            "label": "Z",
+            "x": 92,
+            "y": 26,
+            "side": "O"
+          },
+          {
+            "id": "qb",
+            "label": "QB",
+            "x": 50,
+            "y": 29,
+            "side": "O"
+          },
+          {
+            "id": "rb",
+            "label": "RB",
+            "x": 50,
+            "y": 36,
+            "side": "O"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "a1",
+            "from": {
+              "x": 78,
+              "y": 27
+            },
+            "to": {
+              "x": 76,
+              "y": 10
+            },
+            "kind": "route",
+            "label": ""
+          },
+          {
+            "id": "a2",
+            "from": {
+              "x": 92,
+              "y": 26
+            },
+            "to": {
+              "x": 92,
+              "y": 12
+            },
+            "kind": "route",
+            "label": ""
+          }
+        ]
+      },
+      "notes": "Single back, tight end left, two receivers right.",
+      "cues": [
+        "REFERENCE / FICTIONAL: Tight end and twins on opposite sides."
+      ],
+      "fictional": true,
+      "provenance": null
+    }
+  ],
+  "rotations": {},
+  "clock": null
+}
