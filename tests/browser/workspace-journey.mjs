@@ -11,7 +11,18 @@ const context=await browser.newContext({viewport,reducedMotion:'reduce',acceptDo
 const watch=p=>{p.on('pageerror',e=>errors.push({url:p.url(),error:String(e)}));p.on('console',m=>{if(m.type()==='error')errors.push({url:p.url(),error:m.text()});});return p;};
 const author=watch(await context.newPage()),practice=watch(await context.newPage()),packet=watch(await context.newPage());let harness;
 const download=async(page,selector,name)=>{const event=page.waitForEvent('download');await page.locator(selector).click();const file=await event;const dest=path.join(out,name);await file.saveAs(dest);return {path:dest,suggested:file.suggestedFilename(),text:await fs.readFile(dest,'utf8')};};
-const openScheme=async()=>{await author.getByRole('button',{name:'More',exact:true}).click();await author.getByRole('menuitem',{name:'Scheme package',exact:true}).click();};
+const openScheme=async()=>{
+ // On phones the selected-player bottom sheet intentionally covers the tool rail.
+ // Use its ordinary close control before navigating to another authoring tool.
+ const inspector=author.getByRole('complementary',{name:'Selected player inspector'});
+ if(await inspector.isVisible()){
+  await author.locator('.inspector:not(.is-arming)').waitFor();
+  await inspector.getByRole('button',{name:'Close player inspector',exact:true}).click();
+  await inspector.waitFor({state:'detached'});
+ }
+ await author.getByRole('button',{name:'More',exact:true}).click();
+ await author.getByRole('menuitem',{name:'Scheme package',exact:true}).click();
+};
 const savePage=async(page,name)=>{await page.screenshot({path:path.join(out,name+'.png'),fullPage:false});const dims=await page.evaluate(()=>({viewport:innerWidth,body:document.documentElement.scrollWidth}));assert(dims.body<=dims.viewport+1,`${name} horizontal overflow ${JSON.stringify(dims)}`);};
 const leakCheck=(text,pkg)=>{const forbidden=[pkg.packageId,pkg.familyId,pkg.contentDigest,...pkg.calls.flatMap(c=>[c.callId,c.diagramRef.diagramId,c.coachKeyRef?.keyId,...c.roles.map(r=>r.roleId)]),...pkg.coachKeys.flatMap(k=>k.answers.flatMap(a=>a.answer?[a.answer]:[])),...pkg.sourceRefs.map(s=>s.sourceId)];for(const value of forbidden.filter(Boolean))assert(!text.includes(value),`private source/key value leaked: ${value.slice(0,50)}`);};
 let pkg1,pkg2,firstPacket,sourceFile,correctionFile,periodId;
