@@ -1,0 +1,12 @@
+import {spawn} from 'node:child_process';
+import {createReleaseServer} from '../server.mjs';
+const [command,...args]=process.argv.slice(2);
+if(!command)throw new Error('Expected a child command');
+const server=createReleaseServer();
+await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+const child=spawn(command,args,{stdio:'inherit',env:{...process.env,APP_URL:`http://127.0.0.1:${server.address().port}/`}});
+let stopping=false;
+const stop=()=>{if(stopping)return;stopping=true;child.kill('SIGTERM');server.close();};
+process.on('SIGTERM',stop);process.on('SIGINT',stop);
+child.once('error',error=>{console.error(error);server.close(()=>{process.exitCode=1;});});
+child.once('exit',(code,signal)=>server.close(()=>{process.exitCode=signal?1:code??1;}));

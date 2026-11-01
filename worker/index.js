@@ -1,15 +1,4 @@
-export default {
-  async fetch(request, env) {
-    const response = await env.ASSETS.fetch(request);
-    const acceptsHtml = request.headers.get("accept")?.includes("text/html");
-
-    if (response.status !== 404 || !acceptsHtml || !["GET", "HEAD"].includes(request.method)) {
-      return response;
-    }
-
-    const indexUrl = new URL(request.url);
-    indexUrl.pathname = "/index.html";
-    indexUrl.search = "";
-    return env.ASSETS.fetch(new Request(indexUrl, request));
-  },
-};
+export const normalizedPath=pathname=>{let p;try{p=decodeURIComponent(pathname);}catch{return null;}if(p.includes('\\')||p.includes('\0')||p.split('/').some(v=>v==='..'||v==='.')||p.startsWith('//'))return null;return p;};
+export const assetPath=pathname=>{const p=normalizedPath(pathname);if(p===null)return null;if(['/','/author/','/practice/','/packet/'].includes(p))return `${p}index.html`;return p;};
+export const securityHeaders={'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'",'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Cache-Control':'no-store'};
+export default {async fetch(request,env){const url=new URL(request.url);if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405,headers:{...securityHeaders,'Content-Type':'text/plain; charset=utf-8'}});if(['/author','/practice','/packet'].includes(url.pathname)){url.pathname+='/';return Response.redirect(url,308);}const p=assetPath(url.pathname);if(!p)return new Response('Not found',{status:404,headers:{...securityHeaders,'Content-Type':'text/plain; charset=utf-8'}});url.pathname=p;const response=await env.ASSETS.fetch(new Request(url,request));const headers=new Headers(response.headers);for(const[k,v]of Object.entries(securityHeaders))headers.set(k,v);return new Response(response.body,{status:response.status,headers});}};

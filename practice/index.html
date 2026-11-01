@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#16191c">
+  <title>Eldorado Eagles · Practice Week Planner — FICTIONAL prototype</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="src/ui/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#view">Skip to content</a>
+  <div id="app" data-ready="false">
+    <div class="chrome">
+    <header class="topbar">
+      <div class="brand"><a class="coach-home-link" href="/">Coach home</a>
+        <span class="brand-mark" aria-hidden="true">▤</span>
+        <span class="brand-name">Eldorado Eagles</span>
+        <span class="brand-sub">Practice Week Planner</span>
+        <span class="brand-short" aria-hidden="true">Eagles</span>
+        <span class="badge badge-fictional">FICTIONAL</span>
+      </div>
+      <div id="project-meta" class="project-meta"></div>
+      <p id="save-state" class="save-state" role="status" aria-live="polite" data-state="saved"></p>
+      <nav id="nav" class="nav" aria-label="Main"></nav>
+    </header>
+    <div id="banners" class="banners"></div>
+    </div>
+    <main id="view" class="view" tabindex="-1">
+      <p class="loading">Loading the fictional week…</p>
+    </main>
+  </div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <p id="sr-live" class="sr-only" aria-live="polite"></p>
+  <dialog id="editor" class="editor-dialog"></dialog>
+  <dialog id="confirm" class="confirm-dialog"></dialog>
+  <div id="print-root" class="print-root"></div>
+  <noscript>This planner needs JavaScript. Everything stays on this device.</noscript>
+</body>
+</html>

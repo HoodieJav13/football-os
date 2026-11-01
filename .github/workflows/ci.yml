@@ -10,6 +10,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -24,8 +27,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: lesson/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --prefix lesson
 
       # Fast, hermetic checks first: a failure here needs no browser to explain.
       - name: Unit tests
@@ -36,12 +40,12 @@ jobs:
 
       # The browser suite runs against dist/, so the build must come first --
       # and a broken build fails here rather than as a confusing timeout.
-      - name: Build
-        run: npm run build
+      - name: Build original editor
+        run: npm run build:editor
 
       - name: Verify the Sites handoff artifacts exist
         run: |
-          for artifact in dist/client/index.html dist/server/index.js dist/.openai/hosting.json; do
+          for artifact in lesson/dist/client/index.html lesson/dist/server/index.js lesson/dist/.openai/hosting.json; do
             test -f "$artifact" || { echo "missing $artifact"; exit 1; }
           done
 
@@ -49,10 +53,24 @@ jobs:
       # cross-engine rendering, so three browsers would triple the runtime for
       # no extra signal.
       - name: Install Chromium
+        working-directory: lesson
         run: npx playwright install --with-deps chromium
 
       - name: Browser tests
         run: npm run test:browser
+
+      - name: Build combined workspace
+        run: npm run build
+
+      - name: Root routing and cache boundaries
+        run: npm test
+
+      - name: Built authoring harness exclusion
+        working-directory: lesson
+        run: node --test tests/scheme-harness-exclusion.test.mjs
+
+      - name: Combined Author Practice Packet review journeys
+        run: npm run test:workflow
 
       # Screenshots are the fastest way to understand a layout failure that
       # reads as an inscrutable assertion in the log.
@@ -61,6 +79,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: failure-screenshots
-          path: test-results/
+          path: |
+            lesson/test-results/
+            verification-output/
           if-no-files-found: ignore
           retention-days: 7

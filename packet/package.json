@@ -1,0 +1,11 @@
+{
+  "name": "coaching-session-packet-companion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local FICTIONAL / REFERENCE coaching session packet companion. Zero dependencies.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "formatVersion": 1,
+  "purposes": {
+    "foundation": { "label": "Foundation", "allowNoCheck": false, "suggestedQuestions": { "read": true, "teachBack": true, "unclear": true } },
+    "reminder": { "label": "Reminder", "allowNoCheck": true, "suggestedQuestions": { "read": true, "teachBack": false, "unclear": false } },
+    "connection": { "label": "Connection", "allowNoCheck": false, "suggestedQuestions": { "read": true, "teachBack": true, "unclear": true } }
+  },
+  "questionKinds": {
+    "read": { "label": "Read / assignment", "coachJudgmentAllowed": true },
+    "teachBack": { "label": "Teach-back", "coachJudgmentAllowed": true },
+    "unclear": { "label": "What's still unclear?", "coachJudgmentAllowed": false }
+  },
+  "studyModes": {
+    "supported": { "label": "Supported study", "instruction": "Use the lesson and takeaway" },
+    "memory": { "label": "Try from memory", "instruction": "Answer before reopening the lesson; if you need help, use it" }
+  },
+  "followUpOutcomes": { "resolved": "resolved", "stillUnclear": "still unclear", "notYetChecked": "not yet checked" },
+  "nothingRightNowLabel": "Nothing right now",
+  "quizColor": "red",
+  "limits": {
+    "maxDefinitionTitleCharacters": 200,
+    "maxReferenceIds": 120,
+    "minPublishedQuestions": 1,
+    "maxQuestions": 10,
+    "minReadChoices": 2,
+    "maxReadChoices": 5,
+    "maxChoiceCharacters": 500,
+    "maxPromptCharacters": 1000,
+    "maxStableIdCharacters": 120,
+    "maxDigestCharacters": 128,
+    "maxResponseCharacters": 2000,
+    "maxRubricCharacters": 2000,
+    "maxExpectedProfiles": 120,
+    "maxAssetsPerAssignment": 4,
+    "maxImageBytes": 10485760,
+    "maxAssignmentsPerDayPublication": 3,
+    "maxTakeawayCharacters": 500,
+    "maxChangeNoticeCharacters": 2000,
+    "maxProvenanceCharacters": 2000,
+    "maxFirestoreDocumentBytes": 1048576
+  }
+}

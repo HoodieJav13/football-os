@@ -1,0 +1,37 @@
+/* Scheme package panel. Kept separate from styles.css so the existing editor is untouched. */
+.scheme-panel { display: flex; flex-direction: column; width: min(1180px, 100%); min-width: 0; max-height: calc(100dvh - 48px); overflow: hidden; border-radius: 14px; background: var(--chrome); box-shadow: 0 0 0 1px var(--line-strong), 0 28px 80px oklch(0 0 0 / 0.58); }
+.scheme-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.scheme-toolbar > div { display: flex; flex-direction: column; min-width: 0; }
+.scheme-toolbar > [role="status"] { grid-column: 1 / -1; grid-row: 2; font-size: 13px; color: var(--text-mid); }
+.scheme-toolbar > button { grid-column: 2; grid-row: 1; }
+.scheme-panel button, .scheme-panel select { min-width: 44px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--chrome-raised); font: inherit; color: var(--text); }
+.scheme-panel button:disabled, .scheme-panel select:disabled { opacity: 0.6; cursor: default; }
+.scheme-panel button:focus-visible, .scheme-panel input:focus-visible, .scheme-panel textarea:focus-visible, .scheme-panel select:focus-visible, .scheme-panel a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scheme-panel a { display: inline-flex; align-items: center; min-height: 44px; overflow-wrap: anywhere; color: var(--accent); }
+.scheme-panel input[type="file"] { min-height: 44px; max-width: 100%; min-width: 0; font: inherit; }
+.scheme-panel input[type="file"]::file-selector-button { min-height: 44px; margin-right: 8px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--chrome-raised); color: var(--text); font: inherit; }
+.scheme-toolbar .is-error, .scheme-message.is-error, .scheme-panel li.is-error { color: #e0584e; }
+.scheme-body { overflow: auto; min-height: 0; min-width: 0; padding: 12px 16px 24px; }
+.scheme-section { margin-block: 14px; }
+.scheme-section h3 { margin: 0 0 6px; font-size: 15px; }
+.scheme-section h4 { margin: 0 0 4px; font-size: 13px; }
+.scheme-section ul { margin: 0; padding-left: 18px; }
+.scheme-message { padding: 8px 10px; border-radius: 6px; background: rgba(127, 127, 127, 0.12); }
+.scheme-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block: 8px; }
+.scheme-file { display: inline-flex; flex-direction: column; gap: 4px; max-width: 100%; min-width: 0; font-size: 13px; }
+.scheme-authority { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.scheme-authority > div { padding: 8px 10px; border: 1px solid rgba(127, 127, 127, 0.3); border-radius: 6px; }
+.scheme-table-wrap { overflow-x: auto; }
+.scheme-roles { width: 100%; border-collapse: collapse; font-size: 13px; }
+.scheme-roles th, .scheme-roles td { padding: 4px; border-bottom: 1px solid rgba(127, 127, 127, 0.25); text-align: left; vertical-align: top; }
+.scheme-roles textarea { width: 100%; min-width: 130px; min-height: 72px; padding: 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--chrome-raised); color: var(--text); font: inherit; resize: vertical; }
+.scheme-roles tr.is-changed { background: rgba(241, 200, 106, 0.16); }
+.scheme-confirm, .scheme-preview { padding: 10px; border: 1px solid #f1c86a; border-radius: 6px; }
+.scheme-calls { margin-bottom: 8px; }
+.scheme-key { margin-top: 16px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+.scheme-key summary { min-height: 44px; cursor: pointer; }
+.scheme-key label { display: grid; gap: 6px; margin: 8px 0; }
+.scheme-key textarea { min-height: 72px; width: 100%; padding: 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--chrome-raised); color: var(--text); font: inherit; }
+@media (max-width: 719px) { .scheme-panel { width: 100%; } .scheme-toolbar { padding: 10px 12px; } .scheme-body { padding: 10px 12px 20px; } .scheme-authority { grid-template-columns: minmax(0, 1fr); } .scheme-actions > * { max-width: 100%; } }
+
+.scheme-panel .scheme-actions a {display:inline-flex;align-items:center;min-height:44px;padding:8px;color:inherit;}

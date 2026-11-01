@@ -4,3 +4,6 @@ dist/
 *.log
 playwright-report/
 test-results/
+
+/.env.local
+verification-output/
